@@ -1,0 +1,10 @@
+{
+  "name": "primo-maps-lambda",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Lambda functions for Primo Maps admin",
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.0.0",
+    "@aws-sdk/client-cloudfront": "^3.0.0"
+  }
+}

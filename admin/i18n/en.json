@@ -1,0 +1,46 @@
+{
+  "app": {
+    "title": "Shelf Maps Admin",
+    "logout": "Logout",
+    "language": "Language"
+  },
+  "nav": {
+    "csvEditor": "CSV Editor",
+    "svgManager": "Map Files",
+    "settings": "Settings"
+  },
+  "csv": {
+    "title": "Location Mapping Editor",
+    "description": "Manage and edit location mapping data.",
+    "save": "Save Changes",
+    "cancel": "Cancel",
+    "addRow": "Add Row",
+    "deleteRow": "Delete Row",
+    "search": "Search...",
+    "unsavedChanges": "You have unsaved changes",
+    "saveSuccess": "Changes saved successfully",
+    "saveError": "Failed to save changes"
+  },
+  "svg": {
+    "title": "Map Files",
+    "description": "Manage SVG map files.",
+    "upload": "Upload New Map",
+    "delete": "Delete",
+    "replace": "Replace",
+    "preview": "Preview",
+    "confirmDelete": "Are you sure you want to delete this file?"
+  },
+  "validation": {
+    "required": "This field is required",
+    "invalidFormat": "Invalid format",
+    "invalidRange": "Invalid range values"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "yes": "Yes",
+    "no": "No"
+  }
+}

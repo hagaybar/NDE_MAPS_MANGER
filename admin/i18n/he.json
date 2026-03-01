@@ -1,0 +1,46 @@
+{
+  "app": {
+    "title": "ניהול מפות מדפים",
+    "logout": "התנתק",
+    "language": "שפה"
+  },
+  "nav": {
+    "csvEditor": "עורך CSV",
+    "svgManager": "קבצי מפות",
+    "settings": "הגדרות"
+  },
+  "csv": {
+    "title": "עורך מיפוי מיקומים",
+    "description": "ניהול ועריכת נתוני מיפוי מיקומים.",
+    "save": "שמור שינויים",
+    "cancel": "ביטול",
+    "addRow": "הוסף שורה",
+    "deleteRow": "מחק שורה",
+    "search": "חיפוש...",
+    "unsavedChanges": "יש שינויים שלא נשמרו",
+    "saveSuccess": "השינויים נשמרו בהצלחה",
+    "saveError": "שגיאה בשמירת השינויים"
+  },
+  "svg": {
+    "title": "קבצי מפות",
+    "description": "ניהול קבצי מפות SVG.",
+    "upload": "העלה מפה חדשה",
+    "delete": "מחק",
+    "replace": "החלף",
+    "preview": "תצוגה מקדימה",
+    "confirmDelete": "האם אתה בטוח שברצונך למחוק קובץ זה?"
+  },
+  "validation": {
+    "required": "שדה חובה",
+    "invalidFormat": "פורמט לא תקין",
+    "invalidRange": "ערכי טווח לא תקינים"
+  },
+  "common": {
+    "loading": "טוען...",
+    "error": "אירעה שגיאה",
+    "confirm": "אישור",
+    "cancel": "ביטול",
+    "yes": "כן",
+    "no": "לא"
+  }
+}

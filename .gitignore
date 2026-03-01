@@ -1,0 +1,36 @@
+# Node modules
+node_modules/
+.a5c/node_modules/
+
+# Build outputs
+*.zip
+!lambda/*.zip
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test coverage
+coverage/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Playwright
+.playwright-mcp/
+
+# Babysitter runs (large files)
+.a5c/runs/
+
+# Archive (old files)
+archive/

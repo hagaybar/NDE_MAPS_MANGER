@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Primo Maps Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="styles/app.css">
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+            <h1 id="app-title" class="text-2xl font-bold text-gray-800">Primo Maps Admin</h1>
+            <div class="flex gap-2">
+                <button id="lang-en" class="lang-btn px-3 py-1 rounded border border-gray-300 text-sm font-medium transition-colors">
+                    English
+                </button>
+                <button id="lang-he" class="lang-btn active px-3 py-1 rounded border border-gray-300 text-sm font-medium transition-colors">
+                    עברית
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="bg-white border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex gap-4">
+                <button id="nav-csv" class="nav-tab active px-4 py-3 text-sm font-medium border-b-2 transition-colors" data-i18n="nav.csvEditor">
+                    CSV Editor
+                </button>
+                <button id="nav-svg" class="nav-tab px-4 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 transition-colors" data-i18n="nav.svgManager">
+                    Map Files
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="max-w-7xl mx-auto px-4 py-6">
+        <!-- CSV Editor View -->
+        <div id="csv-editor" class="view">
+            <div class="card bg-white rounded-lg shadow p-6">
+                <h2 class="text-xl font-semibold mb-4" data-i18n="csv.title">CSV Editor</h2>
+                <p class="text-gray-600" data-i18n="csv.description">Manage and edit CSV data files.</p>
+                <!-- CSV Editor content will be loaded here -->
+            </div>
+        </div>
+
+        <!-- SVG Manager View -->
+        <div id="svg-manager" class="view hidden">
+            <div class="card bg-white rounded-lg shadow p-6">
+                <h2 class="text-xl font-semibold mb-4" data-i18n="svg.title">Map Files</h2>
+                <p class="text-gray-600" data-i18n="svg.description">Manage SVG map files.</p>
+                <!-- SVG Manager content will be loaded here -->
+            </div>
+        </div>
+    </main>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed bottom-4 end-4 z-50 flex flex-col gap-2">
+        <!-- Toast notifications will be inserted here -->
+    </div>
+
+    <!-- App Script -->
+    <script type="module" src="app.js?v=3"></script>
+</body>
+</html>

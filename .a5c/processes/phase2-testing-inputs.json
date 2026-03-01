@@ -1,0 +1,6 @@
+{
+  "adminUrl": "https://d3h8i7y9p8lyw7.cloudfront.net/admin/index.html",
+  "apiEndpoint": "https://tt3xt4tr09.execute-api.us-east-1.amazonaws.com/prod",
+  "cloudFrontDomain": "d3h8i7y9p8lyw7.cloudfront.net",
+  "projectRoot": "/home/hagaybar/projects/primo_maps"
+}
