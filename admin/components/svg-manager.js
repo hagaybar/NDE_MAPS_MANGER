@@ -2,6 +2,7 @@
 import i18n from '../i18n.js?v=5';
 import { showToast } from './toast.js?v=5';
 import { getAuthHeaders, getCurrentUsername } from '../app.js?v=5';
+import { applyRoleBasedUI } from '../auth-guard.js?v=5';
 
 // Fallback translations if i18n hasn't loaded yet
 const FALLBACKS = {
@@ -49,6 +50,7 @@ export function initSVGManager() {
     container.innerHTML = renderManager();
     setupManagerEvents();
     renderGrid();
+    applyRoleBasedUI();
   });
 }
 
@@ -131,6 +133,8 @@ async function loadFiles() {
     const data = await response.json();
     svgFiles = data.files || [];
     renderGrid();
+    // Re-apply role-based UI visibility for dynamically added delete buttons
+    applyRoleBasedUI();
   } catch (error) {
     console.error('Failed to load SVG files:', error);
     gridContainer.innerHTML = `
