@@ -12,13 +12,17 @@
     <header class="bg-white shadow-sm border-b border-gray-200">
         <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
             <h1 id="app-title" class="text-2xl font-bold text-gray-800">Primo Maps Admin</h1>
-            <div class="flex gap-2">
-                <button id="lang-en" class="lang-btn px-3 py-1 rounded border border-gray-300 text-sm font-medium transition-colors">
-                    English
-                </button>
-                <button id="lang-he" class="lang-btn active px-3 py-1 rounded border border-gray-300 text-sm font-medium transition-colors">
-                    עברית
-                </button>
+            <div class="flex items-center gap-4">
+                <div class="flex gap-2">
+                    <button id="lang-en" class="lang-btn px-3 py-1 rounded border border-gray-300 text-sm font-medium transition-colors">
+                        English
+                    </button>
+                    <button id="lang-he" class="lang-btn active px-3 py-1 rounded border border-gray-300 text-sm font-medium transition-colors">
+                        עברית
+                    </button>
+                </div>
+                <!-- User Menu Container -->
+                <div id="user-menu-container"></div>
             </div>
         </div>
     </header>
@@ -32,6 +36,12 @@
                 </button>
                 <button id="nav-svg" class="nav-tab px-4 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 transition-colors" data-i18n="nav.svgManager">
                     Map Files
+                </button>
+                <button id="nav-versions" class="nav-tab px-4 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 transition-colors" data-i18n="nav.versionHistory">
+                    Version History
+                </button>
+                <button id="nav-users" class="nav-tab px-4 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 transition-colors" data-i18n="nav.users" data-role-required="admin">
+                    Users
                 </button>
             </div>
         </div>
@@ -56,6 +66,28 @@
                 <!-- SVG Manager content will be loaded here -->
             </div>
         </div>
+
+        <!-- Version History View -->
+        <div id="version-history" class="view hidden">
+            <!-- Version History content will be loaded here by the component -->
+        </div>
+
+        <!-- User Management View (Admin Only) -->
+        <div id="user-management" class="view hidden" data-role-required="admin">
+            <div class="card bg-white rounded-lg shadow p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-semibold" data-i18n="users.title">User Management</h2>
+                    <button id="add-user-btn" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                        </svg>
+                        <span data-i18n="users.addUser">Add User</span>
+                    </button>
+                </div>
+                <!-- User list will be loaded here by the component -->
+                <div id="user-list-container"></div>
+            </div>
+        </div>
     </main>
 
     <!-- Toast Notification Container -->
@@ -64,6 +96,6 @@
     </div>
 
     <!-- App Script -->
-    <script type="module" src="app.js?v=3"></script>
+    <script type="module" src="app.js?v=5"></script>
 </body>
 </html>

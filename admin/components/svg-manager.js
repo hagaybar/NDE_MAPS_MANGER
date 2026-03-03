@@ -1,6 +1,27 @@
 // SVG File Manager Component - Upload and Delete SVG Files
-import i18n from '../i18n.js?v=3';
-import { showToast } from './toast.js?v=3';
+import i18n from '../i18n.js?v=5';
+import { showToast } from './toast.js?v=5';
+import { getAuthHeaders, getCurrentUsername } from '../app.js?v=5';
+
+// Fallback translations if i18n hasn't loaded yet
+const FALLBACKS = {
+  'svg.title': { en: 'Map Files', he: 'קבצי מפות' },
+  'svg.upload': { en: 'Upload New Map', he: 'העלה מפה חדשה' },
+  'svg.delete': { en: 'Delete', he: 'מחק' },
+  'svg.preview': { en: 'Preview', he: 'תצוגה מקדימה' },
+  'svg.confirmDelete': { en: 'Are you sure you want to delete this file?', he: 'האם אתה בטוח שברצונך למחוק קובץ זה?' },
+  'common.error': { en: 'An error occurred', he: 'אירעה שגיאה' },
+  'common.loading': { en: 'Loading...', he: 'טוען...' }
+};
+
+function t(key) {
+  const value = i18n.t(key);
+  if (value === key && FALLBACKS[key]) {
+    const locale = i18n.getLocale() || 'en';
+    return FALLBACKS[key][locale] || FALLBACKS[key]['en'];
+  }
+  return value;
+}
 
 // Constants
 const API_ENDPOINT = 'https://tt3xt4tr09.execute-api.us-east-1.amazonaws.com/prod';
@@ -38,7 +59,7 @@ function renderManager() {
   return `
     <div class="card bg-white rounded-lg shadow p-6">
       <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
-        <h2 class="text-xl font-semibold text-gray-800">${escapeHtml(i18n.t('svg.title'))}</h2>
+        <h2 class="text-xl font-semibold text-gray-800">${escapeHtml(t('svg.title'))}</h2>
         <button
           id="btn-upload-toggle"
           class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2"
@@ -46,7 +67,7 @@ function renderManager() {
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
           </svg>
-          ${escapeHtml(i18n.t('svg.upload'))}
+          ${escapeHtml(t('svg.upload'))}
         </button>
       </div>
 
@@ -99,7 +120,11 @@ async function loadFiles() {
   const gridContainer = document.getElementById('svg-grid');
 
   try {
-    const response = await fetch(`${API_ENDPOINT}/api/svg`);
+    const response = await fetch(`${API_ENDPOINT}/api/svg`, {
+      headers: {
+        ...getAuthHeaders()
+      }
+    });
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -165,6 +190,7 @@ function renderGrid() {
             <button
               class="btn-delete flex-1 px-3 py-1.5 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
               data-filename="${escapeHtml(filename)}"
+              data-role-required="admin"
             >
               ${escapeHtml(i18n.t('svg.delete'))}
             </button>
@@ -285,11 +311,12 @@ async function uploadFile(file) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...getAuthHeaders()
       },
       body: JSON.stringify({
         filename: file.name,
         content: content,
-        username: 'admin'
+        username: getCurrentUsername()
       })
     });
 
@@ -329,10 +356,11 @@ async function deleteFile(filename) {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
+        ...getAuthHeaders()
       },
       body: JSON.stringify({
         filename: filename,
-        username: 'admin'
+        username: getCurrentUsername()
       })
     });
 

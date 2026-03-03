@@ -1,5 +1,7 @@
 import { S3Client, GetObjectCommand, PutObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
 import { CloudFrontClient, CreateInvalidationCommand } from '@aws-sdk/client-cloudfront';
+import { validateToken, createAuthResponse } from './auth-middleware.mjs';
+import { checkPermission } from './role-auth.mjs';
 
 const BUCKET = 'tau-cenlib-primo-assets-hagay-3602';
 const CF_DIST_ID = 'E5SR0E5GM5GSB';
@@ -61,6 +63,18 @@ export const handler = async (event) => {
     };
   }
 
+  // Validate token
+  const authResult = await validateToken(event);
+  if (!authResult.isValid) {
+    return createAuthResponse(authResult.statusCode, { error: authResult.error });
+  }
+
+  // Check permission - editor role required for write
+  const permResult = checkPermission(authResult.user, 'write');
+  if (!permResult.allowed) {
+    return createAuthResponse(403, { error: permResult.reason });
+  }
+
   try {
     // Parse request body
     let body;
@@ -80,10 +94,12 @@ export const handler = async (event) => {
       };
     }
 
-    const { filename, content, username } = body;
+    const { filename, content } = body;
+    // Extract username from authenticated user token instead of body
+    const username = authResult.user.username;
 
     // Validate required fields
-    if (!filename || !content || !username) {
+    if (!filename || !content) {
       return {
         statusCode: 400,
         headers: {
@@ -92,7 +108,7 @@ export const handler = async (event) => {
         },
         body: JSON.stringify({
           success: false,
-          error: 'Missing required fields: filename, content, and username are required',
+          error: 'Missing required fields: filename and content are required',
         }),
       };
     }

@@ -1,4 +1,6 @@
 import { S3Client, ListObjectsV2Command } from '@aws-sdk/client-s3';
+import { validateToken, createAuthResponse } from './auth-middleware.mjs';
+import { checkPermission } from './role-auth.mjs';
 
 const BUCKET = 'tau-cenlib-primo-assets-hagay-3602';
 const PREFIX = 'maps/';
@@ -19,6 +21,18 @@ export const handler = async (event) => {
       headers: CORS_HEADERS,
       body: '',
     };
+  }
+
+  // Validate token
+  const authResult = await validateToken(event);
+  if (!authResult.isValid) {
+    return createAuthResponse(authResult.statusCode, { error: authResult.error });
+  }
+
+  // Check permission - editor role required
+  const permResult = checkPermission(authResult.user, 'read');
+  if (!permResult.allowed) {
+    return createAuthResponse(403, { error: permResult.reason });
   }
 
   try {

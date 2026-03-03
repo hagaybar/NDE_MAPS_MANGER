@@ -1,6 +1,28 @@
 // CSV Editor Component - Bilingual CSV Table Editor
-import i18n from '../i18n.js?v=3';
-import { showToast } from './toast.js?v=3';
+import i18n from '../i18n.js?v=5';
+import { showToast } from './toast.js?v=5';
+import { getAuthHeaders, getCurrentUsername } from '../app.js?v=5';
+
+// Fallback translations if i18n hasn't loaded yet
+const FALLBACKS = {
+  'csv.title': { en: 'Location Mapping Editor', he: 'עורך מיפוי מיקומים' },
+  'csv.save': { en: 'Save Changes', he: 'שמור שינויים' },
+  'csv.addRow': { en: 'Add Row', he: 'הוסף שורה' },
+  'csv.search': { en: 'Search...', he: 'חיפוש...' },
+  'csv.saveSuccess': { en: 'Changes saved successfully', he: 'השינויים נשמרו בהצלחה' },
+  'csv.saveError': { en: 'Failed to save changes', he: 'שמירת השינויים נכשלה' },
+  'common.error': { en: 'An error occurred', he: 'אירעה שגיאה' },
+  'common.loading': { en: 'Loading...', he: 'טוען...' }
+};
+
+function t(key) {
+  const value = i18n.t(key);
+  if (value === key && FALLBACKS[key]) {
+    const locale = i18n.getLocale() || 'en';
+    return FALLBACKS[key][locale] || FALLBACKS[key]['en'];
+  }
+  return value;
+}
 
 // Module-level variables
 let csvData = [];
@@ -44,12 +66,12 @@ function renderEditor() {
   return `
     <div class="card bg-white rounded-lg shadow p-6">
       <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
-        <h2 class="text-xl font-semibold text-gray-800">${escapeHtml(i18n.t('csv.title'))}</h2>
+        <h2 class="text-xl font-semibold text-gray-800">${escapeHtml(t('csv.title'))}</h2>
         <div class="flex flex-wrap items-center gap-3">
           <input
             type="text"
             id="csv-search"
-            placeholder="${escapeHtml(i18n.t('csv.search'))}"
+            placeholder="${escapeHtml(t('csv.search'))}"
             class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
             dir="auto"
           >
@@ -60,7 +82,7 @@ function renderEditor() {
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
             </svg>
-            ${escapeHtml(i18n.t('csv.addRow'))}
+            ${escapeHtml(t('csv.addRow'))}
           </button>
           <button
             id="btn-save"
@@ -70,13 +92,13 @@ function renderEditor() {
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
             </svg>
-            ${escapeHtml(i18n.t('csv.save'))}
+            ${escapeHtml(t('csv.save'))}
           </button>
         </div>
       </div>
       <div id="table-container" class="overflow-x-auto">
         <div class="flex items-center justify-center py-12 text-gray-500">
-          ${escapeHtml(i18n.t('common.loading'))}
+          ${escapeHtml(t('common.loading'))}
         </div>
       </div>
     </div>
@@ -102,7 +124,7 @@ async function loadCSV() {
     console.error('Failed to load CSV:', error);
     tableContainer.innerHTML = `
       <div class="flex items-center justify-center py-12 text-red-500">
-        ${escapeHtml(i18n.t('common.error'))}: ${escapeHtml(error.message)}
+        ${escapeHtml(t('common.error'))}: ${escapeHtml(error.message)}
       </div>
     `;
   }
@@ -195,7 +217,7 @@ function renderTable() {
             </th>
           `).join('')}
           <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200 w-16">
-            ${escapeHtml(i18n.t('csv.deleteRow'))}
+            ${escapeHtml(t('csv.deleteRow'))}
           </th>
         </tr>
       </thead>
@@ -218,7 +240,8 @@ function renderTable() {
               <button
                 class="btn-delete-row p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
                 data-row="${rowIndex}"
-                title="${escapeHtml(i18n.t('csv.deleteRow'))}"
+                data-role-required="admin"
+                title="${escapeHtml(t('csv.deleteRow'))}"
               >
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
@@ -339,7 +362,7 @@ async function saveCSV() {
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
       </svg>
-      ${escapeHtml(i18n.t('common.loading'))}
+      ${escapeHtml(t('common.loading'))}
     `;
 
     const csvContent = toCSV(csvData);
@@ -348,10 +371,11 @@ async function saveCSV() {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
+        ...getAuthHeaders()
       },
       body: JSON.stringify({
         csvContent,
-        username: 'admin'
+        username: getCurrentUsername()
       })
     });
 
@@ -364,20 +388,20 @@ async function saveCSV() {
     if (result.success) {
       hasChanges = false;
       originalData = JSON.parse(JSON.stringify(csvData));
-      showToast(i18n.t('csv.saveSuccess'), 'success');
+      showToast(t('csv.saveSuccess'), 'success');
     } else {
       throw new Error(result.message || 'Save failed');
     }
   } catch (error) {
     console.error('Failed to save CSV:', error);
-    showToast(i18n.t('csv.saveError'), 'error');
+    showToast(t('csv.saveError'), 'error');
   } finally {
     saveBtn.disabled = !hasChanges;
     saveBtn.innerHTML = `
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
       </svg>
-      ${escapeHtml(i18n.t('csv.save'))}
+      ${escapeHtml(t('csv.save'))}
     `;
   }
 }

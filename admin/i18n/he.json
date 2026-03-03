@@ -4,9 +4,20 @@
     "logout": "התנתק",
     "language": "שפה"
   },
+  "auth": {
+    "login": "התחברות",
+    "logout": "התנתקות",
+    "admin": "מנהל",
+    "editor": "עורך",
+    "welcome": "שלום, {name}",
+    "loading": "טוען...",
+    "unauthorized": "נא להתחבר כדי להמשיך"
+  },
   "nav": {
     "csvEditor": "עורך CSV",
     "svgManager": "קבצי מפות",
+    "versionHistory": "היסטוריית גרסאות",
+    "users": "משתמשים",
     "settings": "הגדרות"
   },
   "csv": {
@@ -40,7 +51,79 @@
     "error": "אירעה שגיאה",
     "confirm": "אישור",
     "cancel": "ביטול",
+    "save": "שמור",
     "yes": "כן",
     "no": "לא"
+  },
+  "versions": {
+    "title": "היסטוריית גרסאות",
+    "timestamp": "תאריך",
+    "user": "משתמש",
+    "size": "גודל",
+    "restore": "שחזר",
+    "preview": "תצוגה מקדימה",
+    "noVersions": "אין גרסאות זמינות",
+    "loadError": "שגיאה בטעינת גרסאות"
+  },
+  "dialog": {
+    "restoreConfirm": "אישור שחזור",
+    "restoreWarning": "פעולה זו תשחזר את הגרסה הנבחרת. הנתונים הנוכחיים יוחלפו. לא ניתן לבטל פעולה זו.",
+    "confirm": "שחזר",
+    "cancel": "ביטול",
+    "restoring": "משחזר...",
+    "restoreSuccess": "הגרסה שוחזרה בהצלחה",
+    "restoreError": "שגיאה בשחזור הגרסה"
+  },
+  "preview": {
+    "title": "תצוגה מקדימה של גרסה",
+    "close": "סגור",
+    "restoreThis": "שחזר גרסה זו",
+    "loading": "טוען תצוגה מקדימה...",
+    "error": "שגיאה בטעינת תוכן הגרסה"
+  },
+  "diff": {
+    "title": "השוואת גרסאות",
+    "current": "נתונים נוכחיים",
+    "version": "גרסה נבחרת",
+    "added": "נוספו",
+    "removed": "הוסרו",
+    "changed": "שונו",
+    "close": "סגור",
+    "noChanges": "לא נמצאו שינויים"
+  },
+  "users": {
+    "title": "ניהול משתמשים",
+    "addUser": "הוסף משתמש",
+    "username": "שם משתמש",
+    "email": "דוא״ל",
+    "role": "תפקיד",
+    "status": "סטטוס",
+    "created": "נוצר",
+    "actions": "פעולות",
+    "edit": "עריכה",
+    "delete": "מחיקה",
+    "resetPassword": "איפוס סיסמה",
+    "enabled": "פעיל",
+    "disabled": "מושבת",
+    "forceChangePassword": "נדרש לשנות סיסמה",
+    "noUsers": "לא נמצאו משתמשים",
+    "search": "חיפוש משתמשים...",
+    "createUser": "יצירת משתמש",
+    "editUser": "עריכת משתמש",
+    "deleteUser": "מחיקת משתמש",
+    "confirmDelete": "האם אתה בטוח שברצונך למחוק משתמש זה?",
+    "typeToConfirm": "הקלד את שם המשתמש לאישור מחיקה:",
+    "createSuccess": "המשתמש נוצר בהצלחה. סיסמה זמנית נשלחה בדוא״ל.",
+    "createError": "שגיאה ביצירת המשתמש",
+    "updateSuccess": "המשתמש עודכן בהצלחה",
+    "updateError": "שגיאה בעדכון המשתמש",
+    "deleteSuccess": "המשתמש נמחק בהצלחה",
+    "deleteError": "שגיאה במחיקת המשתמש",
+    "resetSuccess": "איפוס הסיסמה הופעל. סיסמה זמנית נשלחה בדוא״ל.",
+    "resetError": "שגיאה באיפוס הסיסמה",
+    "invalidEmail": "כתובת דוא״ל לא תקינה",
+    "userExists": "משתמש כבר קיים",
+    "cannotDeleteSelf": "לא ניתן למחוק את החשבון שלך",
+    "cannotModifySelf": "לא ניתן לשנות את הרשאות המנהל שלך"
   }
 }

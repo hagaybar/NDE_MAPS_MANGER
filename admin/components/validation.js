@@ -1,4 +1,4 @@
-import i18n from '../i18n.js';
+import i18n from '../i18n.js?v=3';
 
 const VALIDATION_RULES = {
   libraryName: { required: true },

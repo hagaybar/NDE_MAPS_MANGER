@@ -1,5 +1,7 @@
 import { S3Client, GetObjectCommand, PutObjectCommand, ListObjectsV2Command, DeleteObjectsCommand } from '@aws-sdk/client-s3';
 import { CloudFrontClient, CreateInvalidationCommand } from '@aws-sdk/client-cloudfront';
+import { validateToken, createAuthResponse } from './auth-middleware.mjs';
+import { checkPermission } from './role-auth.mjs';
 
 const s3 = new S3Client({ region: 'us-east-1' });
 const cloudfront = new CloudFrontClient({ region: 'us-east-1' });
@@ -7,26 +9,52 @@ const BUCKET = 'tau-cenlib-primo-assets-hagay-3602';
 const DISTRIBUTION_ID = 'E5SR0E5GM5GSB';
 const MAX_VERSIONS = 20;
 
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'PUT, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+};
+
 export const handler = async (event) => {
+  // Handle CORS preflight
+  if (event.httpMethod === 'OPTIONS' || event.requestContext?.http?.method === 'OPTIONS') {
+    return {
+      statusCode: 200,
+      headers: CORS_HEADERS,
+      body: ''
+    };
+  }
+
+  // Validate token
+  const authResult = await validateToken(event);
+  if (!authResult.isValid) {
+    return createAuthResponse(authResult.statusCode, { error: authResult.error });
+  }
+
+  // Check permission - editor role required for write
+  const permResult = checkPermission(authResult.user, 'write');
+  if (!permResult.allowed) {
+    return createAuthResponse(403, { error: permResult.reason });
+  }
+
   try {
     // Parse request body
     const body = JSON.parse(event.body || '{}');
-    const { csvContent, username } = body;
+    const { csvContent } = body;
 
     if (!csvContent) {
       return {
         statusCode: 400,
         headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'PUT, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type'
+          ...CORS_HEADERS,
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ error: 'csvContent is required' })
       };
     }
 
-    const sanitizedUsername = (username || 'unknown').replace(/[^a-zA-Z0-9_-]/g, '_');
+    // Extract username from authenticated user token instead of body
+    const sanitizedUsername = (authResult.user.username || 'unknown').replace(/[^a-zA-Z0-9_-]/g, '_');
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const versionKey = `versions/data/mapping_${timestamp}_${sanitizedUsername}.csv`;
 
@@ -111,10 +139,8 @@ export const handler = async (event) => {
     return {
       statusCode: 200,
       headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'PUT, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type'
+        ...CORS_HEADERS,
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         success: true,
@@ -127,10 +153,8 @@ export const handler = async (event) => {
     return {
       statusCode: 500,
       headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'PUT, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type'
+        ...CORS_HEADERS,
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({ error: error.message })
     };
