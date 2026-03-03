@@ -1,0 +1,5 @@
+{
+  "applicationUrl": "http://localhost:8080",
+  "targetPassRate": 95,
+  "maxIterations": 3
+}
