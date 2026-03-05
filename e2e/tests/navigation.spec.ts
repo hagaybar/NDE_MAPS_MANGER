@@ -82,7 +82,7 @@ test.describe('Navigation', () => {
 });
 
 test.describe('Navigation - Role-based visibility', () => {
-  test('should hide Users tab for editor role', async ({ page, loginAsEditor }) => {
+  test('should hide admin-only tabs for editor role', async ({ page, loginAsEditor }) => {
     const basePage = new BasePage(page);
     await loginAsEditor();
     await mockApiResponses(page);
@@ -90,13 +90,13 @@ test.describe('Navigation - Role-based visibility', () => {
     // Wait a bit for role-based UI to apply
     await page.waitForTimeout(500);
 
-    // Users tab should be hidden for editors
+    // Admin-only tabs should be hidden for editors
     await expect(basePage.navUsersTab).toBeHidden();
+    await expect(basePage.navCsvTab).toBeHidden();
+    await expect(basePage.navVersionsTab).toBeHidden();
 
-    // Other tabs should be visible
-    await expect(basePage.navCsvTab).toBeVisible();
+    // SVG manager should be visible (view-only for editors)
     await expect(basePage.navSvgTab).toBeVisible();
-    await expect(basePage.navVersionsTab).toBeVisible();
   });
 
   test('should show Users tab for admin role', async ({ page, loginAsAdmin }) => {

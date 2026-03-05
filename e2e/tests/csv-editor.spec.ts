@@ -262,24 +262,7 @@ test.describe('CSV Editor - Save', () => {
 });
 
 test.describe('CSV Editor - Role-based access', () => {
-  test('delete buttons should be hidden for editor role', async ({ page, loginAsEditor }) => {
-    const csvEditor = new CsvEditorPage(page);
-    await mockApiResponses(page);
-    await loginAsEditor();
-    await csvEditor.navigate();
-    await csvEditor.waitForTableLoad();
-
-    // Delete buttons should be hidden for editors
-    const deleteButtons = page.locator('.btn-delete-row');
-    const count = await deleteButtons.count();
-
-    if (count > 0) {
-      // If any delete buttons exist, they should be hidden
-      for (let i = 0; i < count; i++) {
-        await expect(deleteButtons.nth(i)).toBeHidden();
-      }
-    }
-  });
+  // Note: CSV Editor is now admin-only, so no editor role tests needed
 
   test('delete buttons should be visible for admin role', async ({ page, loginAsAdmin }) => {
     const csvEditor = new CsvEditorPage(page);

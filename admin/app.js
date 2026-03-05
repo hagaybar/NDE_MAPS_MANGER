@@ -10,7 +10,7 @@ import { initVersionHistory } from './components/version-history.js?v=5';
 import { showRestoreDialog, updateRestoreDialog, hideRestoreDialog } from './components/restore-confirm-dialog.js?v=5';
 import { showVersionPreview, hideVersionPreview } from './components/version-preview.js?v=5';
 import authService from './auth-service.js?v=5';
-import authGuard from './auth-guard.js?v=5';
+import authGuard, { isAdmin } from './auth-guard.js?v=5';
 import { initUserMenu } from './components/user-menu.js?v=5';
 import { initUserManagement } from './components/user-management.js?v=5';
 import { initLocationEditor } from './components/location-editor.js?v=5';
@@ -72,8 +72,10 @@ async function init() {
         // Apply role-based UI visibility
         authGuard.applyRoleBasedUI();
 
-        // Show default view
-        showView('csv');
+        // Show default view based on role
+        // Admins see CSV editor, editors see SVG manager (view-only)
+        const defaultView = isAdmin() ? 'csv' : 'svg';
+        showView(defaultView);
 
         // Set up global error handlers
         logger.initErrorBoundary();
