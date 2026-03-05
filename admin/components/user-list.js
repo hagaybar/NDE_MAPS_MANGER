@@ -30,7 +30,13 @@ function escapeHtml(str) {
  * @returns {string} Formatted timestamp
  */
 function formatDate(timestamp, locale = 'en') {
+  if (!timestamp) {
+    return '-';
+  }
   const date = new Date(timestamp);
+  if (isNaN(date.getTime())) {
+    return '-';
+  }
   const options = {
     year: 'numeric',
     month: 'short',
@@ -287,6 +293,41 @@ class UserList {
   }
 
   /**
+   * Render range restrictions indicator
+   * @param {Object} user - User object
+   * @returns {string} HTML for restrictions indicator
+   */
+  renderRestrictionsIndicator(user) {
+    // Only show for editors with configured ranges
+    if (user.role !== 'editor' || !user.allowedRanges) {
+      return '';
+    }
+
+    const ranges = user.allowedRanges;
+    const hasRestrictions = ranges.enabled && ranges.filterGroups && ranges.filterGroups.length > 0;
+
+    if (!hasRestrictions) {
+      return '';
+    }
+
+    // Build tooltip text
+    const groupCount = ranges.filterGroups.length;
+    const tooltipText = this.t('users.hasRangeRestrictions').replace('{count}', groupCount);
+
+    return `
+      <span
+        class="inline-flex items-center ms-2 text-orange-500 cursor-help"
+        title="${escapeHtml(tooltipText)}"
+        data-testid="restrictions-indicator"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+        </svg>
+      </span>
+    `;
+  }
+
+  /**
    * Render a single user row
    * @param {Object} user - User object
    * @returns {string} HTML for user row
@@ -301,7 +342,10 @@ class UserList {
           <div class="font-medium">${escapeHtml(user.email)}</div>
         </td>
         <td class="px-4 py-3 text-sm">
-          ${this.renderRoleBadge(user.role)}
+          <div class="flex items-center">
+            ${this.renderRoleBadge(user.role)}
+            ${this.renderRestrictionsIndicator(user)}
+          </div>
         </td>
         <td class="px-4 py-3 text-sm">
           ${this.renderStatusBadge(user.status)}

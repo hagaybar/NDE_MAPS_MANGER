@@ -141,6 +141,9 @@ export async function createUser(email, role) {
  * @param {Object} updates - Updates to apply
  * @param {string} [updates.role] - New role
  * @param {boolean} [updates.enabled] - Whether user is enabled
+ * @param {Object} [updates.allowedRanges] - Editor range restrictions configuration
+ * @param {boolean} [updates.allowedRanges.enabled] - Whether range restrictions are enabled
+ * @param {Array} [updates.allowedRanges.filterGroups] - Array of filter groups defining editable ranges
  * @returns {Promise<{success: boolean, message?: string}>} Update result
  * @throws {ApiError} On API or network error
  */

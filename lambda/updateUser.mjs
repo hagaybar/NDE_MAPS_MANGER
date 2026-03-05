@@ -1,6 +1,6 @@
 /**
  * Update User Lambda Function
- * Updates user attributes (role, enable/disable) in Cognito User Pool
+ * Updates user attributes (role, enable/disable, allowedRanges) in Cognito User Pool
  * Requires admin role to access
  */
 
@@ -13,6 +13,7 @@ import {
 } from '@aws-sdk/client-cognito-identity-provider';
 import { validateToken, createAuthResponse } from './auth-middleware.mjs';
 import { checkPermission } from './role-auth.mjs';
+import { validateRangeConfig } from './range-validation.mjs';
 
 const cognito = new CognitoIdentityProviderClient({ region: process.env.AWS_REGION || 'us-east-1' });
 const USER_POOL_ID = process.env.COGNITO_USER_POOL_ID || 'us-east-1_g9q5cPhVg';
@@ -55,8 +56,8 @@ const parseAndValidateBody = (body) => {
   }
 
   // Check if body has at least one valid field
-  if (data.role === undefined && data.enabled === undefined) {
-    return { error: 'Request must include role or enabled field' };
+  if (data.role === undefined && data.enabled === undefined && data.allowedRanges === undefined) {
+    return { error: 'Request must include role, enabled, or allowedRanges field' };
   }
 
   // Validate role if provided
@@ -67,6 +68,18 @@ const parseAndValidateBody = (body) => {
   // Validate enabled if provided
   if (data.enabled !== undefined && typeof data.enabled !== 'boolean') {
     return { error: 'enabled must be a boolean value' };
+  }
+
+  // Validate allowedRanges if provided
+  if (data.allowedRanges !== undefined) {
+    // allowedRanges can be null (to clear restrictions) or a valid range config object
+    if (data.allowedRanges !== null) {
+      const rangeValidation = validateRangeConfig(data.allowedRanges);
+      if (!rangeValidation.valid) {
+        const errorMessages = rangeValidation.errors.map(e => `${e.path}: ${e.message}`).join('; ');
+        return { error: `Invalid allowedRanges configuration: ${errorMessages}` };
+      }
+    }
   }
 
   return { data };
@@ -125,7 +138,7 @@ export const handler = async (event) => {
     };
   }
 
-  const { role, enabled } = data;
+  const { role, enabled, allowedRanges } = data;
 
   // Prevent self-modification (admin cannot change own role or disable self)
   if (username === authResult.user.username) {
@@ -147,14 +160,27 @@ export const handler = async (event) => {
     });
     await cognito.send(getUserCommand);
 
-    // Update role if provided
+    // Build user attributes to update
+    const userAttributes = [];
+
+    // Add role if provided
     if (role !== undefined) {
+      userAttributes.push({ Name: 'custom:role', Value: role });
+    }
+
+    // Add allowedRanges if provided
+    if (allowedRanges !== undefined) {
+      // Store as JSON string; null clears the attribute (store as empty string)
+      const rangesValue = allowedRanges === null ? '' : JSON.stringify(allowedRanges);
+      userAttributes.push({ Name: 'custom:allowedRanges', Value: rangesValue });
+    }
+
+    // Update attributes if any were provided
+    if (userAttributes.length > 0) {
       const updateAttributesCommand = new AdminUpdateUserAttributesCommand({
         UserPoolId: USER_POOL_ID,
         Username: username,
-        UserAttributes: [
-          { Name: 'custom:role', Value: role }
-        ]
+        UserAttributes: userAttributes
       });
       await cognito.send(updateAttributesCommand);
     }

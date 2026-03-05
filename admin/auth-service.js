@@ -49,10 +49,22 @@ function extractUserFromIdToken(idTokenStr) {
     role = groups.includes('admin') ? 'admin' : 'editor';
   }
 
+  // Parse allowedRanges from custom attribute (stored as JSON string)
+  let allowedRanges = null;
+  if (payload['custom:allowedRanges']) {
+    try {
+      allowedRanges = JSON.parse(payload['custom:allowedRanges']);
+    } catch (e) {
+      console.error('Failed to parse allowedRanges:', e);
+      allowedRanges = null;
+    }
+  }
+
   return {
     username: payload['cognito:username'] || payload.email || payload.sub,
     email: payload.email || '',
-    role: role
+    role: role,
+    allowedRanges: allowedRanges
   };
 }
 
@@ -416,6 +428,17 @@ const authService = {
       return null;
     }
     return idToken;
+  },
+
+  /**
+   * Get allowed ranges for the current user (editor restrictions)
+   * @returns {object|null} - Allowed ranges config or null if not set/admin
+   */
+  getAllowedRanges() {
+    if (!this.isAuthenticated()) {
+      return null;
+    }
+    return currentUser?.allowedRanges || null;
   },
 
   /**

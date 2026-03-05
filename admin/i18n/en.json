@@ -32,7 +32,11 @@
     "search": "Search...",
     "unsavedChanges": "You have unsaved changes",
     "saveSuccess": "Changes saved successfully",
-    "saveError": "Failed to save changes"
+    "saveError": "Failed to save changes",
+    "filteredRows": "Showing {shown} of {total} rows (filtered by your permissions)",
+    "noAccess": "No Access to Data",
+    "noAccessDescription": "Your account does not have permission to edit any locations. Range restrictions are either disabled or no filter groups are defined.",
+    "contactAdmin": "Please contact an administrator to configure your access permissions."
   },
   "svg": {
     "title": "Map Files",
@@ -178,7 +182,8 @@
     "invalidEmail": "Invalid email format",
     "userExists": "User already exists",
     "cannotDeleteSelf": "Cannot delete your own account",
-    "cannotModifySelf": "Cannot modify your own admin status"
+    "cannotModifySelf": "Cannot modify your own admin status",
+    "hasRangeRestrictions": "Has {count} range restriction(s)"
   },
   "columns": {
     "libraryName": "Library Name",
@@ -326,5 +331,31 @@
     "noIssues": "No validation issues found",
     "refresh": "Refresh",
     "export": "Export"
+  },
+  "ranges": {
+    "editableRanges": "Editable Ranges",
+    "restrictionsEnabled": "Range restrictions enabled",
+    "restrictionsDisabled": "Range restrictions disabled",
+    "disabledExplanation": "When disabled, this editor cannot edit any locations. Enable range restrictions to specify which locations this editor can access.",
+    "filterGroup": "Filter Group",
+    "addFilterGroup": "Add Filter Group",
+    "removeGroup": "Remove Group",
+    "noFilterGroups": "No filter groups defined. Add a filter group to specify editable ranges.",
+    "collections": "Collections",
+    "collectionsHelp": "Select collections this editor can access. Leave empty to allow all collections.",
+    "noCollectionsAvailable": "No collections available",
+    "floors": "Floors",
+    "floorsHelp": "Select floors this editor can access. Leave empty to allow all floors.",
+    "callNumberRanges": "Call Number Ranges",
+    "callNumberHelp": "Specify call number ranges this editor can access. Leave empty to allow all call numbers.",
+    "addRange": "Add Range",
+    "removeRange": "Remove Range",
+    "noRanges": "No call number ranges defined (all call numbers allowed)",
+    "rangeStartPlaceholder": "Start",
+    "rangeEndPlaceholder": "End",
+    "validationErrors": "Validation Errors",
+    "incompleteRange": "Filter Group {group}, Range {range}: Both start and end are required",
+    "note": "Note",
+    "orLogicExplanation": "Multiple filter groups use OR logic - the editor can access locations matching ANY of the defined groups."
   }
 }

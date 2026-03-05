@@ -12,6 +12,14 @@ export interface MockUser {
   username: string;
   email: string;
   role: UserRole;
+  allowedRanges?: {
+    enabled: boolean;
+    filterGroups: Array<{
+      collections: string[];
+      floors: number[];
+      callNumberRanges: Array<{ start: string; end: string }>;
+    }>;
+  };
 }
 
 /**
@@ -26,7 +34,18 @@ export const mockUsers: Record<UserRole, MockUser> = {
   editor: {
     username: 'test-editor',
     email: 'editor@test.com',
-    role: 'editor'
+    role: 'editor',
+    // Editor with full access (no restrictions) for general tests
+    allowedRanges: {
+      enabled: true,
+      filterGroups: [
+        {
+          collections: [],  // Empty = all collections
+          floors: [],       // Empty = all floors
+          callNumberRanges: []  // Empty = all call numbers
+        }
+      ]
+    }
   },
   viewer: {
     username: 'test-viewer',
@@ -100,7 +119,8 @@ function getAuthStorageData(user: MockUser): Record<string, string> {
     'primo_maps_user': JSON.stringify({
       username: user.username,
       email: user.email,
-      role: user.role
+      role: user.role,
+      ...(user.allowedRanges && { allowedRanges: user.allowedRanges })
     })
   };
 }

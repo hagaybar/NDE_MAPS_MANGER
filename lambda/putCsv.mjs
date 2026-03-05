@@ -2,6 +2,7 @@ import { S3Client, GetObjectCommand, PutObjectCommand, ListObjectsV2Command, Del
 import { CloudFrontClient, CreateInvalidationCommand } from '@aws-sdk/client-cloudfront';
 import { validateToken, createAuthResponse } from './auth-middleware.mjs';
 import { checkPermission } from './role-auth.mjs';
+import { parseCsvContent, validateEditsAgainstRange } from './range-validation.mjs';
 
 const s3 = new S3Client({ region: 'us-east-1' });
 const cloudfront = new CloudFrontClient({ region: 'us-east-1' });
@@ -60,13 +61,14 @@ export const handler = async (event) => {
     const versionKey = `versions/data/mapping_${timestamp}_${sanitizedUsername}.csv`;
 
     // Step 1: Get current file and save as version
+    let currentContent = null;
     try {
       const getCurrentCommand = new GetObjectCommand({
         Bucket: BUCKET,
         Key: 'data/mapping.csv'
       });
       const currentResponse = await s3.send(getCurrentCommand);
-      const currentContent = await currentResponse.Body.transformToString();
+      currentContent = await currentResponse.Body.transformToString();
 
       // Save current version
       const saveVersionCommand = new PutObjectCommand({
@@ -81,6 +83,38 @@ export const handler = async (event) => {
       // If file doesn't exist yet, that's okay - skip versioning
       if (error.name !== 'NoSuchKey') {
         console.error('Error saving version:', error);
+      }
+    }
+
+    // Step 1.5: Range validation for editors (admins bypass this check)
+    const userRole = authResult.user.role;
+    const allowedRanges = authResult.user.allowedRanges;
+
+    if (userRole !== 'admin' && allowedRanges) {
+      // Editor with range restrictions - validate the edits
+      const originalRows = currentContent ? parseCsvContent(currentContent).rows : [];
+      const newRows = parseCsvContent(csvContent).rows;
+
+      const rangeValidation = validateEditsAgainstRange(originalRows, newRows, allowedRanges);
+
+      if (!rangeValidation.valid) {
+        // Build detailed error message
+        const violationMessages = rangeValidation.violations.map(v => v.message);
+        const errorMessage = `Edit rejected: You can only modify rows within your assigned range. Violations: ${violationMessages.join('; ')}`;
+
+        console.warn(`Range validation failed for user ${userIdentifier}:`, rangeValidation.violations);
+
+        return {
+          statusCode: 403,
+          headers: {
+            ...CORS_HEADERS,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            error: errorMessage,
+            violations: rangeValidation.violations
+          })
+        };
       }
     }
 

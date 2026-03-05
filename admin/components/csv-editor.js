@@ -2,7 +2,9 @@
 import i18n from '../i18n.js?v=5';
 import { showToast } from './toast.js?v=5';
 import { getAuthHeaders, getCurrentUsername } from '../app.js?v=5';
-import { applyRoleBasedUI } from '../auth-guard.js?v=5';
+import { applyRoleBasedUI, isAdmin } from '../auth-guard.js?v=5';
+import authService from '../auth-service.js?v=5';
+import { filterRowsByRange, getMatchingRowIndices } from '../utils/range-filter.js?v=5';
 
 // Fallback translations if i18n hasn't loaded yet
 const FALLBACKS = {
@@ -12,6 +14,10 @@ const FALLBACKS = {
   'csv.search': { en: 'Search...', he: 'חיפוש...' },
   'csv.saveSuccess': { en: 'Changes saved successfully', he: 'השינויים נשמרו בהצלחה' },
   'csv.saveError': { en: 'Failed to save changes', he: 'שמירת השינויים נכשלה' },
+  'csv.filteredRows': { en: 'Showing {shown} of {total} rows (filtered by your permissions)', he: 'מציג {shown} מתוך {total} שורות (מסונן לפי ההרשאות שלך)' },
+  'csv.noAccess': { en: 'No Access to Data', he: 'אין גישה לנתונים' },
+  'csv.noAccessDescription': { en: 'Your account does not have permission to edit any locations.', he: 'לחשבון שלך אין הרשאה לערוך מיקומים.' },
+  'csv.contactAdmin': { en: 'Please contact an administrator to configure your access permissions.', he: 'נא לפנות למנהל כדי להגדיר את הרשאות הגישה שלך.' },
   'common.error': { en: 'An error occurred', he: 'אירעה שגיאה' },
   'common.loading': { en: 'Loading...', he: 'טוען...' }
 };
@@ -26,9 +32,14 @@ function t(key) {
 }
 
 // Module-level variables
-let csvData = [];
-let originalData = [];
+let csvData = [];           // Data currently being edited (may be filtered for editors)
+let originalData = [];      // Original data for change detection
+let allCsvData = [];        // Complete unfiltered CSV data (for save merging)
+let originalIndices = [];   // Maps filtered row index to original row index in allCsvData
+let totalRowCount = 0;      // Total number of rows before filtering
 let hasChanges = false;
+let isFiltered = false;     // Whether data is filtered by range restrictions
+let hasNoAccess = false;    // Whether editor has no access (disabled ranges or no filter groups)
 const API_ENDPOINT = 'https://tt3xt4tr09.execute-api.us-east-1.amazonaws.com/prod';
 const CLOUDFRONT_URL = 'https://d3h8i7y9p8lyw7.cloudfront.net';
 
@@ -51,6 +62,7 @@ export function initCSVEditor() {
     const searchValue = document.getElementById('csv-search')?.value || '';
     container.innerHTML = renderEditor();
     setupEditorEvents();
+    renderFilterBanner();
     renderTable();
     applyRoleBasedUI();
     if (searchValue) {
@@ -98,6 +110,7 @@ function renderEditor() {
           </button>
         </div>
       </div>
+      <div id="filter-info-banner"></div>
       <div id="table-container" class="overflow-x-auto">
         <div class="flex items-center justify-center py-12 text-gray-500">
           ${escapeHtml(t('common.loading'))}
@@ -105,6 +118,61 @@ function renderEditor() {
       </div>
     </div>
   `;
+}
+
+/**
+ * Render the filter info banner (for editors with range restrictions)
+ */
+function renderFilterBanner() {
+  const bannerContainer = document.getElementById('filter-info-banner');
+  if (!bannerContainer) return;
+
+  // Admin users don't see the banner
+  if (isAdmin()) {
+    bannerContainer.innerHTML = '';
+    return;
+  }
+
+  // No access state
+  if (hasNoAccess) {
+    bannerContainer.innerHTML = `
+      <div class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+        <div class="flex items-center gap-3">
+          <svg class="w-5 h-5 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+          </svg>
+          <div>
+            <p class="text-red-800 font-medium">${escapeHtml(t('csv.noAccess'))}</p>
+            <p class="text-red-600 text-sm">${escapeHtml(t('csv.noAccessDescription'))}</p>
+          </div>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  // Filtered state - show count
+  if (isFiltered) {
+    const filteredCount = csvData.length;
+    const message = t('csv.filteredRows')
+      .replace('{shown}', filteredCount.toString())
+      .replace('{total}', totalRowCount.toString());
+
+    bannerContainer.innerHTML = `
+      <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+        <div class="flex items-center gap-3">
+          <svg class="w-5 h-5 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <p class="text-blue-800 text-sm">${escapeHtml(message)}</p>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  // Not filtered - clear banner
+  bannerContainer.innerHTML = '';
 }
 
 /**
@@ -119,8 +187,56 @@ async function loadCSV() {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     const text = await response.text();
-    csvData = parseCSV(text);
-    originalData = JSON.parse(JSON.stringify(csvData)); // Deep copy
+    const parsedData = parseCSV(text);
+
+    // Store full data for reference
+    allCsvData = JSON.parse(JSON.stringify(parsedData));
+    totalRowCount = parsedData.length;
+
+    // Apply filtering for editors based on their allowed ranges
+    if (!isAdmin()) {
+      const allowedRanges = authService.getAllowedRanges();
+
+      // Check if editor has no access (no ranges or disabled)
+      if (!allowedRanges || allowedRanges.enabled === false) {
+        hasNoAccess = true;
+        isFiltered = false;
+        csvData = [];
+        originalData = [];
+        originalIndices = [];
+        renderFilterBanner();
+        renderTable();
+        return;
+      }
+
+      // Check if filterGroups is empty
+      if (!Array.isArray(allowedRanges.filterGroups) || allowedRanges.filterGroups.length === 0) {
+        hasNoAccess = true;
+        isFiltered = false;
+        csvData = [];
+        originalData = [];
+        originalIndices = [];
+        renderFilterBanner();
+        renderTable();
+        return;
+      }
+
+      // Filter rows based on allowed ranges
+      hasNoAccess = false;
+      isFiltered = true;
+      originalIndices = getMatchingRowIndices(parsedData, allowedRanges);
+      csvData = originalIndices.map(idx => JSON.parse(JSON.stringify(parsedData[idx])));
+      originalData = JSON.parse(JSON.stringify(csvData));
+    } else {
+      // Admin sees all data
+      hasNoAccess = false;
+      isFiltered = false;
+      csvData = parsedData;
+      originalData = JSON.parse(JSON.stringify(csvData));
+      originalIndices = parsedData.map((_, idx) => idx);
+    }
+
+    renderFilterBanner();
     renderTable();
     // Re-apply role-based UI visibility for dynamically added delete buttons
     applyRoleBasedUI();
@@ -199,6 +315,20 @@ function parseCSVLine(line) {
  */
 function renderTable() {
   const tableContainer = document.getElementById('table-container');
+
+  // Handle no access state for editors
+  if (hasNoAccess) {
+    tableContainer.innerHTML = `
+      <div class="flex flex-col items-center justify-center py-12 text-gray-500">
+        <svg class="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+        </svg>
+        <p class="text-gray-600 font-medium">${escapeHtml(t('csv.noAccess'))}</p>
+        <p class="text-gray-400 text-sm mt-1">${escapeHtml(t('csv.contactAdmin'))}</p>
+      </div>
+    `;
+    return;
+  }
 
   if (csvData.length === 0) {
     tableContainer.innerHTML = `
@@ -325,17 +455,30 @@ function updateSaveButton() {
  * Add a new row to the table
  */
 function addRow() {
-  if (csvData.length === 0) return;
+  // Don't allow adding rows if editor has no access
+  if (hasNoAccess) return;
 
-  const headers = Object.keys(csvData[0]);
+  // Need at least one row to get headers, or use allCsvData
+  const sourceForHeaders = csvData.length > 0 ? csvData[0] : (allCsvData.length > 0 ? allCsvData[0] : null);
+  if (!sourceForHeaders) return;
+
+  const headers = Object.keys(sourceForHeaders);
   const newRow = {};
   headers.forEach(header => {
     newRow[header] = '';
   });
 
   csvData.push(newRow);
+
+  // For filtered data, track that this is a new row (not in original data)
+  // We'll add it to allCsvData during save - use -1 to indicate new row
+  if (isFiltered) {
+    originalIndices.push(-1); // -1 indicates a new row to be added
+  }
+
   markChanged();
   renderTable();
+  renderFilterBanner(); // Update row count in banner
 
   // Scroll to the new row
   const tableContainer = document.getElementById('table-container');
@@ -348,9 +491,73 @@ function addRow() {
 function deleteRow(rowIndex) {
   if (rowIndex < 0 || rowIndex >= csvData.length) return;
 
+  // For filtered data, we need to mark this row for deletion in allCsvData
+  if (isFiltered && originalIndices[rowIndex] !== -1) {
+    // Mark the original row for deletion by setting it to null
+    // We'll filter out nulls during buildFullCsvData
+    const originalIndex = originalIndices[rowIndex];
+    if (originalIndex >= 0 && originalIndex < allCsvData.length) {
+      allCsvData[originalIndex] = null; // Mark for deletion
+    }
+  }
+
   csvData.splice(rowIndex, 1);
+  originalIndices.splice(rowIndex, 1);
   markChanged();
   renderTable();
+  renderFilterBanner(); // Update row count in banner
+}
+
+/**
+ * Build the full CSV data by merging editor's changes into the complete dataset
+ * For editors with filtered access, this merges their changes back into allCsvData
+ * @returns {Object[]} Complete CSV data with editor's changes merged in
+ */
+function buildFullCsvData() {
+  // Admin sees all data - just return csvData directly
+  if (isAdmin() || !isFiltered) {
+    return csvData;
+  }
+
+  // Editor with filtered data - merge changes back into full dataset
+  // Start with allCsvData (which may have null entries for deleted rows)
+  const fullData = [];
+  const newRows = [];
+
+  // First, process existing rows (skip nulls - they were deleted)
+  allCsvData.forEach((row, idx) => {
+    if (row !== null) {
+      fullData.push(JSON.parse(JSON.stringify(row)));
+    }
+  });
+
+  // Now apply editor's changes
+  csvData.forEach((row, filteredIndex) => {
+    const originalIndex = originalIndices[filteredIndex];
+
+    if (originalIndex === -1) {
+      // New row - add to the end
+      newRows.push(JSON.parse(JSON.stringify(row)));
+    } else {
+      // Find the row in fullData by matching its position
+      // Since we removed nulls, we need to map the original index
+      let adjustedIndex = 0;
+      let nullCount = 0;
+      for (let i = 0; i < originalIndex; i++) {
+        if (allCsvData[i] === null) {
+          nullCount++;
+        }
+      }
+      adjustedIndex = originalIndex - nullCount;
+
+      if (adjustedIndex >= 0 && adjustedIndex < fullData.length) {
+        fullData[adjustedIndex] = JSON.parse(JSON.stringify(row));
+      }
+    }
+  });
+
+  // Add new rows at the end
+  return [...fullData, ...newRows];
 }
 
 /**
@@ -358,6 +565,12 @@ function deleteRow(rowIndex) {
  */
 async function saveCSV() {
   const saveBtn = document.getElementById('btn-save');
+
+  // Prevent saving if no access
+  if (hasNoAccess) {
+    showToast(t('csv.noAccess'), 'error');
+    return;
+  }
 
   try {
     saveBtn.disabled = true;
@@ -369,7 +582,9 @@ async function saveCSV() {
       ${escapeHtml(t('common.loading'))}
     `;
 
-    const csvContent = toCSV(csvData);
+    // Build full CSV data (merge editor changes for filtered views)
+    const dataToSave = buildFullCsvData();
+    const csvContent = toCSV(dataToSave);
 
     const response = await fetch(`${API_ENDPOINT}/api/csv`, {
       method: 'PUT',
@@ -392,6 +607,8 @@ async function saveCSV() {
     if (result.success) {
       hasChanges = false;
       originalData = JSON.parse(JSON.stringify(csvData));
+      // Update allCsvData to reflect saved state
+      allCsvData = JSON.parse(JSON.stringify(dataToSave));
       showToast(t('csv.saveSuccess'), 'success');
     } else {
       throw new Error(result.message || 'Save failed');

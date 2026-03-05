@@ -32,18 +32,37 @@ const getAttribute = (attributes, name) => {
 };
 
 /**
+ * Parse allowedRanges JSON string from Cognito attribute
+ * @param {string|null} rangesStr - JSON string of allowed ranges
+ * @returns {Object|null} Parsed ranges object or null
+ */
+const parseAllowedRanges = (rangesStr) => {
+  if (!rangesStr || rangesStr.trim() === '') {
+    return null;
+  }
+  try {
+    return JSON.parse(rangesStr);
+  } catch (e) {
+    console.warn('Failed to parse allowedRanges:', e.message);
+    return null;
+  }
+};
+
+/**
  * Map Cognito user to clean response format
  * @param {Object} cognitoUser - Raw Cognito user object
  * @returns {Object} Cleaned user object
  */
 const mapUser = (cognitoUser) => {
   const attributes = cognitoUser.Attributes || [];
+  const allowedRangesStr = getAttribute(attributes, 'custom:allowedRanges');
 
   return {
     username: cognitoUser.Username,
     email: getAttribute(attributes, 'email'),
     status: cognitoUser.UserStatus,
     role: getAttribute(attributes, 'custom:role'),
+    allowedRanges: parseAllowedRanges(allowedRangesStr),
     createdAt: cognitoUser.UserCreateDate ? cognitoUser.UserCreateDate.toISOString() : null,
     lastModified: cognitoUser.UserLastModifiedDate ? cognitoUser.UserLastModifiedDate.toISOString() : null
   };

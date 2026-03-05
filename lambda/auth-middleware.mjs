@@ -122,6 +122,22 @@ const verifyToken = async (token) => {
 };
 
 /**
+ * Parse allowedRanges from JWT claim
+ * @param {string|undefined} rangesStr - JSON string of allowed ranges
+ * @returns {Object|null} Parsed ranges object or null
+ */
+const parseAllowedRanges = (rangesStr) => {
+  if (!rangesStr || rangesStr.trim() === '') {
+    return null;
+  }
+  try {
+    return JSON.parse(rangesStr);
+  } catch (e) {
+    return null;
+  }
+};
+
+/**
  * Extract user information from token claims
  * @param {string} token - JWT token string
  * @returns {Promise<Object|null>} User object or null if extraction fails
@@ -139,7 +155,8 @@ export const extractUser = async (token) => {
       username: decoded['cognito:username'] || decoded.name || decoded.sub,
       role: decoded['custom:role'] || (decoded['cognito:groups'] && decoded['cognito:groups'][0]) || 'viewer',
       email: decoded.email || null,
-      sub: decoded.sub
+      sub: decoded.sub,
+      allowedRanges: parseAllowedRanges(decoded['custom:allowedRanges'])
     };
   } catch (error) {
     return null;
@@ -192,7 +209,8 @@ export const validateToken = async (event) => {
       username: payload['cognito:username'] || payload.name || payload.sub,
       role: payload['custom:role'] || (payload['cognito:groups'] && payload['cognito:groups'][0]) || 'viewer',
       email: payload.email || null,
-      sub: payload.sub
+      sub: payload.sub,
+      allowedRanges: parseAllowedRanges(payload['custom:allowedRanges'])
     };
 
     return {
