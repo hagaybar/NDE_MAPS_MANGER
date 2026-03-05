@@ -13,6 +13,8 @@ import authService from './auth-service.js?v=5';
 import authGuard from './auth-guard.js?v=5';
 import { initUserMenu } from './components/user-menu.js?v=5';
 import { initUserManagement } from './components/user-management.js?v=5';
+import { initLocationEditor } from './components/location-editor.js?v=5';
+import { initSearchBox } from './components/search-box.js?v=5';
 
 /**
  * Get authorization headers for API calls
@@ -104,6 +106,11 @@ function updateUI() {
         navUsers.textContent = i18n.t('nav.users');
     }
 
+    const navLocationEditor = document.getElementById('nav-location-editor');
+    if (navLocationEditor) {
+        navLocationEditor.textContent = i18n.t('nav.locationEditor');
+    }
+
     // Update all elements with data-i18n attribute
     document.querySelectorAll('[data-i18n]').forEach(element => {
         const key = element.getAttribute('data-i18n');
@@ -175,6 +182,14 @@ function setupEventListeners() {
     if (navUsers) {
         navUsers.addEventListener('click', () => {
             showView('users');
+        });
+    }
+
+    // Navigation - Location Editor
+    const navLocationEditor = document.getElementById('nav-location-editor');
+    if (navLocationEditor) {
+        navLocationEditor.addEventListener('click', () => {
+            showView('location-editor');
         });
     }
 
@@ -276,18 +291,21 @@ function showView(view) {
     const svgManager = document.getElementById('svg-manager');
     const versionHistory = document.getElementById('version-history');
     const userManagement = document.getElementById('user-management');
+    const locationEditor = document.getElementById('location-editor');
 
     // Get navigation elements
     const navCsv = document.getElementById('nav-csv');
     const navSvg = document.getElementById('nav-svg');
     const navVersions = document.getElementById('nav-versions');
     const navUsers = document.getElementById('nav-users');
+    const navLocationEditor = document.getElementById('nav-location-editor');
 
     // Hide all views
     if (csvEditor) csvEditor.classList.add('hidden');
     if (svgManager) svgManager.classList.add('hidden');
     if (versionHistory) versionHistory.classList.add('hidden');
     if (userManagement) userManagement.classList.add('hidden');
+    if (locationEditor) locationEditor.classList.add('hidden');
 
     // Remove active state from all nav tabs
     if (navCsv) {
@@ -305,6 +323,10 @@ function showView(view) {
     if (navUsers) {
         navUsers.classList.remove('active');
         navUsers.classList.add('border-transparent', 'text-gray-500');
+    }
+    if (navLocationEditor) {
+        navLocationEditor.classList.remove('active');
+        navLocationEditor.classList.add('border-transparent', 'text-gray-500');
     }
 
     // Show selected view and update nav state
@@ -351,6 +373,20 @@ function showView(view) {
             if (navUsers) {
                 navUsers.classList.add('active');
                 navUsers.classList.remove('border-transparent', 'text-gray-500');
+            }
+            break;
+        case 'location-editor':
+            if (locationEditor) {
+                locationEditor.classList.remove('hidden');
+                initLocationEditor();
+                // Initialize search box after location editor
+                setTimeout(() => {
+                    initSearchBox('search-box-container');
+                }, 0);
+            }
+            if (navLocationEditor) {
+                navLocationEditor.classList.add('active');
+                navLocationEditor.classList.remove('border-transparent', 'text-gray-500');
             }
             break;
         default:

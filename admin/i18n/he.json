@@ -18,7 +18,8 @@
     "svgManager": "קבצי מפות",
     "versionHistory": "היסטוריית גרסאות",
     "users": "משתמשים",
-    "settings": "הגדרות"
+    "settings": "הגדרות",
+    "locationEditor": "עורך מיקומים"
   },
   "csv": {
     "title": "עורך מיפוי מיקומים",
@@ -44,7 +45,55 @@
   "validation": {
     "required": "שדה חובה",
     "invalidFormat": "פורמט לא תקין",
-    "invalidRange": "ערכי טווח לא תקינים"
+    "invalidRange": "תחילת הטווח חייבת להיות קטנה או שווה לסוף הטווח",
+    "invalidFloor": "קומה חייבת להיות 0, 1, או 2",
+    "rangePrefixMismatch": "תחילת וסוף הטווח חייבים להיות עם אותו קידומת",
+    "duplicateKey": "רשומה כפולה: שילוב זה של טווח וקוד SVG כבר קיים",
+    "rangeOverlap": "אזהרה: טווח זה חופף לרשומה אחרת באותו אוסף",
+    "svgCodeNotFound": "אזהרה: קוד SVG זה לא נמצא במפת הקומה"
+  },
+  "search": {
+    "placeholder": "חיפוש לפי אוסף, טווח, או מדף...",
+    "noResults": "לא נמצאו תוצאות",
+    "resultsCount": "{count} תוצאות",
+    "clearSearch": "נקה חיפוש",
+    "searchTip": "טיפ: חפש לפי שם אוסף, טווח סימון, או תווית מדף"
+  },
+  "emptyState": {
+    "noData": "אין נתונים להצגה",
+    "searchFirst": "הכנס מונח חיפוש כדי למצוא מיקומים",
+    "noMatches": "אין מיקומים התואמים לחיפוש",
+    "tryDifferent": "נסה מונח חיפוש אחר",
+    "noTrash": "סל המחזור ריק",
+    "trashHint": "פריטים שנמחקו יופיעו כאן למשך 30 יום"
+  },
+  "card": {
+    "edit": "עריכה",
+    "delete": "מחיקה",
+    "restore": "שחזור",
+    "duplicate": "שכפול",
+    "moveToTrash": "העבר לסל המחזור",
+    "permanentDelete": "מחק לצמיתות",
+    "viewOnMap": "הצג במפה",
+    "expand": "הצג פרטים",
+    "collapse": "הסתר פרטים"
+  },
+  "floors": {
+    "title": "קומות",
+    "floor0": "קומת כניסה",
+    "floor1": "קומה ראשונה",
+    "floor2": "קומה שנייה",
+    "all": "כל הקומות",
+    "selectFloor": "בחר קומה"
+  },
+  "trash": {
+    "title": "סל מחזור",
+    "emptyTrash": "רוקן סל מחזור",
+    "restoreAll": "שחזר הכל",
+    "confirmEmpty": "האם אתה בטוח שברצונך למחוק לצמיתות את כל הפריטים בסל המחזור?",
+    "itemCount": "{count} פריטים בסל המחזור",
+    "deletedOn": "נמחק בתאריך {date}",
+    "expiresIn": "יימחק לצמיתות בעוד {days} ימים"
   },
   "common": {
     "loading": "טוען...",
@@ -53,7 +102,11 @@
     "cancel": "ביטול",
     "save": "שמור",
     "yes": "כן",
-    "no": "לא"
+    "no": "לא",
+    "close": "סגור",
+    "back": "חזרה",
+    "next": "הבא",
+    "previous": "הקודם"
   },
   "versions": {
     "title": "היסטוריית גרסאות",
@@ -125,5 +178,136 @@
     "userExists": "משתמש כבר קיים",
     "cannotDeleteSelf": "לא ניתן למחוק את החשבון שלך",
     "cannotModifySelf": "לא ניתן לשנות את הרשאות המנהל שלך"
+  },
+  "columns": {
+    "libraryName": "שם הספרייה",
+    "libraryNameHe": "שם הספרייה (עברית)",
+    "collectionName": "שם האוסף",
+    "collectionNameHe": "שם האוסף (עברית)",
+    "rangeStart": "תחילת טווח",
+    "rangeEnd": "סוף טווח",
+    "svgCode": "קוד SVG",
+    "description": "תיאור",
+    "descriptionHe": "תיאור (עברית)",
+    "floor": "קומה",
+    "shelfLabel": "תווית מדף",
+    "shelfLabelHe": "תווית מדף (עברית)",
+    "notes": "הערות",
+    "notesHe": "הערות (עברית)"
+  },
+  "locationEditor": {
+    "title": "עורך מיקומים",
+    "emptyState": "חפש כדי למצוא מיפויי מיקומים",
+    "loading": "טוען...",
+    "error": "שגיאה בטעינת הנתונים",
+    "addLocation": "הוסף מיקום",
+    "viewTrash": "סל מחזור",
+    "backToSearch": "חזרה לחיפוש"
+  },
+  "deleteDialog": {
+    "deleteLocation": "מחיקת מיקום",
+    "deleteConfirm": "האם אתה בטוח שברצונך למחוק מיקום זה?",
+    "moveToTrash": "העבר לסל המחזור",
+    "trashInfo": "פריט זה יועבר לסל המחזור וניתן יהיה לשחזרו תוך 30 יום."
+  },
+  "searchBox": {
+    "placeholder": "חיפוש מיקומים...",
+    "clear": "נקה חיפוש",
+    "resultsCount": "{count} תוצאות",
+    "criteria": {
+      "all": "כל השדות",
+      "callNumber": "סימן קריאה",
+      "collection": "אוסף",
+      "shelfNumber": "מספר מדף"
+    }
+  },
+  "row": {
+    "selectRow": "בחר שורה",
+    "floor": "קומה"
+  },
+  "editDialog": {
+    "editLocation": "עריכת מיקום",
+    "addLocation": "הוספת מיקום",
+    "save": "שמור",
+    "cancel": "ביטול",
+    "saving": "שומר...",
+    "unsavedChanges": "יש שינויים שלא נשמרו",
+    "discardChanges": "לבטל שינויים?",
+    "saveSuccess": "השינויים נשמרו בהצלחה",
+    "saveError": "שגיאה בשמירת השינויים"
+  },
+  "field": {
+    "library": "ספרייה",
+    "collection": "אוסף",
+    "rangeStart": "תחילת טווח",
+    "rangeEnd": "סוף טווח",
+    "floor": "קומה",
+    "svgCode": "קוד SVG",
+    "description": "תיאור",
+    "shelfLabel": "תווית מדף",
+    "notes": "הערות",
+    "english": "אנגלית",
+    "hebrew": "עברית"
+  },
+  "floor": {
+    "0": "קומת כניסה",
+    "1": "קומה ראשונה",
+    "2": "קומה שנייה"
+  },
+  "autocomplete": {
+    "noResults": "לא נמצאו קודים תואמים",
+    "selectFloor": "בחר קומה תחילה",
+    "loading": "טוען קודים..."
+  },
+  "batch": {
+    "selected": "{count} נבחרו",
+    "edit": "עריכה",
+    "delete": "מחיקה",
+    "clearSelection": "נקה",
+    "selectAll": "בחר הכל",
+    "title": "עריכה קבוצתית",
+    "selectedCount": "{count} מיקומים נבחרו",
+    "selectFields": "בחר שדות לעדכון",
+    "noFieldsSelected": "בחר לפחות שדה אחד לעדכון",
+    "apply": "החל שינויים",
+    "cancel": "ביטול",
+    "applying": "מחיל...",
+    "success": "השינויים הוחלו בהצלחה",
+    "floor": "קומה",
+    "collection": "אוסף",
+    "keepExisting": "שמור ערך קיים",
+    "confirmDelete": "האם אתה בטוח שברצונך להעביר {count} פריטים לסל המחזור?"
+  },
+  "fullTable": {
+    "title": "תצוגת טבלה מלאה",
+    "viewButton": "הצג טבלה מלאה",
+    "export": "ייצוא CSV",
+    "close": "סגור",
+    "rows": "שורות",
+    "showing": "מציג",
+    "of": "מתוך",
+    "filter": "סנן...",
+    "sortAsc": "מיון עולה",
+    "sortDesc": "מיון יורד",
+    "noData": "אין נתונים להצגה"
+  },
+  "validationPanel": {
+    "title": "בעיות תקינות",
+    "errors": "שגיאות",
+    "warnings": "אזהרות",
+    "noIssues": "לא נמצאו בעיות תקינות",
+    "goToRow": "עבור לשורה",
+    "previousIssue": "בעיה קודמת",
+    "nextIssue": "בעיה הבאה",
+    "filterErrors": "הצג שגיאות בלבד",
+    "collapse": "כווץ",
+    "expand": "הרחב"
+  },
+  "keyboard": {
+    "shortcuts": "קיצורי מקלדת",
+    "focusSearch": "מיקוד בחיפוש",
+    "save": "שמירה",
+    "closeCancel": "סגור / ביטול",
+    "selectAll": "בחר הכל"
   }
 }

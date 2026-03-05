@@ -76,7 +76,8 @@ const {
   applyRoleBasedUI,
   requireAuth,
   requireAdmin,
-  requirePermission
+  requirePermission,
+  _resetForTesting
 } = authGuardModule;
 
 describe('Auth Guard', () => {
@@ -84,6 +85,7 @@ describe('Auth Guard', () => {
     document.body.innerHTML = '';
     mockAuthService._reset();
     mockI18n.t.mockClear();
+    _resetForTesting(); // Reset module-level state
   });
 
   describe('isAuthenticated()', () => {

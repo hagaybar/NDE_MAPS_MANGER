@@ -311,3 +311,1316 @@ body {
 .border-end {
     border-inline-end: 1px solid #e5e7eb;
 }
+
+/* ===========================================
+   Location Editor Component Styles
+   =========================================== */
+.location-editor-container {
+    padding: 0;
+}
+
+/* ===========================================
+   Search Box Component Styles
+   =========================================== */
+.search-box {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem;
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    margin-block-end: 1rem;
+}
+
+.search-box-input-wrapper {
+    flex: 1;
+    min-width: 200px;
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-box-icon {
+    position: absolute;
+    inset-inline-start: 0.75rem;
+    width: 1.25rem;
+    height: 1.25rem;
+    color: #9ca3af;
+    pointer-events: none;
+}
+
+.search-box-input {
+    width: 100%;
+    padding-inline-start: 2.5rem;
+    padding-inline-end: 2.5rem;
+    padding-block: 0.625rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.search-box-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.search-box-input::placeholder {
+    color: #9ca3af;
+}
+
+.search-clear-btn {
+    position: absolute;
+    inset-inline-end: 0.5rem;
+    padding: 0.25rem;
+    background: transparent;
+    border: none;
+    border-radius: 0.25rem;
+    color: #6b7280;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s, background-color 0.15s;
+}
+
+.search-clear-btn:hover {
+    color: #374151;
+    background-color: #f3f4f6;
+}
+
+.search-clear-btn.hidden {
+    display: none;
+}
+
+.search-box-criteria-wrapper {
+    flex-shrink: 0;
+}
+
+.search-criteria-select {
+    padding-inline: 0.75rem;
+    padding-block: 0.625rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    background: white;
+    cursor: pointer;
+    min-width: 140px;
+}
+
+.search-criteria-select:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.search-results-count {
+    font-size: 0.875rem;
+    color: #6b7280;
+    padding-inline-start: 0.5rem;
+}
+
+.search-results-count.hidden {
+    display: none;
+}
+
+/* ===========================================
+   Results Container - Empty States
+   =========================================== */
+.results-container {
+    min-height: 200px;
+}
+
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 1.5rem;
+    text-align: center;
+    color: #6b7280;
+}
+
+.empty-state-icon {
+    width: 4rem;
+    height: 4rem;
+    color: #d1d5db;
+    margin-block-end: 1rem;
+}
+
+.empty-state-text {
+    font-size: 1.125rem;
+    font-weight: 500;
+    color: #4b5563;
+    margin: 0;
+}
+
+.empty-state-hint {
+    font-size: 0.875rem;
+    color: #9ca3af;
+    margin-block-start: 0.5rem;
+}
+
+.error-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 1.5rem;
+    text-align: center;
+}
+
+.error-state-icon {
+    width: 4rem;
+    height: 4rem;
+    color: #ef4444;
+    margin-block-end: 1rem;
+}
+
+.error-state-text {
+    font-size: 1rem;
+    color: #dc2626;
+    margin: 0;
+}
+
+/* ===========================================
+   Floor Groups - Collapsible Sections
+   =========================================== */
+.floor-group {
+    margin-block-end: 0.75rem;
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.floor-header {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    padding: 0.875rem 1rem;
+    background: #f8fafc;
+    border: none;
+    border-block-end: 1px solid #e2e8f0;
+    cursor: pointer;
+    text-align: start;
+    transition: background-color 0.15s;
+}
+
+.floor-header:hover {
+    background: #f1f5f9;
+}
+
+.floor-header-content {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+}
+
+.floor-title {
+    font-weight: 600;
+    font-size: 0.9375rem;
+    color: #1e293b;
+}
+
+.floor-count {
+    font-size: 0.875rem;
+    color: #64748b;
+    font-weight: 400;
+}
+
+.floor-content {
+    padding: 0.5rem;
+}
+
+.floor-content.collapsed {
+    display: none;
+}
+
+/* ===========================================
+   Collection Groups - Nested Collapsible
+   =========================================== */
+.collection-group {
+    margin-block-end: 0.5rem;
+    background: #fafafa;
+    border-radius: 0.375rem;
+    border: 1px solid #e5e7eb;
+}
+
+.collection-header {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    padding: 0.625rem 0.75rem;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    text-align: start;
+    transition: background-color 0.15s;
+}
+
+.collection-header:hover {
+    background: #f3f4f6;
+}
+
+.collection-header-content {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+.collection-title {
+    font-weight: 500;
+    font-size: 0.875rem;
+    color: #374151;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.collection-count {
+    font-size: 0.75rem;
+    color: #6b7280;
+    flex-shrink: 0;
+}
+
+.collection-content {
+    padding: 0.25rem 0.5rem 0.5rem;
+}
+
+.collection-content.collapsed {
+    display: none;
+}
+
+/* ===========================================
+   Collapse Icon Animation
+   =========================================== */
+.collapse-icon {
+    width: 1rem;
+    height: 1rem;
+    color: #6b7280;
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+}
+
+.collapse-icon.rotated {
+    transform: rotate(-90deg);
+}
+
+[dir="rtl"] .collapse-icon.rotated {
+    transform: rotate(90deg);
+}
+
+/* ===========================================
+   Location Row Component Styles
+   =========================================== */
+.location-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.625rem 0.75rem;
+    background: white;
+    border-radius: 0.375rem;
+    border: 1px solid #e5e7eb;
+    margin-block-end: 0.375rem;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.location-row:last-child {
+    margin-block-end: 0;
+}
+
+.location-row:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+/* Row Status Indicators - Left Border */
+.location-row--error {
+    border-inline-start: 3px solid #ef4444;
+}
+
+.location-row--warning {
+    border-inline-start: 3px solid #f59e0b;
+}
+
+.location-row--highlighted {
+    background: #fef3c7;
+    border-color: #fcd34d;
+    animation: highlight-pulse 0.5s ease;
+}
+
+@keyframes highlight-pulse {
+    0%, 100% { background-color: #fef3c7; }
+    50% { background-color: #fde68a; }
+}
+
+.location-row-checkbox {
+    flex-shrink: 0;
+}
+
+.row-checkbox {
+    width: 1rem;
+    height: 1rem;
+    cursor: pointer;
+    accent-color: #3b82f6;
+}
+
+.location-row-content {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.location-row-main {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.location-floor-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.125rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border-radius: 9999px;
+    flex-shrink: 0;
+}
+
+/* Floor badge colors */
+.floor-0 {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.floor-1 {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.floor-2 {
+    background: #fce7f3;
+    color: #9d174d;
+}
+
+.location-range {
+    font-weight: 500;
+    font-size: 0.875rem;
+    color: #1e293b;
+}
+
+.location-shelf {
+    font-size: 0.875rem;
+    color: #475569;
+    padding-inline-start: 0.5rem;
+    border-inline-start: 1px solid #e2e8f0;
+}
+
+.location-row-secondary {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.location-collection {
+    font-size: 0.8125rem;
+    color: #64748b;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 300px;
+}
+
+.location-svg-code {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    font-family: monospace;
+    background: #f1f5f9;
+    padding: 0.125rem 0.375rem;
+    border-radius: 0.25rem;
+}
+
+.location-row-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    flex-shrink: 0;
+}
+
+.btn-row-action {
+    padding: 0.375rem;
+    background: transparent;
+    border: none;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.15s, color 0.15s;
+}
+
+.btn-row-action svg {
+    width: 1rem;
+    height: 1rem;
+}
+
+.btn-edit {
+    color: #3b82f6;
+}
+
+.btn-edit:hover {
+    background: #dbeafe;
+    color: #2563eb;
+}
+
+.btn-delete {
+    color: #ef4444;
+}
+
+.btn-delete:hover {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+/* ===========================================
+   Compact Row Variant (for selectors)
+   =========================================== */
+.location-row-compact {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+}
+
+.location-range-compact {
+    font-weight: 500;
+    color: #374151;
+}
+
+.location-shelf-compact {
+    color: #6b7280;
+}
+
+/* ===========================================
+   Responsive Adjustments
+   =========================================== */
+@media (max-width: 640px) {
+    .search-box {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .search-box-input-wrapper {
+        min-width: 100%;
+    }
+
+    .search-criteria-select {
+        width: 100%;
+    }
+
+    .location-row {
+        flex-wrap: wrap;
+    }
+
+    .location-row-content {
+        width: 100%;
+        order: 2;
+        margin-block-start: 0.5rem;
+    }
+
+    .location-row-actions {
+        order: 1;
+        margin-inline-start: auto;
+    }
+
+    .location-collection {
+        max-width: 100%;
+    }
+}
+
+/* ===========================================
+   Edit Location Dialog Styles
+   =========================================== */
+.edit-location-overlay {
+    backdrop-filter: blur(2px);
+}
+
+/* ===========================================
+   Bilingual Field Styles
+   =========================================== */
+.bilingual-field {
+    margin-block-end: 1rem;
+}
+
+.bilingual-field-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+}
+
+.bilingual-lang-field {
+    position: relative;
+}
+
+.bilingual-lang-field span {
+    display: block;
+    font-size: 0.75rem;
+    color: #6b7280;
+    margin-block-end: 0.25rem;
+}
+
+.bilingual-input {
+    width: 100%;
+    padding-inline: 0.75rem;
+    padding-block: 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.bilingual-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.bilingual-input[dir="rtl"] {
+    text-align: right;
+}
+
+.bilingual-input[dir="ltr"] {
+    text-align: left;
+}
+
+.bilingual-input:disabled {
+    background: #f9fafb;
+    cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+    .bilingual-field-container {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ===========================================
+   SVG Autocomplete Styles
+   =========================================== */
+.svg-autocomplete-wrapper {
+    position: relative;
+}
+
+.svg-autocomplete-input {
+    width: 100%;
+    padding-inline: 0.75rem;
+    padding-block: 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    font-family: monospace;
+}
+
+.svg-autocomplete-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.svg-autocomplete-dropdown {
+    position: absolute;
+    z-index: 50;
+    width: 100%;
+    margin-block-start: 0.25rem;
+    background: white;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    max-height: 15rem;
+    overflow-y: auto;
+}
+
+.svg-autocomplete-dropdown.hidden {
+    display: none;
+}
+
+.svg-autocomplete-option {
+    padding-inline: 0.75rem;
+    padding-block: 0.5rem;
+    font-size: 0.875rem;
+    font-family: monospace;
+    cursor: pointer;
+    transition: background-color 0.1s;
+}
+
+.svg-autocomplete-option:hover {
+    background: #f0f9ff;
+}
+
+.svg-autocomplete-option.bg-blue-100 {
+    background: #dbeafe;
+}
+
+.svg-autocomplete-option[aria-selected="true"] {
+    background: #dbeafe;
+}
+
+.svg-autocomplete-option mark {
+    background: #fef08a;
+    padding: 0;
+    border-radius: 2px;
+}
+
+/* ===========================================
+   Form Field Validation States
+   =========================================== */
+.form-field {
+    margin-block-end: 1rem;
+}
+
+.form-field label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #374151;
+    margin-block-end: 0.375rem;
+}
+
+.form-field input.border-red-500,
+.form-field select.border-red-500,
+.form-field textarea.border-red-500 {
+    border-color: #ef4444;
+    background-color: #fef2f2;
+}
+
+.form-field input.border-red-500:focus,
+.form-field select.border-red-500:focus,
+.form-field textarea.border-red-500:focus {
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+/* ===========================================
+   Form Select Styles
+   =========================================== */
+.form-select {
+    width: 100%;
+    padding-inline: 0.75rem;
+    padding-block: 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    background: white;
+    cursor: pointer;
+}
+
+.form-select:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-select:disabled {
+    background: #f9fafb;
+    cursor: not-allowed;
+}
+
+/* ===========================================
+   Trash Badge Styles
+   =========================================== */
+.trash-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.25rem;
+    height: 1.25rem;
+    padding: 0 0.375rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: white;
+    background: #ef4444;
+    border-radius: 9999px;
+    margin-inline-start: 0.5rem;
+}
+
+/* ===========================================
+   Trash View Styles
+   =========================================== */
+.trash-view {
+    padding: 0;
+}
+
+.trash-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-block-end: 1rem;
+    padding-block-end: 0.75rem;
+    border-block-end: 1px solid #e5e7eb;
+}
+
+.trash-items {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.trash-item {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.trash-item:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.trash-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 2rem;
+    text-align: center;
+}
+
+/* ===========================================
+   Location Editor Action Bar
+   =========================================== */
+.location-editor-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-block-end: 0.75rem;
+    margin-block-end: 1rem;
+    border-block-end: 1px solid #e5e7eb;
+}
+
+/* ===========================================
+   Batch Action Bar Styles
+   =========================================== */
+.batch-action-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: white;
+    border-top: 1px solid #e5e7eb;
+    box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1);
+    padding: 0.75rem 1.5rem;
+    z-index: 40;
+    transform: translateY(100%);
+    transition: transform 0.2s ease;
+}
+
+.batch-action-bar.visible {
+    transform: translateY(0);
+}
+
+.batch-action-bar-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.batch-action-bar-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.batch-count {
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.batch-action-bar-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.batch-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    border: none;
+}
+
+.batch-action-btn-text {
+    background: transparent;
+    color: #6b7280;
+}
+
+.batch-action-btn-text:hover {
+    color: #374151;
+    background: #f3f4f6;
+}
+
+.batch-action-btn-primary {
+    background: #3b82f6;
+    color: white;
+}
+
+.batch-action-btn-primary:hover {
+    background: #2563eb;
+}
+
+.batch-action-btn-danger {
+    background: #ef4444;
+    color: white;
+}
+
+.batch-action-btn-danger:hover {
+    background: #dc2626;
+}
+
+/* Batch field group in dialog */
+.batch-field-group {
+    padding: 0.75rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    transition: border-color 0.15s;
+}
+
+.batch-field-group:has(input:checked) {
+    border-color: #3b82f6;
+    background: #f0f9ff;
+}
+
+/* ===========================================
+   Full Table View Styles
+   =========================================== */
+.full-table {
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+
+.full-table-header {
+    padding: 0.75rem;
+    text-align: start;
+    border-bottom: 2px solid #e5e7eb;
+    background: #f9fafb;
+    vertical-align: top;
+    min-width: 120px;
+}
+
+.full-table-header button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: inherit;
+    padding: 0;
+}
+
+.full-table-filter {
+    width: 100%;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.25rem;
+    margin-top: 0.25rem;
+}
+
+.full-table-filter:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.full-table-cell {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid #e5e7eb;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* View Full Table Button */
+.view-full-table-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: #f3f4f6;
+    color: #374151;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.view-full-table-btn:hover {
+    background: #e5e7eb;
+    border-color: #9ca3af;
+}
+
+.view-full-table-btn svg {
+    width: 1rem;
+    height: 1rem;
+}
+
+/* ===========================================
+   Validation Panel Styles
+   =========================================== */
+.validation-panel {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+    overflow: hidden;
+}
+
+.validation-panel.collapsed .validation-panel-header {
+    border-bottom: none;
+}
+
+.validation-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+    cursor: pointer;
+    border: none;
+    width: 100%;
+    text-align: start;
+}
+
+.validation-panel-header:hover {
+    background: #f3f4f6;
+}
+
+.validation-panel-title {
+    font-weight: 600;
+    color: #374151;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.validation-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+
+.validation-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.5rem;
+    height: 1.25rem;
+    padding: 0 0.375rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 9999px;
+}
+
+.validation-badge-error {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.validation-badge-warning {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.validation-panel-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid #e5e7eb;
+    background: #fafafa;
+}
+
+.validation-filter {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: #6b7280;
+    cursor: pointer;
+}
+
+.validation-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.validation-nav-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    background: white;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.validation-nav-btn:hover:not(:disabled) {
+    background: #f3f4f6;
+    border-color: #9ca3af;
+}
+
+.validation-nav-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.validation-nav-count {
+    font-size: 0.875rem;
+    color: #6b7280;
+    min-width: 3rem;
+    text-align: center;
+}
+
+.validation-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.validation-item {
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.validation-item:last-child {
+    border-bottom: none;
+}
+
+.validation-item.active {
+    background: #eff6ff;
+}
+
+.validation-item.error .validation-item-icon {
+    color: #dc2626;
+}
+
+.validation-item.warning .validation-item-icon {
+    color: #d97706;
+}
+
+.validation-item-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background: none;
+    border: none;
+    text-align: start;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.validation-item-btn:hover {
+    background: #f9fafb;
+}
+
+.validation-item-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.validation-item-label {
+    display: block;
+    font-weight: 500;
+    color: #374151;
+    font-size: 0.875rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.validation-item-message {
+    display: block;
+    font-size: 0.75rem;
+    color: #6b7280;
+    margin-top: 0.125rem;
+}
+
+.validation-item-arrow {
+    color: #9ca3af;
+    flex-shrink: 0;
+}
+
+.validation-no-issues {
+    padding: 1rem;
+    text-align: center;
+    color: #6b7280;
+    font-size: 0.875rem;
+}
+
+.validation-panel-empty {
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+}
+
+/* ===========================================
+   Focus Visible Indicators
+   =========================================== */
+:focus-visible {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[role="button"]:focus-visible {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+}
+
+/* ===========================================
+   Loading States
+   =========================================== */
+.skeleton {
+    background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.5s infinite;
+    border-radius: 0.25rem;
+}
+
+@keyframes skeleton-shimmer {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+.skeleton-text {
+    height: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.skeleton-text-sm {
+    height: 0.75rem;
+    width: 60%;
+}
+
+.btn-loading {
+    position: relative;
+    color: transparent !important;
+}
+
+.btn-loading::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 1rem;
+    height: 1rem;
+    margin: -0.5rem 0 0 -0.5rem;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: btn-spin 0.75s linear infinite;
+}
+
+@keyframes btn-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ===========================================
+   Screen Reader Only
+   =========================================== */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* ===========================================
+   Keyboard Shortcut Hints
+   =========================================== */
+.kbd {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.5rem;
+    height: 1.5rem;
+    padding: 0 0.375rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    font-family: ui-monospace, monospace;
+    background: #f3f4f6;
+    border: 1px solid #d1d5db;
+    border-radius: 0.25rem;
+    box-shadow: 0 1px 0 #d1d5db;
+}
+
+/* ===========================================
+   Row Highlight Animation
+   =========================================== */
+@keyframes row-highlight {
+    0%, 100% {
+        background-color: transparent;
+    }
+    50% {
+        background-color: #fef3c7;
+    }
+}
+
+.row-highlight {
+    animation: row-highlight 1s ease-in-out 2;
+}
+
+/* ===========================================
+   RTL Adjustments for Validation Panel
+   =========================================== */
+[dir="rtl"] .validation-item-arrow {
+    transform: rotate(180deg);
+}
+
+[dir="rtl"] .validation-nav-btn svg {
+    transform: rotate(180deg);
+}

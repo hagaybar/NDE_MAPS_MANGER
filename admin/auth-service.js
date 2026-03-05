@@ -50,7 +50,7 @@ function extractUserFromIdToken(idTokenStr) {
   }
 
   return {
-    username: payload.email || payload['cognito:username'] || payload.sub,
+    username: payload['cognito:username'] || payload.email || payload.sub,
     email: payload.email || '',
     role: role
   };

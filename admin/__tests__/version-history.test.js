@@ -495,7 +495,8 @@ describe('VersionHistory Component', () => {
       await initVersionHistory();
 
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/versions/csv')
+        expect.stringContaining('/api/versions/csv'),
+        expect.any(Object)
       );
     });
 
@@ -508,7 +509,8 @@ describe('VersionHistory Component', () => {
       await initVersionHistory({ fileType: 'svg' });
 
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/versions/svg')
+        expect.stringContaining('/api/versions/svg'),
+        expect.any(Object)
       );
     });
   });

@@ -18,7 +18,8 @@
     "svgManager": "Map Files",
     "versionHistory": "Version History",
     "users": "Users",
-    "settings": "Settings"
+    "settings": "Settings",
+    "locationEditor": "Location Editor"
   },
   "csv": {
     "title": "Location Mapping Editor",
@@ -44,7 +45,55 @@
   "validation": {
     "required": "This field is required",
     "invalidFormat": "Invalid format",
-    "invalidRange": "Invalid range values"
+    "invalidRange": "Range start must be less than or equal to range end",
+    "invalidFloor": "Floor must be 0, 1, or 2",
+    "rangePrefixMismatch": "Range start and end must have the same prefix",
+    "duplicateKey": "Duplicate entry: this combination of range and SVG code already exists",
+    "rangeOverlap": "Warning: This range overlaps with another entry in the same collection",
+    "svgCodeNotFound": "Warning: This SVG code was not found in the floor map"
+  },
+  "search": {
+    "placeholder": "Search by collection, range, or shelf...",
+    "noResults": "No results found",
+    "resultsCount": "{count} results",
+    "clearSearch": "Clear search",
+    "searchTip": "Tip: Search by collection name, call number range, or shelf label"
+  },
+  "emptyState": {
+    "noData": "No data to display",
+    "searchFirst": "Enter a search term to find locations",
+    "noMatches": "No locations match your search",
+    "tryDifferent": "Try a different search term",
+    "noTrash": "Trash is empty",
+    "trashHint": "Deleted items will appear here for 30 days"
+  },
+  "card": {
+    "edit": "Edit",
+    "delete": "Delete",
+    "restore": "Restore",
+    "duplicate": "Duplicate",
+    "moveToTrash": "Move to Trash",
+    "permanentDelete": "Delete Permanently",
+    "viewOnMap": "View on Map",
+    "expand": "Show Details",
+    "collapse": "Hide Details"
+  },
+  "floors": {
+    "title": "Floors",
+    "floor0": "Entrance Floor",
+    "floor1": "First Floor",
+    "floor2": "Second Floor",
+    "all": "All Floors",
+    "selectFloor": "Select a floor"
+  },
+  "trash": {
+    "title": "Trash",
+    "emptyTrash": "Empty Trash",
+    "restoreAll": "Restore All",
+    "confirmEmpty": "Are you sure you want to permanently delete all items in trash?",
+    "itemCount": "{count} item(s) in trash",
+    "deletedOn": "Deleted on {date}",
+    "expiresIn": "Will be permanently deleted in {days} days"
   },
   "common": {
     "loading": "Loading...",
@@ -53,7 +102,11 @@
     "cancel": "Cancel",
     "save": "Save",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous"
   },
   "versions": {
     "title": "Version History",
@@ -125,5 +178,136 @@
     "userExists": "User already exists",
     "cannotDeleteSelf": "Cannot delete your own account",
     "cannotModifySelf": "Cannot modify your own admin status"
+  },
+  "columns": {
+    "libraryName": "Library Name",
+    "libraryNameHe": "Library Name (Hebrew)",
+    "collectionName": "Collection Name",
+    "collectionNameHe": "Collection Name (Hebrew)",
+    "rangeStart": "Range Start",
+    "rangeEnd": "Range End",
+    "svgCode": "SVG Code",
+    "description": "Description",
+    "descriptionHe": "Description (Hebrew)",
+    "floor": "Floor",
+    "shelfLabel": "Shelf Label",
+    "shelfLabelHe": "Shelf Label (Hebrew)",
+    "notes": "Notes",
+    "notesHe": "Notes (Hebrew)"
+  },
+  "locationEditor": {
+    "title": "Location Editor",
+    "emptyState": "Search to find location mappings",
+    "loading": "Loading...",
+    "error": "Failed to load data",
+    "addLocation": "Add Location",
+    "viewTrash": "Trash",
+    "backToSearch": "Back to Search"
+  },
+  "deleteDialog": {
+    "deleteLocation": "Delete Location",
+    "deleteConfirm": "Are you sure you want to delete this location?",
+    "moveToTrash": "Move to Trash",
+    "trashInfo": "This item will be moved to trash and can be restored within 30 days."
+  },
+  "searchBox": {
+    "placeholder": "Search locations...",
+    "clear": "Clear search",
+    "resultsCount": "{count} results",
+    "criteria": {
+      "all": "All Fields",
+      "callNumber": "Call Number",
+      "collection": "Collection",
+      "shelfNumber": "Shelf Number"
+    }
+  },
+  "row": {
+    "selectRow": "Select row",
+    "floor": "Floor"
+  },
+  "editDialog": {
+    "editLocation": "Edit Location",
+    "addLocation": "Add Location",
+    "save": "Save",
+    "cancel": "Cancel",
+    "saving": "Saving...",
+    "unsavedChanges": "You have unsaved changes",
+    "discardChanges": "Discard changes?",
+    "saveSuccess": "Changes saved successfully",
+    "saveError": "Failed to save changes"
+  },
+  "field": {
+    "library": "Library",
+    "collection": "Collection",
+    "rangeStart": "Range Start",
+    "rangeEnd": "Range End",
+    "floor": "Floor",
+    "svgCode": "SVG Code",
+    "description": "Description",
+    "shelfLabel": "Shelf Label",
+    "notes": "Notes",
+    "english": "English",
+    "hebrew": "Hebrew"
+  },
+  "floor": {
+    "0": "Entrance Floor",
+    "1": "First Floor",
+    "2": "Second Floor"
+  },
+  "autocomplete": {
+    "noResults": "No matching codes",
+    "selectFloor": "Select a floor first",
+    "loading": "Loading codes..."
+  },
+  "batch": {
+    "selected": "{count} selected",
+    "edit": "Edit",
+    "delete": "Delete",
+    "clearSelection": "Clear",
+    "selectAll": "Select All",
+    "title": "Batch Edit",
+    "selectedCount": "{count} locations selected",
+    "selectFields": "Select fields to update",
+    "noFieldsSelected": "Select at least one field to update",
+    "apply": "Apply Changes",
+    "cancel": "Cancel",
+    "applying": "Applying...",
+    "success": "Changes applied successfully",
+    "floor": "Floor",
+    "collection": "Collection",
+    "keepExisting": "Keep existing value",
+    "confirmDelete": "Are you sure you want to move {count} items to trash?"
+  },
+  "fullTable": {
+    "title": "Full Table View",
+    "viewButton": "View Full Table",
+    "export": "Export CSV",
+    "close": "Close",
+    "rows": "rows",
+    "showing": "Showing",
+    "of": "of",
+    "filter": "Filter...",
+    "sortAsc": "Sort ascending",
+    "sortDesc": "Sort descending",
+    "noData": "No data to display"
+  },
+  "validationPanel": {
+    "title": "Validation Issues",
+    "errors": "Errors",
+    "warnings": "Warnings",
+    "noIssues": "No validation issues found",
+    "goToRow": "Go to row",
+    "previousIssue": "Previous issue",
+    "nextIssue": "Next issue",
+    "filterErrors": "Show only errors",
+    "collapse": "Collapse",
+    "expand": "Expand"
+  },
+  "keyboard": {
+    "shortcuts": "Keyboard Shortcuts",
+    "focusSearch": "Focus search",
+    "save": "Save",
+    "closeCancel": "Close / Cancel",
+    "selectAll": "Select all"
   }
 }

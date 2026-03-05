@@ -253,10 +253,10 @@ describe('CreateUserDialog Component', () => {
 
       await new Promise(resolve => setTimeout(resolve, 50));
 
-      expect(mockUserService.createUser).toHaveBeenCalledWith({
-        email: 'newuser@example.com',
-        role: 'admin'
-      });
+      expect(mockUserService.createUser).toHaveBeenCalledWith(
+        'newuser@example.com',
+        'admin'
+      );
     });
 
     test('should not call API when email is invalid', async () => {
@@ -736,10 +736,10 @@ describe('CreateUserDialog Component', () => {
 
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      expect(mockUserService.createUser).toHaveBeenCalledWith({
-        email: 'test@example.com',
-        role: 'editor'
-      });
+      expect(mockUserService.createUser).toHaveBeenCalledWith(
+        'test@example.com',
+        'editor'
+      );
     });
 
     test('should handle rapid Create button clicks', async () => {

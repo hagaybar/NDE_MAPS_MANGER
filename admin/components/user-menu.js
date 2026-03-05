@@ -70,7 +70,9 @@ function createLoginButtonHTML() {
  * @returns {string} - HTML string for user menu
  */
 function createUserMenuHTML(user) {
-  const welcomeText = t('auth.welcome', { name: user.username });
+  // Use email as display name (more recognizable than internal username)
+  const displayName = user.email || user.username;
+  const welcomeText = t('auth.welcome', { name: displayName });
   const roleText = t(`auth.${user.role}`);
   const logoutText = t('auth.logout');
   const roleBadgeColor = getRoleBadgeColor(user.role);
@@ -83,7 +85,7 @@ function createUserMenuHTML(user) {
         class="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
       >
         <span data-testid="username-display" class="text-gray-700 dark:text-gray-200 font-medium">
-          ${user.username}
+          ${displayName}
         </span>
         <span
           data-testid="role-badge"

@@ -25,6 +25,15 @@ let initialized = false;
 let currentRole = null;
 
 /**
+ * Reset auth guard state (for testing)
+ * @private
+ */
+export function _resetForTesting() {
+  initialized = false;
+  currentRole = null;
+}
+
+/**
  * Initialize the auth guard
  * Checks authentication and sets up UI visibility
  * @returns {Promise<boolean>} Whether user is authenticated

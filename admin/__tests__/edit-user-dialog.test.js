@@ -226,11 +226,10 @@ describe('EditUserDialog Component', () => {
 
       await new Promise(resolve => setTimeout(resolve, 50));
 
-      expect(mockUserService.updateUser).toHaveBeenCalledWith({
-        username: 'testuser@example.com',
-        role: 'admin',
-        enabled: true
-      });
+      expect(mockUserService.updateUser).toHaveBeenCalledWith(
+        'testuser@example.com',
+        { role: 'admin', enabled: true }
+      );
     });
 
     test('should call API with updated enabled status', async () => {
@@ -246,11 +245,10 @@ describe('EditUserDialog Component', () => {
 
       await new Promise(resolve => setTimeout(resolve, 50));
 
-      expect(mockUserService.updateUser).toHaveBeenCalledWith({
-        username: 'testuser@example.com',
-        role: 'editor',
-        enabled: false
-      });
+      expect(mockUserService.updateUser).toHaveBeenCalledWith(
+        'testuser@example.com',
+        { role: 'editor', enabled: false }
+      );
     });
   });
 

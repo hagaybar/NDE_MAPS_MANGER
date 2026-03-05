@@ -252,9 +252,9 @@ describe('DeleteUserConfirmDialog Component', () => {
 
       await new Promise(resolve => setTimeout(resolve, 50));
 
-      expect(mockUserService.deleteUser).toHaveBeenCalledWith({
-        username: 'testuser@example.com'
-      });
+      expect(mockUserService.deleteUser).toHaveBeenCalledWith(
+        'testuser@example.com'
+      );
     });
 
     test('should not call API when Delete button is disabled', async () => {

@@ -177,20 +177,19 @@ describe('UserList Component', () => {
       const headers = document.querySelectorAll('th');
       const headerTexts = Array.from(headers).map(h => h.textContent.trim());
 
-      expect(headerTexts).toContain('Username');
+      expect(headerTexts).toContain('Email');
       expect(headerTexts).toContain('Role');
       expect(headerTexts).toContain('Status');
       expect(headerTexts).toContain('Created');
       expect(headerTexts).toContain('Actions');
     });
 
-    test('should display username and email in first column', async () => {
+    test('should display email in first column', async () => {
       const container = document.getElementById('user-list');
       const userList = new UserList(container);
       await userList.init({ users: mockUsers });
 
       const usernameCell = document.querySelector('[data-testid="user-username"]');
-      expect(usernameCell.textContent).toContain('admin_user');
       expect(usernameCell.textContent).toContain('admin@example.com');
     });
 
@@ -295,7 +294,7 @@ describe('UserList Component', () => {
 
       const rows = document.querySelectorAll('[data-testid="user-row"]');
       expect(rows.length).toBe(1);
-      expect(rows[0].textContent).toContain('admin_user');
+      expect(rows[0].textContent).toContain('admin@example.com');
     });
 
     test('should filter users by email', async () => {
@@ -393,7 +392,7 @@ describe('UserList Component', () => {
 
       const rows = document.querySelectorAll('[data-testid="user-row"]');
       expect(rows.length).toBe(10);
-      expect(rows[0].textContent).toContain('user_11');
+      expect(rows[0].textContent).toContain('user11@example.com');
     });
 
     test('should navigate to previous page', async () => {
@@ -411,7 +410,7 @@ describe('UserList Component', () => {
       prevButton.click();
 
       const rows = document.querySelectorAll('[data-testid="user-row"]');
-      expect(rows[0].textContent).toContain('user_1');
+      expect(rows[0].textContent).toContain('user1@example.com');
     });
 
     test('should disable previous button on first page', async () => {
@@ -597,7 +596,7 @@ describe('UserList Component', () => {
       const headers = document.querySelectorAll('th');
       const headerTexts = Array.from(headers).map(h => h.textContent.trim());
 
-      expect(headerTexts).toContain('שם משתמש');
+      expect(headerTexts).toContain('דוא״ל');
       expect(headerTexts).toContain('תפקיד');
       expect(headerTexts).toContain('סטטוס');
     });
