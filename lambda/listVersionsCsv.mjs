@@ -25,21 +25,30 @@ const parseVersionFilename = (key) => {
   const filename = key.replace(PREFIX, '');
 
   // Pattern: mapping_{timestamp}_{username}.csv
-  // Timestamp in filename uses dashes instead of colons: 2024-01-15T10-30-00Z
-  const match = filename.match(/^mapping_(\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}Z)_(.+)\.csv$/);
+  // Timestamp in filename uses dashes instead of colons/dots: 2026-03-05T13-31-21-407Z
+  // Match with optional milliseconds: HH-MM-SS or HH-MM-SS-mmm
+  const match = filename.match(/^mapping_(\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}(?:-\d{3})?Z)_(.+)\.csv$/);
 
   if (match) {
-    // Convert timestamp back to ISO format (replace dashes with colons in time part)
+    // Convert timestamp back to ISO format
     const rawTimestamp = match[1];
     // Split at T to separate date and time
     const [datePart, timePart] = rawTimestamp.split('T');
-    // Replace dashes in time part with colons
-    const isoTimestamp = `${datePart}T${timePart.replace(/-/g, ':')}`;
+    // Time part is like: 13-31-21-407Z or 13-31-21Z
+    // Need to convert to: 13:31:21.407Z or 13:31:21Z
+    const timeMatch = timePart.match(/^(\d{2})-(\d{2})-(\d{2})(?:-(\d{3}))?Z$/);
 
-    return {
-      timestamp: isoTimestamp,
-      username: match[2]
-    };
+    if (timeMatch) {
+      const [, hours, minutes, seconds, millis] = timeMatch;
+      const isoTimestamp = millis
+        ? `${datePart}T${hours}:${minutes}:${seconds}.${millis}Z`
+        : `${datePart}T${hours}:${minutes}:${seconds}Z`;
+
+      return {
+        timestamp: isoTimestamp,
+        username: match[2]
+      };
+    }
   }
 
   // Fallback for malformed filenames

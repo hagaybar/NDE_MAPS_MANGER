@@ -1,8 +1,9 @@
 // Errors Dashboard Component - Interactive dashboard for viewing and fixing validation issues
 import i18n from '../i18n.js?v=5';
 import { validateRow, VALIDATION_ERRORS, VALIDATION_WARNINGS } from '../services/data-model.js?v=6';
-import { showEditLocationDialog, setCollections } from './edit-location-dialog.js?v=5';
+import { showEditLocationDialog, setCollections } from './edit-location-dialog.js?v=6';
 import { getAuthHeaders } from '../app.js?v=5';
+import logger from '../services/logger.js?v=1';
 
 // CloudFront URL for fetching CSV data
 const CLOUDFRONT_URL = 'https://d3h8i7y9p8lyw7.cloudfront.net';
@@ -112,12 +113,31 @@ async function loadCSVData() {
   loadError = null;
   render();
 
+  // Add cache-busting parameter to bypass CloudFront cache
+  // This ensures we get fresh data after saves (CloudFront invalidation takes time)
+  const cacheBuster = `?_t=${Date.now()}`;
+  const url = `${CLOUDFRONT_URL}/data/mapping.csv${cacheBuster}`;
+
+  logger.info('api', 'Loading CSV data from CloudFront', { url });
+
   try {
-    const response = await fetch(`${CLOUDFRONT_URL}/data/mapping.csv`);
+    const response = await fetch(url);
+
+    logger.debug('api', 'CSV fetch response received', {
+      status: response.status,
+      ok: response.ok,
+      statusText: response.statusText
+    });
+
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
     const text = await response.text();
     csvData = parseCSV(text);
+
+    logger.info('api', 'CSV data loaded successfully', {
+      rowCount: csvData.length,
+      columns: csvData.length > 0 ? Object.keys(csvData[0]).filter(k => k !== '_index').length : 0
+    });
 
     // Extract unique collections for the edit dialog
     const collections = [...new Set(csvData.map(r => r.collectionName).filter(Boolean))]
@@ -129,7 +149,11 @@ async function loadCSVData() {
 
     validateAllRows();
   } catch (error) {
-    console.error('[ErrorsDashboard] Failed to load CSV:', error);
+    logger.error('error', 'Failed to load CSV data', {
+      error: error.message,
+      errorName: error.name,
+      url: `${CLOUDFRONT_URL}/data/mapping.csv`
+    });
     loadError = error.message;
   } finally {
     isLoading = false;
@@ -235,6 +259,24 @@ function validateAllRows() {
       categorizedIssues[category].push(issue);
     });
   });
+
+  // Log validation results
+  const errorCount = allIssues.filter(i => i.type === 'error').length;
+  const warningCount = allIssues.filter(i => i.type === 'warning').length;
+  const categoryCounts = {};
+  Object.entries(categorizedIssues).forEach(([cat, issues]) => {
+    if (issues.length > 0) {
+      categoryCounts[cat] = issues.length;
+    }
+  });
+
+  logger.debug('system', 'Validation completed', {
+    totalRows: csvData.length,
+    errorCount,
+    warningCount,
+    totalIssues: allIssues.length,
+    categoryCounts
+  });
 }
 
 /**
@@ -255,50 +297,126 @@ function getStats() {
  * Save updated row to API
  */
 async function saveRow(row) {
-  try {
-    // Update the row in csvData
-    const idx = csvData.findIndex(r => r._index === row._index);
-    if (idx !== -1) {
-      csvData[idx] = { ...csvData[idx], ...row };
-    }
+  // Update the row in csvData
+  const idx = csvData.findIndex(r => r._index === row._index);
+  if (idx !== -1) {
+    csvData[idx] = { ...csvData[idx], ...row };
+  }
 
-    // Convert back to CSV and save
-    const headers = Object.keys(csvData[0]).filter(k => k !== '_index');
-    const csvLines = [headers.join(',')];
-    csvData.forEach(r => {
-      const values = headers.map(h => {
-        const val = r[h] || '';
-        return val.includes(',') || val.includes('"') ? `"${val.replace(/"/g, '""')}"` : val;
-      });
-      csvLines.push(values.join(','));
+  // Convert back to CSV format
+  const headers = Object.keys(csvData[0]).filter(k => k !== '_index');
+  const csvLines = [headers.join(',')];
+  csvData.forEach(r => {
+    const values = headers.map(h => {
+      const val = r[h] || '';
+      return val.includes(',') || val.includes('"') ? `"${val.replace(/"/g, '""')}"` : val;
     });
+    csvLines.push(values.join(','));
+  });
 
-    const response = await fetch(`${API_ENDPOINT}/api/csv`, {
+  const csvContent = csvLines.join('\n');
+
+  // Log save operation start
+  logger.info('api', 'Saving CSV data - request started', {
+    url: `${API_ENDPOINT}/api/csv`,
+    method: 'PUT',
+    rowCount: csvData.length,
+    rowIndex: row._index,
+    contentLength: csvContent.length
+  });
+
+  let response;
+  try {
+    response = await fetch(`${API_ENDPOINT}/api/csv`, {
       method: 'PUT',
       headers: {
-        'Content-Type': 'text/csv',
+        'Content-Type': 'application/json',
         ...getAuthHeaders()
       },
-      body: csvLines.join('\n')
+      body: JSON.stringify({ csvContent })
     });
-
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-    // Re-validate after save
-    validateAllRows();
-    render();
-
-    return true;
-  } catch (error) {
-    console.error('[ErrorsDashboard] Failed to save:', error);
-    return false;
+  } catch (networkError) {
+    // Log network error (Failed to fetch, etc.)
+    logger.error('error', 'Save request failed - network error', {
+      url: `${API_ENDPOINT}/api/csv`,
+      error: networkError.message,
+      errorName: networkError.name,
+      rowIndex: row._index
+    });
+    throw new Error(`Network error: ${networkError.message}`);
   }
+
+  // Log response status
+  logger.debug('api', 'Save response received', {
+    status: response.status,
+    statusText: response.statusText,
+    ok: response.ok
+  });
+
+  if (!response.ok) {
+    let errorDetail = '';
+    let errorBody = null;
+    try {
+      errorBody = await response.json();
+      errorDetail = errorBody.error || errorBody.message || '';
+    } catch (e) {
+      errorDetail = await response.text().catch(() => '');
+    }
+
+    // Log detailed error information based on status code
+    const logData = {
+      url: `${API_ENDPOINT}/api/csv`,
+      status: response.status,
+      statusText: response.statusText,
+      errorDetail,
+      errorBody,
+      rowIndex: row._index
+    };
+
+    if (response.status === 401) {
+      logger.error('error', 'Save failed - authentication error', logData);
+    } else if (response.status === 403) {
+      logger.error('error', 'Save failed - permission denied', logData);
+    } else if (response.status === 400) {
+      logger.error('error', 'Save failed - invalid request', logData);
+    } else {
+      logger.error('error', `Save failed - HTTP ${response.status}`, logData);
+    }
+
+    const errorMsg = response.status === 401 ? 'Authentication required. Please log in again.' :
+                     response.status === 403 ? 'You do not have permission to save changes.' :
+                     response.status === 400 ? `Invalid request: ${errorDetail}` :
+                     `Failed to save: Server returned ${response.status}${errorDetail ? ` - ${errorDetail}` : ''}`;
+    throw new Error(errorMsg);
+  }
+
+  const result = await response.json();
+
+  // Log successful save
+  logger.info('api', 'CSV data saved successfully', {
+    rowIndex: row._index,
+    version: result.version || 'unknown',
+    result
+  });
+
+  // Re-validate after save
+  validateAllRows();
+  render();
+
+  return true;
 }
 
 /**
  * Handle fix button click - open edit dialog
  */
 async function handleFixClick(issue) {
+  logger.userAction('click', 'Fix button', {
+    rowIndex: issue.rowIndex,
+    issueType: issue.type,
+    issueCode: issue.code,
+    category: issue.category
+  });
+
   const result = await showEditLocationDialog({
     row: { ...issue.row },
     allRows: csvData,
@@ -308,8 +426,16 @@ async function handleFixClick(issue) {
   });
 
   if (result?.saved) {
+    logger.info('user', 'Fix saved successfully', {
+      rowIndex: issue.rowIndex,
+      issueCode: issue.code
+    });
     // Refresh data after successful save
     await loadCSVData();
+  } else {
+    logger.debug('user', 'Fix dialog closed without saving', {
+      rowIndex: issue.rowIndex
+    });
   }
 }
 
@@ -562,13 +688,19 @@ function setupEventHandlers() {
   // Refresh button
   const refreshBtn = containerElement.querySelector('.refresh-btn');
   if (refreshBtn) {
-    refreshBtn.addEventListener('click', () => loadCSVData());
+    refreshBtn.addEventListener('click', () => {
+      logger.userAction('click', 'Refresh button');
+      loadCSVData();
+    });
   }
 
   // Back button
   const backBtn = containerElement.querySelector('.back-btn');
   if (backBtn) {
     backBtn.addEventListener('click', () => {
+      logger.userAction('click', 'Back to Overview button', {
+        fromCategory: currentCategory
+      });
       currentView = 'summary';
       currentCategory = null;
       render();
@@ -578,7 +710,15 @@ function setupEventHandlers() {
   // Category cards
   containerElement.querySelectorAll('.category-card').forEach(card => {
     card.addEventListener('click', () => {
-      currentCategory = card.dataset.category;
+      const category = card.dataset.category;
+      const issueCount = categorizedIssues[category]?.length || 0;
+
+      logger.userAction('click', 'Category card', {
+        category,
+        issueCount
+      });
+
+      currentCategory = category;
       currentView = 'category';
       render();
     });
@@ -618,9 +758,13 @@ function setupEventHandlers() {
 export function initErrorsDashboard(containerId) {
   const container = document.getElementById(containerId);
   if (!container) {
-    console.error(`[ErrorsDashboard] Container with id "${containerId}" not found`);
+    logger.error('system', 'Failed to initialize errors dashboard - container not found', {
+      containerId
+    });
     return null;
   }
+
+  logger.info('system', 'Errors dashboard initialized', { containerId });
 
   containerElement = container;
   currentView = 'summary';
@@ -635,6 +779,7 @@ export function initErrorsDashboard(containerId) {
     refresh: loadCSVData,
     getStats,
     destroy: () => {
+      logger.debug('system', 'Errors dashboard destroyed');
       containerElement = null;
       csvData = [];
       allIssues = [];

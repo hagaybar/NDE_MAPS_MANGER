@@ -249,14 +249,16 @@ export function parseRangeValue(rangeValue) {
     return { numeric, prefix, original };
   }
 
-  // Handle Dewey with parentheses like "396(44)" or "677(54)"
+  // Handle Dewey with parentheses like "320(5694)" or "677.54(44)"
+  // The parenthetical number is a sub-classification that comes AFTER the base number
+  // but BEFORE any decimal extension. Example ordering: 320 < 320(5694) < 320(5800) < 320.1
   const deweyMatch = original.match(/^(\d+(?:\.\d+)?)\((\d+)\)$/);
   if (deweyMatch) {
-    // Treat parenthetical as sub-classification
     const mainNum = parseFloat(deweyMatch[1]);
     const subNum = parseFloat(deweyMatch[2]);
-    // Combine as decimal for comparison: 396(44) becomes 396.44
-    const combined = mainNum + (subNum / 1000);
+    // Divide by 10,000,000 to ensure parenthetical value stays within 0.01 of main number
+    // This preserves ordering: 320(5694) = 320.0005694 < 320.1
+    const combined = mainNum + (subNum / 10000000);
     return { numeric: combined, prefix: '', original };
   }
 
@@ -270,10 +272,18 @@ export function parseRangeValue(rangeValue) {
 }
 
 /**
- * Checks if two ranges overlap
+ * Checks if two ranges have a problematic overlap (interior overlap, not just boundary touch)
+ *
+ * Legitimate cases (returns false):
+ * - Boundary touch: "870.9-873" and "873-880.82" (end of A = start of B)
+ * - Identical ranges: "905-905" and "905-905" (same shelf classification, different cutters)
+ *
+ * Problematic overlap (returns true):
+ * - Interior overlap: "100-110" and "109-111" (109-110 overlaps)
+ *
  * @param {Object} range1 - First range with start and end properties
  * @param {Object} range2 - Second range with start and end properties
- * @returns {boolean} True if ranges overlap
+ * @returns {boolean} True if ranges have problematic interior overlap
  */
 export function doRangesOverlap(range1, range2) {
   const start1 = parseRangeValue(range1.start);
@@ -292,8 +302,15 @@ export function doRangesOverlap(range1, range2) {
     return false;
   }
 
-  // Ranges overlap if: start1 <= end2 AND start2 <= end1
-  return start1.numeric <= end2.numeric && start2.numeric <= end1.numeric;
+  // Identical ranges are OK (multiple shelves for same classification with different cutters)
+  if (start1.numeric === start2.numeric && end1.numeric === end2.numeric) {
+    return false;
+  }
+
+  // Check for interior overlap using strict inequalities
+  // Boundary touch (end1 = start2 or end2 = start1) is NOT a problematic overlap
+  // Interior overlap exists when: start1 < end2 AND start2 < end1
+  return start1.numeric < end2.numeric && start2.numeric < end1.numeric;
 }
 
 /**

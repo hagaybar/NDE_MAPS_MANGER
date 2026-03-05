@@ -53,8 +53,9 @@ export const handler = async (event) => {
       };
     }
 
-    // Extract username from authenticated user token instead of body
-    const sanitizedUsername = (authResult.user.username || 'unknown').replace(/[^a-zA-Z0-9_-]/g, '_');
+    // Extract email from authenticated user token (fallback to username if no email)
+    const userIdentifier = authResult.user.email || authResult.user.username || 'unknown';
+    const sanitizedUsername = userIdentifier.replace(/[^a-zA-Z0-9_@.-]/g, '_');
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const versionKey = `versions/data/mapping_${timestamp}_${sanitizedUsername}.csv`;
 

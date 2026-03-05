@@ -15,7 +15,9 @@ import { initUserMenu } from './components/user-menu.js?v=5';
 import { initUserManagement } from './components/user-management.js?v=5';
 import { initLocationEditor } from './components/location-editor.js?v=5';
 import { initSearchBox } from './components/search-box.js?v=5';
-import { initErrorsDashboard } from './components/errors-dashboard.js?v=7';
+import { initErrorsDashboard } from './components/errors-dashboard.js?v=9';
+import logger from './services/logger.js?v=1';
+import { initDebugConsole } from './components/debug-console.js?v=1';
 
 /**
  * Get authorization headers for API calls
@@ -46,6 +48,9 @@ export function getCurrentUsername() {
  */
 async function init() {
     try {
+        // Initialize debug console for logging
+        initDebugConsole();
+
         // Initialize auth service first
         await authService.init();
 
@@ -70,6 +75,13 @@ async function init() {
         // Show default view
         showView('csv');
 
+        // Set up global error handlers
+        logger.initErrorBoundary();
+
+        // Make logger available globally for debugging
+        window.__logger = logger;
+
+        logger.info('system', 'Primo Maps Admin initialized');
         console.log('Primo Maps Admin initialized successfully');
     } catch (error) {
         console.error('Failed to initialize application:', error);
@@ -148,6 +160,7 @@ function setupEventListeners() {
     if (langEn) {
         langEn.addEventListener('click', () => {
             i18n.setLocale('en');
+            logger.info('user', 'Language changed', { locale: 'en' });
         });
     }
 
@@ -156,6 +169,7 @@ function setupEventListeners() {
     if (langHe) {
         langHe.addEventListener('click', () => {
             i18n.setLocale('he');
+            logger.info('user', 'Language changed', { locale: 'he' });
         });
     }
 
@@ -307,6 +321,8 @@ async function handleVersionRestore(versionId) {
  * @param {string} view - The view to show ('csv', 'svg', or 'versions')
  */
 function showView(view) {
+    logger.info('user', 'View changed', { view });
+
     // Get view elements
     const csvEditor = document.getElementById('csv-editor');
     const svgManager = document.getElementById('svg-manager');
