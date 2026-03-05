@@ -19,7 +19,8 @@
     "versionHistory": "Version History",
     "users": "Users",
     "settings": "Settings",
-    "locationEditor": "Location Editor"
+    "locationEditor": "Location Editor",
+    "errors": "Errors"
   },
   "csv": {
     "title": "Location Mapping Editor",
@@ -309,5 +310,21 @@
     "save": "Save",
     "closeCancel": "Close / Cancel",
     "selectAll": "Select all"
+  },
+  "errors": {
+    "title": "Validation Errors Dashboard",
+    "summary": "Summary",
+    "errorCount": "{count} Errors",
+    "warningCount": "{count} Warnings",
+    "healthScore": "Data Health",
+    "filterAll": "All Issues",
+    "filterErrors": "Errors Only",
+    "filterWarnings": "Warnings Only",
+    "sortByRow": "Sort by Row",
+    "sortByType": "Sort by Type",
+    "goToRow": "Go to row",
+    "noIssues": "No validation issues found",
+    "refresh": "Refresh",
+    "export": "Export"
   }
 }

@@ -19,7 +19,8 @@
     "versionHistory": "היסטוריית גרסאות",
     "users": "משתמשים",
     "settings": "הגדרות",
-    "locationEditor": "עורך מיקומים"
+    "locationEditor": "עורך מיקומים",
+    "errors": "שגיאות"
   },
   "csv": {
     "title": "עורך מיפוי מיקומים",
@@ -309,5 +310,21 @@
     "save": "שמירה",
     "closeCancel": "סגור / ביטול",
     "selectAll": "בחר הכל"
+  },
+  "errors": {
+    "title": "לוח שגיאות תקינות",
+    "summary": "סיכום",
+    "errorCount": "{count} שגיאות",
+    "warningCount": "{count} אזהרות",
+    "healthScore": "בריאות נתונים",
+    "filterAll": "כל הבעיות",
+    "filterErrors": "שגיאות בלבד",
+    "filterWarnings": "אזהרות בלבד",
+    "sortByRow": "מיין לפי שורה",
+    "sortByType": "מיין לפי סוג",
+    "goToRow": "עבור לשורה",
+    "noIssues": "לא נמצאו בעיות תקינות",
+    "refresh": "רענן",
+    "export": "ייצא"
   }
 }

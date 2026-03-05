@@ -1,6 +1,6 @@
 // Validation Panel Component - Summary of validation errors and warnings
 import i18n from '../i18n.js?v=5';
-import { validateRow } from '../services/data-model.js?v=5';
+import { validateRow } from '../services/data-model.js?v=6';
 
 // Fallback translations
 const FALLBACKS = {

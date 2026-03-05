@@ -55,7 +55,7 @@ export const VALIDATION_ERRORS = {
   E002: 'Range start must be less than or equal to range end',
   E003: 'Floor must be 0, 1, or 2',
   E004: 'Range start and end must have the same prefix',
-  E005: 'Duplicate entry: this combination of range and SVG code already exists',
+  E005: 'Duplicate entry: this combination of collection, range, and SVG code already exists',
   E006: 'SVG code not found in floor map'
 };
 
@@ -76,7 +76,7 @@ export const VALIDATION_WARNINGS = {
 export const VALIDATION_RULES = {
   required: REQUIRED_FIELDS,
   floorValues: FLOOR_VALUES,
-  uniqueKey: ['rangeStart', 'rangeEnd', 'svgCode']
+  uniqueKey: ['collectionName', 'rangeStart', 'rangeEnd', 'svgCode']
 };
 
 /**
@@ -168,15 +168,25 @@ export const COLUMN_CONFIG = {
 };
 
 /**
- * Generates a unique key for a row based on rangeStart + rangeEnd + svgCode
+ * Normalize a string for comparison (lowercase, remove spaces)
+ * @param {string} str - String to normalize
+ * @returns {string} Normalized string
+ */
+function normalizeString(str) {
+  return (str ?? '').toString().trim().toLowerCase().replace(/\s+/g, '');
+}
+
+/**
+ * Generates a unique key for a row based on collectionName + rangeStart + rangeEnd + svgCode
  * @param {Object} row - The row object containing CSV data
  * @returns {string} The unique key for this row
  */
 export function getRowKey(row) {
+  const collectionName = normalizeString(row.collectionName);
   const rangeStart = (row.rangeStart ?? '').toString().trim();
   const rangeEnd = (row.rangeEnd ?? '').toString().trim();
   const svgCode = (row.svgCode ?? '').toString().trim();
-  return `${rangeStart}|${rangeEnd}|${svgCode}`;
+  return `${collectionName}|${rangeStart}|${rangeEnd}|${svgCode}`;
 }
 
 /**
@@ -408,11 +418,37 @@ export function getBilingualFieldPairs() {
 }
 
 /**
+ * Get field label for display
+ * @param {string} field - Field name
+ * @returns {string} Human-readable field label
+ */
+function getFieldLabel(field) {
+  const labels = {
+    libraryName: 'Library Name',
+    libraryNameHe: 'Library Name (Hebrew)',
+    collectionName: 'Collection Name',
+    collectionNameHe: 'Collection Name (Hebrew)',
+    rangeStart: 'Range Start',
+    rangeEnd: 'Range End',
+    svgCode: 'SVG Code',
+    floor: 'Floor',
+    description: 'Description',
+    descriptionHe: 'Description (Hebrew)',
+    shelfLabel: 'Shelf Label',
+    shelfLabelHe: 'Shelf Label (Hebrew)',
+    notes: 'Notes',
+    notesHe: 'Notes (Hebrew)'
+  };
+  return labels[field] || field;
+}
+
+/**
  * Validate a single row against all validation rules
+ * Returns detailed, actionable error messages with specific context
  * @param {Object} row - The row to validate
  * @param {Object[]} allRows - All rows for duplicate/overlap checking
  * @param {Object} [originalRow] - Original row if editing (for excluding from duplicate check)
- * @returns {{ valid: boolean, errors: Array<{field: string, code: string, message: string}>, warnings: Array<{field: string, code: string, message: string}> }}
+ * @returns {{ valid: boolean, errors: Array<{field: string, code: string, message: string, details: Object}>, warnings: Array<{field: string, code: string, message: string, details: Object}> }}
  */
 export function validateRow(row, allRows = [], originalRow = null) {
   const errors = [];
@@ -422,10 +458,12 @@ export function validateRow(row, allRows = [], originalRow = null) {
   for (const field of REQUIRED_FIELDS) {
     const value = (row[field] ?? '').toString().trim();
     if (!value) {
+      const fieldLabel = getFieldLabel(field);
       errors.push({
         field,
         code: 'E001',
-        message: VALIDATION_ERRORS.E001
+        message: `Required field "${fieldLabel}" is empty`,
+        details: { missingField: field, fieldLabel }
       });
     }
   }
@@ -436,7 +474,8 @@ export function validateRow(row, allRows = [], originalRow = null) {
     errors.push({
       field: 'floor',
       code: 'E003',
-      message: VALIDATION_ERRORS.E003
+      message: `Floor value "${floor}" is invalid. Must be 0 (Ground), 1 (First), or 2 (Second)`,
+      details: { invalidValue: floor, validValues: FLOOR_VALUES }
     });
   }
 
@@ -450,7 +489,13 @@ export function validateRow(row, allRows = [], originalRow = null) {
       errors.push({
         field: 'rangeEnd',
         code: 'E004',
-        message: VALIDATION_ERRORS.E004
+        message: `Range prefix mismatch: Start "${row.rangeStart}" has prefix "${rangeStart.prefix || '(none)'}" but End "${row.rangeEnd}" has prefix "${rangeEnd.prefix || '(none)'}"`,
+        details: {
+          rangeStart: row.rangeStart,
+          rangeEnd: row.rangeEnd,
+          startPrefix: rangeStart.prefix,
+          endPrefix: rangeEnd.prefix
+        }
       });
     }
     // Check range order
@@ -458,26 +503,49 @@ export function validateRow(row, allRows = [], originalRow = null) {
       errors.push({
         field: 'rangeEnd',
         code: 'E002',
-        message: VALIDATION_ERRORS.E002
+        message: `Range order invalid: Start "${row.rangeStart}" (${rangeStart.numeric}) is greater than End "${row.rangeEnd}" (${rangeEnd.numeric})`,
+        details: {
+          rangeStart: row.rangeStart,
+          rangeEnd: row.rangeEnd,
+          startValue: rangeStart.numeric,
+          endValue: rangeEnd.numeric
+        }
       });
     }
   }
 
   // Check for duplicates (excluding original row if editing)
   const currentKey = getRowKey(row);
-  const duplicateExists = allRows.some((r, idx) => {
+  let duplicateRow = null;
+  let duplicateRowIndex = -1;
+
+  for (let idx = 0; idx < allRows.length; idx++) {
+    const r = allRows[idx];
     // Skip the original row when editing
     if (originalRow && r._index === originalRow._index) {
-      return false;
+      continue;
     }
-    return getRowKey(r) === currentKey;
-  });
+    if (getRowKey(r) === currentKey) {
+      duplicateRow = r;
+      duplicateRowIndex = r._index !== undefined ? r._index : idx;
+      break;
+    }
+  }
 
-  if (duplicateExists) {
+  if (duplicateRow) {
+    const collection = row.collectionName || row.collectionNameHe || 'Unknown';
     errors.push({
       field: 'svgCode',
       code: 'E005',
-      message: VALIDATION_ERRORS.E005
+      message: `Duplicate entry found at Row ${duplicateRowIndex + 1}: Same collection "${collection}" with range "${row.rangeStart}-${row.rangeEnd}" and SVG code "${row.svgCode}" already exists`,
+      details: {
+        duplicateRowIndex: duplicateRowIndex + 1,
+        duplicateRow: duplicateRow,
+        collection: collection,
+        rangeStart: row.rangeStart,
+        rangeEnd: row.rangeEnd,
+        svgCode: row.svgCode
+      }
     });
   }
 
@@ -497,13 +565,35 @@ export function validateRow(row, allRows = [], originalRow = null) {
   for (const otherRow of sameCollectionRows) {
     const otherRange = { start: otherRow.rangeStart, end: otherRow.rangeEnd };
     if (doRangesOverlap(rowRange, otherRange)) {
+      const otherRowIndex = otherRow._index !== undefined ? otherRow._index : allRows.indexOf(otherRow);
+      const collection = row.collectionName || row.collectionNameHe || 'Unknown';
       warnings.push({
         field: 'rangeStart',
         code: 'W001',
-        message: VALIDATION_WARNINGS.W001
+        message: `Range "${row.rangeStart}-${row.rangeEnd}" overlaps with Row ${otherRowIndex + 1}: "${otherRow.rangeStart}-${otherRow.rangeEnd}" in collection "${collection}" (Floor ${row.floor})`,
+        details: {
+          currentRange: { start: row.rangeStart, end: row.rangeEnd },
+          overlappingRowIndex: otherRowIndex + 1,
+          overlappingRange: { start: otherRow.rangeStart, end: otherRow.rangeEnd },
+          collection: collection,
+          floor: row.floor,
+          overlappingRow: otherRow
+        }
       });
       break; // Only report once
     }
+  }
+
+  // Check for empty description (warning)
+  const description = (row.description ?? '').toString().trim();
+  const descriptionHe = (row.descriptionHe ?? '').toString().trim();
+  if (!description && !descriptionHe) {
+    warnings.push({
+      field: 'description',
+      code: 'W003',
+      message: `Both English and Hebrew description fields are empty for this location mapping`,
+      details: {}
+    });
   }
 
   return {

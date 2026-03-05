@@ -2,7 +2,7 @@
 import i18n from '../i18n.js?v=5';
 import { renderBilingualField, renderField, renderSelectField, getBilingualFormData } from './bilingual-field.js?v=5';
 import { renderSvgAutocomplete, initSvgAutocomplete, updateAutocompleteFloor, validateSvgCode } from './svg-autocomplete.js?v=5';
-import { validateRow, VALIDATION_RULES, VALIDATION_ERRORS, VALIDATION_WARNINGS } from '../services/data-model.js?v=5';
+import { validateRow, VALIDATION_RULES, VALIDATION_ERRORS, VALIDATION_WARNINGS } from '../services/data-model.js?v=6';
 
 // Fallback translations
 const FALLBACKS = {

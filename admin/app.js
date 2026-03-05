@@ -15,6 +15,7 @@ import { initUserMenu } from './components/user-menu.js?v=5';
 import { initUserManagement } from './components/user-management.js?v=5';
 import { initLocationEditor } from './components/location-editor.js?v=5';
 import { initSearchBox } from './components/search-box.js?v=5';
+import { initErrorsDashboard } from './components/errors-dashboard.js?v=7';
 
 /**
  * Get authorization headers for API calls
@@ -111,6 +112,11 @@ function updateUI() {
         navLocationEditor.textContent = i18n.t('nav.locationEditor');
     }
 
+    const navErrors = document.getElementById('nav-errors');
+    if (navErrors) {
+        navErrors.textContent = i18n.t('nav.errors');
+    }
+
     // Update all elements with data-i18n attribute
     document.querySelectorAll('[data-i18n]').forEach(element => {
         const key = element.getAttribute('data-i18n');
@@ -192,6 +198,21 @@ function setupEventListeners() {
             showView('location-editor');
         });
     }
+
+    // Navigation - Errors Dashboard
+    const navErrors = document.getElementById('nav-errors');
+    if (navErrors) {
+        navErrors.addEventListener('click', () => {
+            showView('errors');
+        });
+    }
+
+    // Listen for navigation from errors dashboard to location editor
+    document.addEventListener('errorsDashboardNavigate', (event) => {
+        if (event.detail?.view === 'location-editor') {
+            showView('location-editor');
+        }
+    });
 
     // Listen for locale changes
     document.addEventListener('localeChanged', () => {
@@ -292,6 +313,7 @@ function showView(view) {
     const versionHistory = document.getElementById('version-history');
     const userManagement = document.getElementById('user-management');
     const locationEditor = document.getElementById('location-editor');
+    const errorsDashboard = document.getElementById('errors-dashboard');
 
     // Get navigation elements
     const navCsv = document.getElementById('nav-csv');
@@ -299,6 +321,7 @@ function showView(view) {
     const navVersions = document.getElementById('nav-versions');
     const navUsers = document.getElementById('nav-users');
     const navLocationEditor = document.getElementById('nav-location-editor');
+    const navErrors = document.getElementById('nav-errors');
 
     // Hide all views
     if (csvEditor) csvEditor.classList.add('hidden');
@@ -306,6 +329,7 @@ function showView(view) {
     if (versionHistory) versionHistory.classList.add('hidden');
     if (userManagement) userManagement.classList.add('hidden');
     if (locationEditor) locationEditor.classList.add('hidden');
+    if (errorsDashboard) errorsDashboard.classList.add('hidden');
 
     // Remove active state from all nav tabs
     if (navCsv) {
@@ -327,6 +351,10 @@ function showView(view) {
     if (navLocationEditor) {
         navLocationEditor.classList.remove('active');
         navLocationEditor.classList.add('border-transparent', 'text-gray-500');
+    }
+    if (navErrors) {
+        navErrors.classList.remove('active');
+        navErrors.classList.add('border-transparent', 'text-gray-500');
     }
 
     // Show selected view and update nav state
@@ -387,6 +415,16 @@ function showView(view) {
             if (navLocationEditor) {
                 navLocationEditor.classList.add('active');
                 navLocationEditor.classList.remove('border-transparent', 'text-gray-500');
+            }
+            break;
+        case 'errors':
+            if (errorsDashboard) {
+                errorsDashboard.classList.remove('hidden');
+                initErrorsDashboard('errors-dashboard');
+            }
+            if (navErrors) {
+                navErrors.classList.add('active');
+                navErrors.classList.remove('border-transparent', 'text-gray-500');
             }
             break;
         default:
