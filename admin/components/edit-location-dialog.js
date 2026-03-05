@@ -626,7 +626,11 @@ async function handleSave(allRows, onSave, isNew) {
 
   try {
     if (typeof onSave === 'function') {
-      await onSave(currentRow, isNew);
+      const result = await onSave(currentRow, isNew);
+      // Handle explicit false return (save failed but didn't throw)
+      if (result === false) {
+        throw new Error('Save operation failed');
+      }
     }
 
     closeDialog({
@@ -638,8 +642,8 @@ async function handleSave(allRows, onSave, isNew) {
     isLoading = false;
     updateDialogState(isNew);
     console.error('Save failed:', error);
-    // Show error message
-    fieldErrors._save = error.message;
+    // Show error message to user
+    fieldErrors._save = error.message || 'Failed to save changes';
     updateValidationSummary();
   }
 }
