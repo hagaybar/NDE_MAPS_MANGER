@@ -3,10 +3,10 @@ import { applyRoleBasedUI } from '../auth-guard.js?v=5';
 import { showToast } from './toast.js?v=5';
 import { getAuthHeaders, getCurrentUsername } from '../app.js?v=5';
 import { loadFloorSvg, indexShelvesById, buildRangeCountByShelf } from './map-editor/svg-loader.js?v=1';
-import { attachInteraction, applySelection } from './map-editor/svg-interaction.js?v=1';
+import { attachInteraction, applySelection, attachMarquee } from './map-editor/svg-interaction.js?v=1';
 import { createShelfState } from './map-editor/shelf-state.js?v=1';
 import { computeFloorConflicts } from './map-editor/range-validation.js?v=1';
-import { mountDrawer, showSingleShelf, hideDrawer } from './map-editor/shelf-drawer.js?v=1';
+import { mountDrawer, showSingleShelf, showMultiShelf, hideDrawer } from './map-editor/shelf-drawer.js?v=1';
 
 const CLOUDFRONT_URL = 'https://d3h8i7y9p8lyw7.cloudfront.net';
 const API_ENDPOINT = 'https://tt3xt4tr09.execute-api.us-east-1.amazonaws.com/prod';
@@ -192,7 +192,33 @@ function renderDrawer() {
       hasPendingEdits: shelfState.pendingEdits().size > 0,
     });
   }
-  // multi mode wired in Task 12.
+  if (sel.kind === 'multi') {
+    const merged = shelfState.materialize();
+    const shelvesData = sel.shelfIds.map(id => {
+      const onShelf = merged.find(r => r.svgCode === id) || {};
+      return { svgCode: id, notes: onShelf.notes, notesHe: onShelf.notesHe,
+               shelfLabel: onShelf.shelfLabel, shelfLabelHe: onShelf.shelfLabelHe,
+               description: onShelf.description, descriptionHe: onShelf.descriptionHe };
+    });
+    showMultiShelf({
+      shelfIds: sel.shelfIds,
+      shelvesData,
+      onFieldChange: (field, op) => {
+        if (op.mode === 'noop') return;
+        const nextValue = op.mode === 'clear' ? '' : op.replaceWith;
+        for (const id of sel.shelfIds) {
+          // Find every range on this shelf and patch the field on each (denormalized in CSV).
+          merged.filter(r => r.svgCode === id).forEach(r => {
+            shelfState.edit(r.id, { [field]: nextValue });
+          });
+        }
+        renderDrawer();
+      },
+      onDiscard: () => { shelfState.revert(); renderDrawer(); refreshConflicts(); },
+      onSave: () => saveCsv(),
+      hasPendingEdits: shelfState.pendingEdits().size > 0,
+    });
+  }
 }
 
 function refreshConflicts() {
@@ -299,6 +325,18 @@ export async function initMapEditor() {
     <div id="map-drawer" class="map-drawer map-drawer--hidden"></div>
   `;
   mountDrawer('map-drawer');
+
+  const canvas = document.getElementById('map-canvas');
+  attachMarquee({
+    container: canvas,
+    getShelfElements: () => shelfElements,        // closure read; updated by loadFloor
+    onMarqueeComplete: (ids) => {
+      if (ids.length === 0) return;
+      shelfState.selectMulti(ids);
+      applySelection(shelfElements, shelfState.selection().shelfIds);
+      window.dispatchEvent(new CustomEvent('mapeditor:selection-changed'));
+    },
+  });
   // Inject hatch pattern definition once (used by .map-shelf--locked)
   const defs = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   defs.setAttribute('width', '0'); defs.setAttribute('height', '0'); defs.style.position = 'absolute';
