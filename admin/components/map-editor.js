@@ -1,5 +1,6 @@
 import i18n from '../i18n.js?v=5';
 import { applyRoleBasedUI } from '../auth-guard.js?v=5';
+import { loadFloorSvg, indexShelvesById, buildRangeCountByShelf } from './map-editor/svg-loader.js?v=1';
 
 const DEPLOYMENT_ID = location.host.replace(/[^a-z0-9]+/gi, '-');
 const STORAGE_KEY_FLOOR = `mapEditor.activeFloor.${DEPLOYMENT_ID}`;
@@ -36,6 +37,23 @@ function renderFloorTabs(active) {
   });
 }
 
+let currentFloor = null;
+let shelfElements = null;       // Map<svgCode, SVGElement>
+let rangeCountByShelf = null;   // Map<svgCode, number>
+let allRanges = [];             // populated in Task 5
+
+async function loadFloor(floorNumber) {
+  currentFloor = floorNumber;
+  const canvas = document.getElementById('map-canvas');
+  const svgRoot = await loadFloorSvg(floorNumber, canvas);
+  shelfElements = indexShelvesById(svgRoot);
+  rangeCountByShelf = buildRangeCountByShelf(
+    allRanges.filter(r => String(r.floor) === String(floorNumber))
+  );
+}
+
+window.addEventListener('mapeditor:floor-changed', e => loadFloor(e.detail.floor));
+
 let initialized = false;
 
 export function initMapEditor() {
@@ -51,4 +69,5 @@ export function initMapEditor() {
   `;
   renderFloorTabs(loadActiveFloor());
   applyRoleBasedUI(container);
+  (async () => { await loadFloor(loadActiveFloor()); })();
 }
