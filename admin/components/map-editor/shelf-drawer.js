@@ -8,13 +8,11 @@ export function mountDrawer(elementId) {
   host = document.getElementById(elementId);
 }
 
-export function showSingleShelf({ shelfId, shelfLabel, rangesOnShelf, conflictsByRangeId, permission, collectionsList, onChange, onAdd, onMove, onDelete, onDiscard, onSave, hasPendingEdits }) {
+export function showSingleShelf({ shelfId, shelfLabel, rangesOnShelf, conflictsByRangeId, conflictingShelves, permission, collectionsList, onChange, onAdd, onMove, onDelete, onDiscard, onSave, onSelectShelf, hasPendingEdits }) {
   if (!host) return;
   host.classList.remove('map-drawer--hidden');
   const conflictCount = rangesOnShelf.reduce((n, r) => n + (conflictsByRangeId.get(r.id)?.length || 0), 0);
-  const banner = conflictCount > 0
-    ? `<div class="map-drawer__warn-banner">⚠ ${i18n.t('mapEditor.warning.banner').replace('{n}', conflictCount)}</div>`
-    : '';
+  const banner = buildConflictBanner(conflictCount, conflictingShelves || []);
   host.innerHTML = `
     <div class="map-drawer__header">
       <h3 class="text-sm font-semibold">${i18n.t('mapEditor.shelf.header').replace('{label}', shelfLabel).replace('{n}', rangesOnShelf.length)}</h3>
@@ -36,6 +34,26 @@ export function showSingleShelf({ shelfId, shelfLabel, rangesOnShelf, conflictsB
   host.querySelector('#drawer-discard').onclick = onDiscard;
   host.querySelector('#drawer-save').onclick = onSave;
   host.querySelector('#drawer-add').onclick = onAdd;
+  if (typeof onSelectShelf === 'function') {
+    host.querySelectorAll('.map-drawer__warn-link').forEach(btn => {
+      btn.addEventListener('click', () => onSelectShelf(btn.dataset.targetShelf));
+    });
+  }
+}
+
+function buildConflictBanner(conflictCount, conflictingShelves) {
+  if (conflictCount === 0) return '';
+  const countText = i18n.t('mapEditor.warning.banner').replace('{n}', conflictCount);
+  if (!conflictingShelves.length) {
+    return `<div class="map-drawer__warn-banner">⚠ ${countText}</div>`;
+  }
+  const links = conflictingShelves.map(s => {
+    const tooltip = s.rangeLabels && s.rangeLabels.length
+      ? `${s.rangeLabels.join(', ')}`
+      : '';
+    return `<button type="button" class="map-drawer__warn-link" data-target-shelf="${escape(s.svgCode)}" title="${escape(tooltip)}">${escape(s.label)}</button>`;
+  }).join(' ');
+  return `<div class="map-drawer__warn-banner">⚠ ${countText} ${i18n.t('mapEditor.warning.with')} ${links}</div>`;
 }
 
 export function showMultiShelf({ shelfIds, shelvesData, onFieldChange, onDiscard, onSave, hasPendingEdits }) {

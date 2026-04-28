@@ -353,7 +353,8 @@
     "warning": {
       "overlap": "חופף ל-{otherRangeLabel} במדף {otherShelfLabel}",
       "startGtEnd": "תחילת הטווח גדולה מהסוף.",
-      "banner": "{n} התנגשויות במדף זה"
+      "banner": "{n} התנגשויות במדף זה",
+      "with": "— גם במדפים:"
     },
     "shelves": {
       "selected": "{n} מדפים נבחרו"

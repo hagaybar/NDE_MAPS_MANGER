@@ -232,11 +232,32 @@ function renderDrawer() {
     const conflictsByRangeId = floorConflicts;
     const collectionsList = Array.from(new Set(allRanges.map(r => r.collectionName).filter(Boolean))).sort();
 
+    // Aggregate the OTHER shelves involved in this shelf's conflicts.
+    const shelfLabelByCode = new Map();
+    for (const r of allRanges) {
+      if (r.svgCode && r.shelfLabel && !shelfLabelByCode.has(r.svgCode)) {
+        shelfLabelByCode.set(r.svgCode, r.shelfLabel);
+      }
+    }
+    const otherShelfMap = new Map();
+    for (const r of rangesOnShelf) {
+      const cs = conflictsByRangeId.get(r.id) || [];
+      for (const c of cs) {
+        if (!c.otherShelf) continue;
+        if (!otherShelfMap.has(c.otherShelf)) {
+          otherShelfMap.set(c.otherShelf, { svgCode: c.otherShelf, label: shelfLabelByCode.get(c.otherShelf) || c.otherShelf, rangeLabels: [] });
+        }
+        otherShelfMap.get(c.otherShelf).rangeLabels.push(c.otherRangeLabel);
+      }
+    }
+    const conflictingShelves = Array.from(otherShelfMap.values()).sort((a, b) => a.label.localeCompare(b.label));
+
     showSingleShelf({
       shelfId,
       shelfLabel: rangesOnShelf[0]?.shelfLabel || shelfId,
       rangesOnShelf,
       conflictsByRangeId,
+      conflictingShelves,
       permission: shelfState.permission.bind(shelfState),
       collectionsList,
       onChange: (id, patch) => { shelfState.edit(id, patch); refreshConflicts(); renderDrawer(); },
@@ -270,6 +291,12 @@ function renderDrawer() {
       onDelete: (id) => { shelfState.delete(id); renderDrawer(); },
       onDiscard: () => { shelfState.revert(); renderDrawer(); refreshConflicts(); },
       onSave: () => saveCsv(),
+      onSelectShelf: (targetSvgCode) => {
+        if (!targetSvgCode || !shelfElements.has(targetSvgCode)) return;
+        shelfState.selectSingle(targetSvgCode);
+        applySelection(shelfElements, shelfState.selection().shelfIds);
+        window.dispatchEvent(new CustomEvent('mapeditor:selection-changed'));
+      },
       hasPendingEdits: shelfState.pendingEdits().size > 0,
     });
   }

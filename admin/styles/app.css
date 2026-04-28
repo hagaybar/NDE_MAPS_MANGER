@@ -2689,7 +2689,16 @@ textarea:focus-visible,
 .map-drawer__warn-banner {
   background: #fef3c7; border: 1px solid #f59e0b; color: #78350f;
   padding: 6px 10px; border-radius: 4px; font-size: 12px; margin-bottom: 6px;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 4px;
 }
+.map-drawer__warn-link {
+  display: inline-block; padding: 1px 8px; margin: 0;
+  background: white; border: 1px solid #f59e0b; border-radius: 4px;
+  color: #78350f; font-size: 11px; font-weight: 500; cursor: pointer;
+  line-height: 1.4;
+}
+.map-drawer__warn-link:hover { background: #fde68a; }
+.map-drawer__warn-link:focus { outline: 2px solid #b45309; outline-offset: 1px; }
 .map-drawer__cell--invalid { background: #fef3c7 !important; border-color: #f59e0b !important; }
 .map-reassign-banner {
   position: fixed; top: 60px; left: 50%; transform: translateX(-50%);
