@@ -190,12 +190,23 @@ function renderDrawer() {
       onMove: (id) => {
         const range = shelfState.materialize().find(r => r.id === id);
         if (!range) return;
+        const allShelves = allRanges
+          .filter(r => r.svgCode)
+          .reduce((acc, r) => {
+            const key = `${r.svgCode}|${r.floor}`;
+            if (!acc.has(key)) acc.set(key, { svgCode: r.svgCode, floor: r.floor, label: r.shelfLabel || r.svgCode });
+            return acc;
+          }, new Map());
+        const allShelvesList = Array.from(allShelves.values()).sort((a, b) => a.label.localeCompare(b.label));
         startReassign({
           rangeId: id,
           rangeLabel: `${range.collection} ${range.rangeStart}-${range.rangeEnd}`,
           shelfElements: new Map([...shelfElements].filter(([sid]) => sid !== range.svgCode)),
-          onConfirm: ({ newSvgCode }) => {
-            shelfState.move(id, { svgCode: newSvgCode });
+          allShelves: allShelvesList,
+          onConfirm: ({ newSvgCode, newFloor }) => {
+            const target = { svgCode: newSvgCode };
+            if (newFloor !== undefined) target.floor = newFloor;
+            shelfState.move(id, target);
             refreshConflicts();
             renderDrawer();
           },

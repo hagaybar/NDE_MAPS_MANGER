@@ -2,9 +2,9 @@ import i18n from '../../i18n.js?v=5';
 
 let active = null;
 
-export function startReassign({ rangeId, rangeLabel, shelfElements, onConfirm, onCancel }) {
+export function startReassign({ rangeId, rangeLabel, shelfElements, allShelves, onConfirm, onCancel }) {
   if (active) cancel();
-  active = { rangeId, rangeLabel, onConfirm, onCancel };
+  active = { rangeId, rangeLabel, allShelves, onConfirm, onCancel };
 
   // Banner
   const banner = document.createElement('div');
@@ -59,7 +59,40 @@ function cleanup() {
   active = null;
 }
 
-function openDropdownPicker() { /* Task 14 */ }
+function openDropdownPicker() {
+  if (!active) return;
+  const allShelves = active.allShelves || [];   // pass through startReassign
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:50;display:flex;align-items:center;justify-content:center';
+  overlay.innerHTML = `
+    <div style="background:white;border-radius:8px;padding:16px;width:360px;max-height:60vh;display:flex;flex-direction:column">
+      <input type="text" id="map-picker-filter" placeholder="Filter shelves…" class="px-2 py-1 border rounded mb-2 text-sm" />
+      <div id="map-picker-list" style="overflow-y:auto;flex:1;border:1px solid #e2e8f0;border-radius:4px"></div>
+      <div class="flex justify-end mt-2"><button id="map-picker-cancel" class="px-3 py-1 text-sm border rounded">Cancel</button></div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  function renderList(filter) {
+    const list = overlay.querySelector('#map-picker-list');
+    list.innerHTML = allShelves
+      .filter(s => !filter || s.label.toLowerCase().includes(filter.toLowerCase()) || s.svgCode.toLowerCase().includes(filter.toLowerCase()))
+      .map(s => `<button data-id="${s.svgCode}" data-floor="${s.floor}" class="block w-full text-left px-3 py-1.5 text-sm hover:bg-blue-50 border-b">${s.label} — ${s.svgCode} (Floor ${s.floor})</button>`)
+      .join('');
+    list.querySelectorAll('button').forEach(b => {
+      b.onclick = () => {
+        const ok = window.confirm(`Move ${active.rangeLabel} to ${b.dataset.id}?`);
+        if (!ok) return;
+        const { onConfirm } = active;
+        overlay.remove();
+        cleanup();
+        onConfirm({ newSvgCode: b.dataset.id, newFloor: b.dataset.floor });
+      };
+    });
+  }
+  overlay.querySelector('#map-picker-filter').addEventListener('input', e => renderList(e.target.value));
+  overlay.querySelector('#map-picker-cancel').onclick = () => overlay.remove();
+  renderList('');
+}
 
 export function isReassignActive() { return active !== null; }
 export function cancelReassign() { cancel(); }
