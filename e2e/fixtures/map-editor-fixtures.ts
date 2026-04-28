@@ -17,8 +17,13 @@
 
 import { Page } from '@playwright/test';
 import { readFileSync } from 'fs';
-import { join } from 'path';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 
+// `package.json` uses `"type": "module"`, so CommonJS `__dirname` is
+// unavailable. Resolve the fixtures directory relative to this module's URL.
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 const FIXTURES_DIR = join(__dirname, 'map-editor');
 
 const SVG_BODY = readFileSync(join(FIXTURES_DIR, 'floor_test.svg'), 'utf-8');
