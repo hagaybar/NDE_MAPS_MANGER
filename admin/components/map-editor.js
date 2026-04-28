@@ -1,5 +1,7 @@
 import i18n from '../i18n.js?v=5';
 import { applyRoleBasedUI } from '../auth-guard.js?v=5';
+import { showToast } from './toast.js?v=5';
+import { getAuthHeaders, getCurrentUsername } from '../app.js?v=5';
 import { loadFloorSvg, indexShelvesById, buildRangeCountByShelf } from './map-editor/svg-loader.js?v=1';
 import { attachInteraction, applySelection } from './map-editor/svg-interaction.js?v=1';
 import { createShelfState } from './map-editor/shelf-state.js?v=1';
@@ -7,6 +9,7 @@ import { computeFloorConflicts } from './map-editor/range-validation.js?v=1';
 import { mountDrawer, showSingleShelf, hideDrawer } from './map-editor/shelf-drawer.js?v=1';
 
 const CLOUDFRONT_URL = 'https://d3h8i7y9p8lyw7.cloudfront.net';
+const API_ENDPOINT = 'https://tt3xt4tr09.execute-api.us-east-1.amazonaws.com/prod';
 const DEPLOYMENT_ID = location.host.replace(/[^a-z0-9]+/gi, '-');
 const STORAGE_KEY_FLOOR = `mapEditor.activeFloor.${DEPLOYMENT_ID}`;
 
@@ -219,7 +222,67 @@ function addNewRangeToShelf(shelfId) {
   renderDrawer();
 }
 
-function saveCsv() { /* Task 11 */ }
+/**
+ * Serialize an array of row objects to CSV text.
+ * Mirrors the toCSV / escapeCSVField helpers in csv-editor.js
+ * (no shared service module exists yet — see deviations note for Task 7).
+ * Drops the in-memory `id` column we tag onto rows in initMapEditor().
+ */
+function toCSV(data) {
+  if (data.length === 0) return '';
+  const headers = Object.keys(data[0]).filter(h => h !== 'id');
+  const lines = [headers.map(escapeCSVField).join(',')];
+  for (const row of data) {
+    lines.push(headers.map(h => escapeCSVField(row[h] != null ? row[h] : '')).join(','));
+  }
+  return lines.join('\n');
+}
+
+function escapeCSVField(value) {
+  const str = String(value);
+  if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
+    return '"' + str.replace(/"/g, '""') + '"';
+  }
+  return str;
+}
+
+async function saveCsv() {
+  try {
+    const merged = shelfState.materialize();
+    const csvContent = toCSV(merged);
+
+    const response = await fetch(`${API_ENDPOINT}/api/csv`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders()
+      },
+      body: JSON.stringify({
+        csvContent,
+        username: getCurrentUsername()
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const result = await response.json();
+    if (!result.success) {
+      throw new Error(result.message || 'Save failed');
+    }
+
+    // Refresh local state from the new snapshot.
+    allRanges = merged;
+    shelfState.revert();        // clears pendingEdits
+    refreshConflicts();
+    renderDrawer();             // drawer stays open with fresh values
+    showToast(i18n.t('csv.saveSuccess'), 'success');
+  } catch (err) {
+    console.error('[MapEditor] Failed to save CSV:', err);
+    showToast(i18n.t('csv.saveError'), 'error');
+    // pendingEdits preserved for retry — do nothing else.
+  }
+}
 
 let initialized = false;
 
