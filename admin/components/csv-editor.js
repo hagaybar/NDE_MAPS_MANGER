@@ -40,6 +40,7 @@ let totalRowCount = 0;      // Total number of rows before filtering
 let hasChanges = false;
 let isFiltered = false;     // Whether data is filtered by range restrictions
 let hasNoAccess = false;    // Whether editor has no access (disabled ranges or no filter groups)
+let _hashListenerAttached = false;  // Module-singleton guard for the deep-link hashchange listener
 const API_ENDPOINT = 'https://tt3xt4tr09.execute-api.us-east-1.amazonaws.com/prod';
 const CLOUDFRONT_URL = 'https://d3h8i7y9p8lyw7.cloudfront.net';
 
@@ -56,6 +57,16 @@ export function initCSVEditor() {
   container.innerHTML = renderEditor();
   setupEditorEvents();
   loadCSV();
+
+  // Deep-link consumer: when navigated via #csv-editor?orphans=floor=N, filter
+  // visible rows to that floor's orphan ranges (rows whose svgCode is empty
+  // or doesn't resolve on the floor's SVG — for the CSV-side filter we treat
+  // empty/blank svgCode as the orphan signal, since we don't load SVGs here).
+  // Listen on hashchange so badge clicks while CSV editor is mounted re-filter.
+  if (!_hashListenerAttached) {
+    window.addEventListener('hashchange', applyUrlFilter);
+    _hashListenerAttached = true;
+  }
 
   // Listen for locale changes to re-render
   document.addEventListener('localeChanged', () => {
@@ -240,6 +251,8 @@ async function loadCSV() {
     renderTable();
     // Re-apply role-based UI visibility for dynamically added delete buttons
     applyRoleBasedUI();
+    // Apply any deep-link filter (e.g. #csv-editor?orphans=floor=1) once data is loaded.
+    applyUrlFilter();
   } catch (error) {
     console.error('Failed to load CSV:', error);
     tableContainer.innerHTML = `
@@ -248,6 +261,44 @@ async function loadCSV() {
       </div>
     `;
   }
+}
+
+/**
+ * Apply a hash-driven filter to the visible CSV rows.
+ *
+ * Recognises `#csv-editor?orphans=floor=N` (deep-link from the Map Editor's
+ * orphan-range badge): narrows the table to rows on floor N whose svgCode is
+ * empty/missing — i.e. the rows the Map Editor flagged as unassigned.
+ *
+ * No-op when the hash doesn't match or when allCsvData isn't loaded yet.
+ */
+function applyUrlFilter() {
+  const m = location.hash.match(/orphans=floor=(\d+)/);
+  if (!m) return;
+  if (!Array.isArray(allCsvData) || allCsvData.length === 0) return;
+  const floor = m[1];
+  const filtered = allCsvData
+    .filter(row => row !== null)
+    .filter(row =>
+      String(row.floor) === floor && (!row.svgCode || String(row.svgCode).trim() === '')
+    )
+    .map(row => JSON.parse(JSON.stringify(row)));
+
+  csvData = filtered;
+  originalData = JSON.parse(JSON.stringify(filtered));
+  // Rebuild originalIndices so save/delete still map back to allCsvData correctly.
+  originalIndices = filtered.map(row => allCsvData.findIndex(orig => orig === row || (orig &&
+    String(orig.floor) === String(row.floor) &&
+    String(orig.svgCode || '') === String(row.svgCode || '') &&
+    String(orig.collection || '') === String(row.collection || '') &&
+    String(orig.rangeStart || '') === String(row.rangeStart || '') &&
+    String(orig.rangeEnd || '') === String(row.rangeEnd || '')
+  )));
+  isFiltered = true;
+  hasNoAccess = false;
+  renderFilterBanner();
+  renderTable();
+  applyRoleBasedUI();
 }
 
 /**

@@ -20,6 +20,7 @@
     "users": "Users",
     "settings": "Settings",
     "locationEditor": "Location Editor",
+    "mapEditor": "Map Editor",
     "errors": "Errors"
   },
   "csv": {
@@ -331,6 +332,39 @@
     "noIssues": "No validation issues found",
     "refresh": "Refresh",
     "export": "Export"
+  },
+  "mapEditor": {
+    "empty": "Click a shelf to edit, Shift-drag or Ctrl-click to select multiple.",
+    "tab": {
+      "floor": "Floor {n}",
+      "orphans": "{n} unassigned"
+    },
+    "discard": "Discard",
+    "save": "Save",
+    "addRange": "+ Add range",
+    "move": "↗ Move",
+    "delete": "Delete",
+    "reassign": {
+      "banner": "Click a destination shelf, or {chooseFromList} for {rangeLabel}",
+      "chooseFromList": "choose from list",
+      "cancel": "Cancel",
+      "confirm": "Move {rangeLabel} to shelf {shelfLabel}?"
+    },
+    "warning": {
+      "overlap": "Overlaps {otherRangeLabel} on shelf {otherShelfLabel}",
+      "startGtEnd": "Start is greater than end.",
+      "banner": "{n} conflict(s) on this shelf"
+    },
+    "shelves": {
+      "selected": "{n} shelves selected"
+    },
+    "shelf": {
+      "header": "Shelf {label} — {n} ranges"
+    },
+    "replaceAllWith": "Replace all with…",
+    "clearOnSelected": "Clear on all selected",
+    "distinctValues": "current values: {valuesList}",
+    "locked": "Locked"
   },
   "ranges": {
     "editableRanges": "Editable Ranges",
