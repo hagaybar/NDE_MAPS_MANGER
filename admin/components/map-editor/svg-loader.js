@@ -11,13 +11,39 @@ export async function loadFloorSvg(floorNumber, container) {
   return container.querySelector('svg');
 }
 
-export function indexShelvesById(svgRoot) {
+/**
+ * Resolve only known shelf svgCodes against the SVG.
+ *
+ * Production floor SVGs are Inkscape exports that contain hundreds of
+ * `[id]` elements (defs, patterns, clip paths, raster images, etc.) — only
+ * a handful are real shelves. Indexing every `[id]` would attach hover /
+ * click handlers to internals like `pattern1`, `clip8`, `defs16`. We instead
+ * resolve only the svgCodes referenced by the CSV (`knownSvgCodes`).
+ *
+ * @param {SVGElement} svgRoot
+ * @param {Set<string>} knownSvgCodes
+ * @returns {Map<string, SVGElement>} svgCode -> element (only those that exist)
+ */
+export function indexShelvesById(svgRoot, knownSvgCodes) {
   const map = new Map();
-  svgRoot.querySelectorAll('[id]').forEach(el => {
-    const id = el.getAttribute('id');
-    if (id) map.set(id, el);
-  });
+  if (!knownSvgCodes) return map;
+  for (const code of knownSvgCodes) {
+    if (!code) continue;
+    const el = svgRoot.querySelector(`[id="${CSS.escape(code)}"]`);
+    if (el) map.set(code, el);
+  }
   return map;
+}
+
+/**
+ * Build the set of svgCodes referenced by ranges on a given floor.
+ * Single-purpose helper kept here so callers don't reach into shelf-state.
+ *
+ * @param {Array<{svgCode?: string}>} rangesOnFloor
+ * @returns {Set<string>}
+ */
+export function buildKnownSvgCodes(rangesOnFloor) {
+  return new Set(rangesOnFloor.map(r => r.svgCode).filter(Boolean));
 }
 
 export function buildRangeCountByShelf(rangesOnFloor) {

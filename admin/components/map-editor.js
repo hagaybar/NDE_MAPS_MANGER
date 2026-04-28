@@ -2,7 +2,7 @@ import i18n from '../i18n.js?v=5';
 import { applyRoleBasedUI, getPermittedRowIds } from '../auth-guard.js?v=5';
 import { showToast } from './toast.js?v=5';
 import { getAuthHeaders, getCurrentUsername } from '../app.js?v=5';
-import { loadFloorSvg, indexShelvesById, buildRangeCountByShelf } from './map-editor/svg-loader.js?v=1';
+import { loadFloorSvg, indexShelvesById, buildRangeCountByShelf, buildKnownSvgCodes } from './map-editor/svg-loader.js?v=2';
 import { attachInteraction, applySelection, attachMarquee } from './map-editor/svg-interaction.js?v=1';
 import { createShelfState } from './map-editor/shelf-state.js?v=1';
 import { computeFloorConflicts } from './map-editor/range-validation.js?v=1';
@@ -163,9 +163,14 @@ async function loadFloor(floorNumber) {
   currentFloor = floorNumber;
   const canvas = document.getElementById('map-canvas');
   const svgRoot = await loadFloorSvg(floorNumber, canvas);
-  shelfElements = indexShelvesById(svgRoot);
 
+  // Compute floorRanges BEFORE indexing — production SVGs are Inkscape exports
+  // with hundreds of internal `[id]` elements (patterns, defs, clip-paths). We
+  // only want to index the svgCodes the CSV references on this floor.
   const floorRanges = allRanges.filter(r => String(r.floor) === String(floorNumber));
+  const knownSvgCodes = buildKnownSvgCodes(floorRanges);
+  shelfElements = indexShelvesById(svgRoot, knownSvgCodes);
+
   rangeCountByShelf = buildRangeCountByShelf(floorRanges);
   floorConflicts = computeFloorConflicts(floorRanges);
 
