@@ -2668,3 +2668,26 @@ textarea:focus-visible,
   .map-pulse-target { animation: map-pulse 1.5s ease-in-out infinite; }
   @keyframes map-pulse { 0%,100% { opacity: 1 } 50% { opacity: 0.55 } }
 }
+
+.map-drawer {
+  position: fixed; left: 0; right: 0; bottom: 0;
+  background: white; border-top: 2px solid #0ea5e9;
+  box-shadow: 0 -4px 12px rgba(0,0,0,0.08);
+  padding: 12px 24px; z-index: 20;
+  max-height: 50vh; overflow-y: auto;
+}
+.map-drawer--hidden { display: none; }
+.map-drawer__header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.map-drawer__rows { display: flex; flex-direction: column; gap: 6px; }
+.map-drawer__row {
+  display: grid; grid-template-columns: 1.4fr 1fr 1fr auto auto; gap: 8px;
+  align-items: center; padding: 4px 0;
+}
+.map-drawer__row--locked input, .map-drawer__row--locked select {
+  background: #e2e8f0; color: #94a3b8; cursor: not-allowed;
+}
+.map-drawer__warn-banner {
+  background: #fef3c7; border: 1px solid #f59e0b; color: #78350f;
+  padding: 6px 10px; border-radius: 4px; font-size: 12px; margin-bottom: 6px;
+}
+.map-drawer__cell--invalid { background: #fef3c7 !important; border-color: #f59e0b !important; }

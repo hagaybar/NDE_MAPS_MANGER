@@ -4,6 +4,7 @@ import { loadFloorSvg, indexShelvesById, buildRangeCountByShelf } from './map-ed
 import { attachInteraction, applySelection } from './map-editor/svg-interaction.js?v=1';
 import { createShelfState } from './map-editor/shelf-state.js?v=1';
 import { computeFloorConflicts } from './map-editor/range-validation.js?v=1';
+import { mountDrawer, showSingleShelf, hideDrawer } from './map-editor/shelf-drawer.js?v=1';
 
 const CLOUDFRONT_URL = 'https://d3h8i7y9p8lyw7.cloudfront.net';
 const DEPLOYMENT_ID = location.host.replace(/[^a-z0-9]+/gi, '-');
@@ -159,6 +160,51 @@ async function loadFloor(floorNumber) {
 
 window.addEventListener('mapeditor:floor-changed', e => loadFloor(e.detail.floor));
 
+window.addEventListener('mapeditor:selection-changed', () => renderDrawer());
+
+function renderDrawer() {
+  const sel = shelfState.selection();
+  if (sel.kind === 'none') { hideDrawer(); return; }
+  if (sel.kind === 'single') {
+    const shelfId = sel.shelfIds[0];
+    const floorRanges = allRanges.filter(r => String(r.floor) === String(currentFloor));
+    const rangesOnShelf = floorRanges.filter(r => r.svgCode === shelfId);
+    const conflictsByRangeId = floorConflicts;
+    const collectionsList = Array.from(new Set(allRanges.map(r => r.collection))).sort();
+
+    showSingleShelf({
+      shelfId,
+      shelfLabel: rangesOnShelf[0]?.shelfLabel || shelfId,
+      rangesOnShelf,
+      conflictsByRangeId,
+      permission: shelfState.permission.bind(shelfState),
+      collectionsList,
+      onChange: (id, patch) => { shelfState.edit(id, patch); renderDrawer(); refreshConflicts(); },
+      onAdd: () => addNewRangeToShelf(shelfId),
+      onMove: (id) => { /* Task 13 */ },
+      onDelete: (id) => { shelfState.delete(id); renderDrawer(); },
+      onDiscard: () => { shelfState.revert(); renderDrawer(); refreshConflicts(); },
+      onSave: () => saveCsv(),
+      hasPendingEdits: shelfState.pendingEdits().size > 0,
+    });
+  }
+  // multi mode wired in Task 12.
+}
+
+function refreshConflicts() {
+  const merged = shelfState.materialize();
+  const floorRanges = merged.filter(r => String(r.floor) === String(currentFloor));
+  floorConflicts = computeFloorConflicts(floorRanges);
+  for (const [id, el] of shelfElements) {
+    const has = floorRanges.some(r => r.svgCode === id && floorConflicts.has(r.id));
+    el.classList.toggle('map-shelf--has-conflicts', has);
+  }
+}
+
+function addNewRangeToShelf(shelfId) { /* Task 9 */ }
+
+function saveCsv() { /* Task 11 */ }
+
 let initialized = false;
 
 export async function initMapEditor() {
@@ -171,7 +217,9 @@ export async function initMapEditor() {
       <div id="map-canvas" class="relative bg-gray-50 border border-gray-200 rounded min-h-96"></div>
       <p id="map-editor-empty" class="text-gray-500 text-sm mt-3">${i18n.t('mapEditor.empty')}</p>
     </div>
+    <div id="map-drawer" class="map-drawer map-drawer--hidden"></div>
   `;
+  mountDrawer('map-drawer');
   // Inject hatch pattern definition once (used by .map-shelf--locked)
   const defs = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   defs.setAttribute('width', '0'); defs.setAttribute('height', '0'); defs.style.position = 'absolute';
