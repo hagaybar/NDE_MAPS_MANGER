@@ -1,4 +1,5 @@
 import i18n from '../../i18n.js?v=5';
+import { validateRangeShape } from './range-validation.js?v=1';
 
 let host = null;
 
@@ -55,6 +56,14 @@ function buildRow(range, { isLocked, conflicts, collectionsList, onChange, onMov
     <button ${isLocked ? 'disabled' : ''} data-action="move" class="text-xs px-2 border rounded">${i18n.t('mapEditor.move')}</button>
     <button ${isLocked ? 'disabled' : ''} data-action="delete" class="text-xs px-2 border rounded text-red-600">×</button>
   `;
+  // Apply start > end tints + tooltips
+  const shape = validateRangeShape(range);
+  if (!shape.ok && shape.error === 'start > end') {
+    row.querySelector('[data-field="rangeStart"]').classList.add('map-drawer__cell--invalid');
+    row.querySelector('[data-field="rangeEnd"]').classList.add('map-drawer__cell--invalid');
+    row.querySelector('[data-field="rangeStart"]').title = i18n.t('mapEditor.warning.startGtEnd');
+    row.querySelector('[data-field="rangeEnd"]').title = i18n.t('mapEditor.warning.startGtEnd');
+  }
   // Apply conflict tints + tooltips
   if (conflicts.length > 0) {
     const tip = conflicts.map(c => i18n.t('mapEditor.warning.overlap')

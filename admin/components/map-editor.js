@@ -180,7 +180,7 @@ function renderDrawer() {
       conflictsByRangeId,
       permission: shelfState.permission.bind(shelfState),
       collectionsList,
-      onChange: (id, patch) => { shelfState.edit(id, patch); renderDrawer(); refreshConflicts(); },
+      onChange: (id, patch) => { shelfState.edit(id, patch); refreshConflicts(); renderDrawer(); },
       onAdd: () => addNewRangeToShelf(shelfId),
       onMove: (id) => { /* Task 13 */ },
       onDelete: (id) => { shelfState.delete(id); renderDrawer(); },
