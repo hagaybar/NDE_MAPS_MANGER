@@ -2691,3 +2691,9 @@ textarea:focus-visible,
   padding: 6px 10px; border-radius: 4px; font-size: 12px; margin-bottom: 6px;
 }
 .map-drawer__cell--invalid { background: #fef3c7 !important; border-color: #f59e0b !important; }
+.map-reassign-banner {
+  position: fixed; top: 60px; left: 50%; transform: translateX(-50%);
+  background: #fef3c7; border: 1px solid #f59e0b; color: #78350f;
+  padding: 8px 16px; border-radius: 6px; z-index: 40;
+  display: flex; gap: 12px; align-items: center;
+}

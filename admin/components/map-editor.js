@@ -7,6 +7,7 @@ import { attachInteraction, applySelection, attachMarquee } from './map-editor/s
 import { createShelfState } from './map-editor/shelf-state.js?v=1';
 import { computeFloorConflicts } from './map-editor/range-validation.js?v=1';
 import { mountDrawer, showSingleShelf, showMultiShelf, hideDrawer } from './map-editor/shelf-drawer.js?v=1';
+import { startReassign, cancelReassign, isReassignActive } from './map-editor/reassign-mode.js?v=1';
 
 const CLOUDFRONT_URL = 'https://d3h8i7y9p8lyw7.cloudfront.net';
 const API_ENDPOINT = 'https://tt3xt4tr09.execute-api.us-east-1.amazonaws.com/prod';
@@ -98,6 +99,7 @@ function renderFloorTabs(active) {
   root.querySelectorAll('.floor-tab').forEach(btn => {
     btn.addEventListener('click', () => {
       const n = parseInt(btn.dataset.floor, 10);
+      if (isReassignActive()) cancelReassign();
       saveActiveFloor(n);
       renderFloorTabs(n);
       // SVG render hook — wired in Task 3.
@@ -185,7 +187,21 @@ function renderDrawer() {
       collectionsList,
       onChange: (id, patch) => { shelfState.edit(id, patch); refreshConflicts(); renderDrawer(); },
       onAdd: () => addNewRangeToShelf(shelfId),
-      onMove: (id) => { /* Task 13 */ },
+      onMove: (id) => {
+        const range = shelfState.materialize().find(r => r.id === id);
+        if (!range) return;
+        startReassign({
+          rangeId: id,
+          rangeLabel: `${range.collection} ${range.rangeStart}-${range.rangeEnd}`,
+          shelfElements: new Map([...shelfElements].filter(([sid]) => sid !== range.svgCode)),
+          onConfirm: ({ newSvgCode }) => {
+            shelfState.move(id, { svgCode: newSvgCode });
+            refreshConflicts();
+            renderDrawer();
+          },
+          onCancel: () => { /* nothing — banner already removed */ },
+        });
+      },
       onDelete: (id) => { shelfState.delete(id); renderDrawer(); },
       onDiscard: () => { shelfState.revert(); renderDrawer(); refreshConflicts(); },
       onSave: () => saveCsv(),
