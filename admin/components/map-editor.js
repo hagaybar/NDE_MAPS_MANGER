@@ -167,8 +167,9 @@ function renderDrawer() {
   if (sel.kind === 'none') { hideDrawer(); return; }
   if (sel.kind === 'single') {
     const shelfId = sel.shelfIds[0];
-    const floorRanges = allRanges.filter(r => String(r.floor) === String(currentFloor));
-    const rangesOnShelf = floorRanges.filter(r => r.svgCode === shelfId);
+    const merged = shelfState.materialize();
+    const mergedFloor = merged.filter(r => String(r.floor) === String(currentFloor));
+    const rangesOnShelf = mergedFloor.filter(r => r.svgCode === shelfId);
     const conflictsByRangeId = floorConflicts;
     const collectionsList = Array.from(new Set(allRanges.map(r => r.collection))).sort();
 
@@ -201,7 +202,22 @@ function refreshConflicts() {
   }
 }
 
-function addNewRangeToShelf(shelfId) { /* Task 9 */ }
+function addNewRangeToShelf(shelfId) {
+  const floorRanges = allRanges.filter(r => String(r.floor) === String(currentFloor));
+  const rangesOnShelf = floorRanges.filter(r => r.svgCode === shelfId);
+  const defaultCollection = rangesOnShelf[0]?.collection || (allRanges[0]?.collection || '');
+  const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
+  shelfState.add(tempId, {
+    svgCode: shelfId,
+    floor: String(currentFloor),
+    library: rangesOnShelf[0]?.library || allRanges[0]?.library || '',
+    collection: defaultCollection,
+    rangeStart: '',
+    rangeEnd: '',
+  });
+  // Local view: include the new row by re-deriving from materialize() in renderDrawer().
+  renderDrawer();
+}
 
 function saveCsv() { /* Task 11 */ }
 
