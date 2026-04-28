@@ -87,6 +87,28 @@ function saveActiveFloor(n) {
 
 const FLOORS = [0, 1, 2];
 
+/**
+ * Compute orphan-range counts per floor.
+ *
+ * Returns Map<floor, count>. An orphan is a row whose svgCode does not match
+ * any element on its floor's loaded SVG. We only have shelf elements indexed
+ * for the active floor (cheaper than loading every SVG up-front), so we only
+ * compute the count for `currentFloor` here. Counts for inactive floors are
+ * derived lazily on tab change — every time `loadFloor()` runs, the next
+ * `renderFloorTabs()` call will pick up that floor's count.
+ */
+function computeOrphanCounts() {
+  const byFloor = new Map();
+  if (!shelfElements || currentFloor == null) return byFloor;
+  for (const r of allRanges) {
+    if (String(r.floor) !== String(currentFloor)) continue;
+    if (!r.svgCode || !shelfElements.has(r.svgCode)) {
+      byFloor.set(currentFloor, (byFloor.get(currentFloor) || 0) + 1);
+    }
+  }
+  return byFloor;
+}
+
 function renderFloorTabs(active) {
   const root = document.getElementById('map-floor-tabs');
   root.innerHTML = FLOORS.map(n => `
@@ -106,6 +128,28 @@ function renderFloorTabs(active) {
       window.dispatchEvent(new CustomEvent('mapeditor:floor-changed', { detail: { floor: n } }));
     });
   });
+
+  // Orphan badges — only floors with a known count get one (currently the active floor).
+  const counts = computeOrphanCounts();
+  for (const n of FLOORS) {
+    const count = counts.get(n);
+    if (!count) continue;
+    const tab = root.querySelector(`[data-floor="${n}"]`);
+    if (!tab) continue;
+    const badge = document.createElement('span');
+    badge.className = 'map-orphan-badge inline-block ml-1 px-1.5 py-0.5 text-xs bg-yellow-200 text-yellow-800 rounded cursor-pointer';
+    badge.textContent = i18n.t('mapEditor.tab.orphans').replace('{n}', count);
+    badge.title = 'View unassigned ranges in CSV Editor';
+    badge.dataset.floor = String(n);
+    badge.addEventListener('click', (e) => {
+      e.stopPropagation();
+      window.location.hash = `#csv-editor?orphans=floor=${n}`;
+      // Also switch views — the deep-link is meant to navigate, not just bookmark.
+      const navCsv = document.getElementById('nav-csv');
+      if (navCsv) navCsv.click();
+    });
+    tab.appendChild(badge);
+  }
 }
 
 let currentFloor = null;
@@ -162,6 +206,10 @@ async function loadFloor(floorNumber) {
     const shelfHasConflict = floorRanges.some(r => r.svgCode === shelfId && floorConflicts.has(r.id));
     el.classList.toggle('map-shelf--has-conflicts', shelfHasConflict);
   }
+
+  // Re-render floor tabs so the orphan badge picks up this floor's count
+  // now that shelfElements is indexed.
+  renderFloorTabs(currentFloor);
 }
 
 window.addEventListener('mapeditor:floor-changed', e => loadFloor(e.detail.floor));
