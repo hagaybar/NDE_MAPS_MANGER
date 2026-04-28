@@ -27,7 +27,7 @@ The map editor reads and writes the same `data/mapping.csv` as the existing edit
 | Roles | **Admin + editor**. Editor's row-range restrictions carry over to the map editor. | Existing role model; commits `a24edfc` / `ecfee5b`. |
 | Multi-shelf bulk fields | `notes`, `shelfLabel`, `description` (all bilingual). | These are per-shelf, not per-range. |
 | Multi-shelf editing UX | "Distinct values list + Replace all with…" textbox. | Protects against silent overwrite when shelves currently differ. |
-| Overlap rule | Two ranges conflict iff same `(library, floor, collection)` and intersection is more than a single integer touch-point. Examples: <br>– OK: A 105-106, B 106-106, C 106-107 (integer touches). <br>– Conflict: A 105-106, B 105.93-106 (fractional encroachment). <br>– Conflict: D 190-195, G 194-194.72 (interior point). | User-supplied rule. |
+| Overlap rule | Two ranges conflict iff same `(library, floor, collection)` and intersection is more than a single point, OR the intersection is exactly a single point that is not an integer. Canonical examples: <br>– OK: A 100-105 + B 105-110 (integer touch). <br>– OK: A 105-106 + B 106-106 + C 106-107 (integer touches). <br>– OK: A 105-106 + B 107-108 (disjoint). <br>– **Conflict: A 100-105.5 + B 105.5-110** (single-point touch at non-integer). <br>– Conflict: A 105-106, B 105.93-106 (fractional encroachment). <br>– Conflict: D 190-195, G 194-194.72 (interior point). | User-supplied rule. The asymmetry between integer and fractional touch-points is intentional — see §5.4. |
 | Severity | Warn but allow save. Both overlap and `start > end` are warnings. | User decision (Q4b-a). |
 | Pre-existing dirty data | Show all violations on load, in the same UI as live conflicts. | User decision (Q4c-a). |
 | Save model | Explicit Save / Discard per drawer session. One CSV write per save. | Pairs with version-history workflow. |
@@ -36,7 +36,7 @@ The map editor reads and writes the same `data/mapping.csv` as the existing edit
 | Orphan ranges | Surfaced as a per-floor count badge on the floor tab; link out to the existing CSV / Location Editor for cleanup. | Out of scope to fix orphans here. |
 | Locked shelves (editor) | Whole shelf hatched + 🔒 if any range is locked; drawer shows all ranges with locked rows disabled. | Simplest correct behavior; defense-in-depth at commit time. |
 | Layout | Floor tabs at top, large map area, drawer at bottom. | User picked Layout A. |
-| Multi-select | Marquee (drag empty area) AND Ctrl/⌘-click extension. | Most flexible (Q7-C). |
+| Multi-select | **Shift-drag marquee** anywhere AND Ctrl/⌘-click extension. | Empty-area-drag breaks on dense floors where shelves tile most of the SVG; Shift-drag is unambiguous and works everywhere (Q7-C). |
 | Drawer mode flip | Replace mode — single vs multi switches the entire drawer body. | Simpler than tabs (Q7-i). |
 | Reassign flow | Banner with "Click destination on map, or [choose from list]." Source shelf amber, others pulse green. Confirm modal before commit to pendingEdits. | Map-native primary, list fallback (Q8-C). |
 | Warning UI | Map ⚠ marker on conflicting shelves + count banner in drawer + ⚠ on each conflicting cell with hover tooltip. | Compact (Q9-W3). |
@@ -65,7 +65,7 @@ admin/components/
 - `admin/index.html` — add `nav-map-editor` button + `<div id="map-editor" class="view hidden">…</div>`. Honor `data-role-required` for editor + admin.
 - `admin/app.js` — wire the new view into the route/tab switcher; lazy-init on first activation.
 - `admin/i18n/he.json` & `admin/i18n/en.json` — strings for tab label, dialog labels, warnings.
-- `admin/styles/app.css` — map-editor scoped styles (drawer, hatched lock fill, ⚠ markers, marquee, pulse animation).
+- `admin/styles/app.css` — map-editor scoped styles (drawer, hatched lock fill, ⚠ markers, marquee, pulse animation). Honor `@media (prefers-reduced-motion: reduce)` — the reassign-pick pulse falls back to a static green outline; no other animations are essential.
 
 ### 4.3 Reused without modification
 
@@ -92,9 +92,9 @@ Five mutually-exclusive interaction states:
 | State | Trigger | Visual |
 |---|---|---|
 | **idle** | nothing selected | shelves at default fill |
-| **hover** | pointer over a shelf | indigo hover fill; tooltip "Shelf X · N ranges" after ~400ms |
+| **hover** | pointer over a shelf | indigo hover fill; tooltip "Shelf X · N ranges" after ~400ms. The N comes from a `Map<svgCode, number>` precomputed once on floor load (see §6.1); hover never re-filters `floorRanges`. |
 | **single-selected** | click a shelf | shelf turns amber; drawer opens in single-shelf mode |
-| **multi-selected** | marquee or Ctrl-click ≥ 2 shelves | each amber; drawer opens in multi-shelf mode |
+| **multi-selected** | **Shift-drag marquee** anywhere on the SVG, or Ctrl/⌘-click ≥ 2 shelves | each amber; drawer opens in multi-shelf mode |
 | **reassign-pick** | "Move" button in drawer | source amber, others pulse green; banner across top; click target → confirm; Esc cancels |
 
 Shelves that contain any locked range render with hatched fill + 🔒 (per Q9-L1). They remain clickable — clicking opens the drawer in single-shelf mode with locked rows disabled and editable rows interactive. A shelf is only made click-no-op when **every** range on it is locked for the current user; in that case the cursor changes to `not-allowed` and the drawer does not open.
@@ -105,23 +105,28 @@ Two modes, one drawer (replace flip).
 
 **Single-shelf mode:** header `Shelf <label> — <N> ranges` + Discard / Save. Body: list of range rows (collection dropdown, range-start input, range-end input, ↗ Move, × delete). `+ Add range` button at bottom — pre-fills collection from the shelf's existing ranges. Pre-existing overlap warnings shown immediately using the W3 pattern.
 
-**Multi-shelf mode:** header `<N> shelves selected`. Body: notes / shelfLabel / description (bilingual). Each field uses the "distinct values" widget — a small list "current values: X (3 shelves), Y (2 shelves)" plus a "Replace all with…" textbox. Save writes the chosen value to all selected shelves.
+**Multi-shelf mode:** header `<N> shelves selected`. Body: notes / shelfLabel / description (bilingual). Each field uses the "distinct values" widget — a small list "current values: X (3 shelves), Y (2 shelves)", a `Replace all with…` textbox, and a separate `Clear on all selected` checkbox. **An empty textbox with the checkbox unchecked means "no change to this field"** — Save will not touch it. The checkbox is the only way to blank the field across the selection. Save writes the chosen value (or empty, if the checkbox is set) to all selected shelves.
 
-**Empty state:** drawer is collapsed; subtle hint "Click a shelf to edit, drag to select multiple."
+**Empty state:** drawer is collapsed; subtle hint "Click a shelf to edit, Shift-drag or Ctrl-click to select multiple."
 
 ### 5.3 `reassign-mode.js`
 
 1. ↗ Move clicked.
 2. Banner: "Click a destination shelf, or [choose from list]."
-3. SVG enters reassign-pick state; non-source shelves pulse green.
+3. SVG enters reassign-pick state; non-source shelves pulse green. Under `prefers-reduced-motion: reduce`, the pulse is replaced by a static green outline (no animation).
 4. User picks via map click OR opens dropdown picker (filterable by svgCode + shelfLabel; lets you change floors).
 5. Confirm modal: "Move *Sociology 301-305* to shelf B2?"
 6. On confirm, recorded into `pendingEdits` as `{rangeId, newSvgCode, newFloor (if cross-floor), newLibrary (inherited)}`. Drawer flips back to source shelf; the moved range no longer appears in its list. Inline note: "Moved to shelf B2 — applied on Save."
-7. Esc cancels with no change.
+7. **Floor-tab interaction:** if the user clicks a different floor tab while in reassign-pick state, reassign-pick auto-cancels (equivalent to Esc) and the floor switch proceeds. Cross-floor moves go through the dropdown picker, not by switching tabs mid-pick.
+8. Esc cancels with no change.
 
 Cross-floor reassignment is supported via the dropdown only; map-pick mode stays on the current floor.
 
 ### 5.4 `range-validation.js`
+
+The module **must** open with a comment block explaining the rule's asymmetry. Future maintainers reading this code will see "integers OK, fractions not" and assume it's a bug. The block must say:
+
+> Integer touch-points (e.g., `100-105` next to `105-110`) are accepted because the data model uses integer shelf-range boundaries as the convention for "these two shelves abut." A fractional touch-point (e.g., `100-105.5` next to `105.5-110`) is a data error: a fractional endpoint means real interleaving, not a clean abutment, and the range entry was probably mistyped.
 
 ```
 overlapsConflict(rangeA, rangeB) → boolean
@@ -145,7 +150,7 @@ Holds:
 
 - `floorRanges` — full list of ranges for the current floor, indexed by row id.
 - `selection` — `{kind: 'none' | 'single' | 'multi', shelfIds: string[]}`.
-- `pendingEdits` — additions, modifications, deletions, reassignments, keyed by row id (or temp id for additions).
+- `pendingEdits` — additions, modifications, deletions, reassignments, keyed by row id (or temp id for additions). **`pendingEdits` is a single session-wide buffer spanning all floors. Switching floor tabs does not flush it; only Save or Discard do.** This makes cross-floor reassignment safe and means a user can edit on one floor, switch to verify something on another, and come back without losing work.
 - `permission(rangeId)` — `'edit' | 'readonly'`, computed from the editor's row-range restrictions.
 
 `commit()` materializes pending edits, filters out any edit whose row id isn't in the editor's permitted set, hands off to the existing CSV save service. `revert()` discards pending edits.
@@ -157,11 +162,12 @@ Holds:
 1. `Map Editor` tab clicked → `app.js` calls `initMapEditor()` (lazy, first activation only).
 2. Role + permission scope read from `auth-guard.js`.
 3. CSV fetched via existing service, parsed, cached in `shelf-state.js` for the session.
-4. Active floor (default 0, or remembered via `localStorage`):
+4. Active floor (default 0, or remembered via `localStorage` under the namespaced key `mapEditor.activeFloor.<deploymentId>` — using a deployment-scoped key prevents collisions if the browser ever serves two admin SPAs against different CSVs):
    - Filter `floorRanges` to that floor.
    - `svg-loader.js` fetches `/maps/floor_<n>.svg`, injects into the map container, indexes shelves by `id` (= `svgCode`), attaches pointer handlers, applies locked overlay where appropriate.
+   - Build `rangeCountByShelf: Map<svgCode, number>` once for this floor — drives the hover tooltip's "N ranges" without per-hover filtering.
    - `range-validation.js` runs `computeFloorConflicts(floorRanges)`; conflicting shelves get the ⚠ marker.
-5. Orphan-range count for this floor surfaces as a badge on the floor tab and links out to the existing CSV / Location Editor.
+5. Orphan-range count for this floor surfaces as a badge on the floor tab. Clicking the badge deep-links to the existing CSV Editor with a filter pre-applied to that floor's orphan rows. The filter is implemented by appending a query param the CSV Editor already understands; **if it doesn't yet support such a param, adding it is part of phase 1 scope** so this surface area is closed before the rest of the run starts.
 
 ### 6.2 Edit
 
@@ -174,7 +180,7 @@ Holds:
 
 1. Save clicked → `shelf-state.commit()` produces the new CSV via the same serializer the other editors use.
 2. POST to existing `putCsv` Lambda (versioning + CloudFront invalidation).
-3. On success: toast, drawer state appropriately reset, `pendingEdits` cleared, conflict markers re-rendered on the new snapshot.
+3. On success: toast, `pendingEdits` cleared across all floors, drawer stays open on the currently-selected shelf with fresh values from the new snapshot, conflict markers re-rendered.
 4. On failure: toast with server message; `pendingEdits` preserved for retry.
 
 ## 7. Error handling
@@ -195,10 +201,13 @@ Holds:
 
 ### 8.1 Unit (Jest)
 
-- `range-validation.test.js` — pin the integer-touch rule with the canonical examples:
-  - OK: `A 105-106 + B 106-106 + C 106-107`
-  - Conflict: `A 105-106 + B 105.93-106`
-  - Conflict: `D 190-195 + G 194-194.72`
+- `range-validation.test.js` — pin the integer-touch rule with the full canonical example set:
+  - OK: `A 100-105 + B 105-110` (boring integer-touch positive case)
+  - OK: `A 105-106 + B 106-106 + C 106-107` (multi-shelf integer touches)
+  - OK: `A 105-106 + B 107-108` (disjoint, sanity check)
+  - **Conflict: `A 100-105.5 + B 105.5-110`** (single-point touch at a non-integer — the case most likely to be "simplified" wrong later)
+  - Conflict: `A 105-106 + B 105.93-106` (fractional encroachment)
+  - Conflict: `D 190-195 + G 194-194.72` (interior point)
   - Plus matrix: start>end, multi-collection, multi-floor, multi-library.
 - `shelf-state.test.js` — pendingEdits accumulation, commit/revert, permission filtering.
 - Reassign edge cases (same shelf no-op, cross-floor via dropdown).
