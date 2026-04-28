@@ -37,3 +37,6 @@ archive/
 
 # Superpowers brainstorming session files
 .superpowers/
+
+# Local deploy script (per-developer, may carry env-var hints)
+redeploy.sh
