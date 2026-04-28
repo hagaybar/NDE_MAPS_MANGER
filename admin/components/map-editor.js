@@ -230,7 +230,7 @@ function renderDrawer() {
     const mergedFloor = merged.filter(r => String(r.floor) === String(currentFloor));
     const rangesOnShelf = mergedFloor.filter(r => r.svgCode === shelfId);
     const conflictsByRangeId = floorConflicts;
-    const collectionsList = Array.from(new Set(allRanges.map(r => r.collection))).sort();
+    const collectionsList = Array.from(new Set(allRanges.map(r => r.collectionName).filter(Boolean))).sort();
 
     showSingleShelf({
       shelfId,
@@ -254,7 +254,7 @@ function renderDrawer() {
         const allShelvesList = Array.from(allShelves.values()).sort((a, b) => a.label.localeCompare(b.label));
         startReassign({
           rangeId: id,
-          rangeLabel: `${range.collection} ${range.rangeStart}-${range.rangeEnd}`,
+          rangeLabel: `${range.collectionName} ${range.rangeStart}-${range.rangeEnd}`,
           shelfElements: new Map([...shelfElements].filter(([sid]) => sid !== range.svgCode)),
           allShelves: allShelvesList,
           onConfirm: ({ newSvgCode, newFloor }) => {
@@ -315,13 +315,13 @@ function refreshConflicts() {
 function addNewRangeToShelf(shelfId) {
   const floorRanges = allRanges.filter(r => String(r.floor) === String(currentFloor));
   const rangesOnShelf = floorRanges.filter(r => r.svgCode === shelfId);
-  const defaultCollection = rangesOnShelf[0]?.collection || (allRanges[0]?.collection || '');
+  const defaultCollection = rangesOnShelf[0]?.collectionName || (allRanges[0]?.collectionName || '');
   const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
   shelfState.add(tempId, {
     svgCode: shelfId,
     floor: String(currentFloor),
-    library: rangesOnShelf[0]?.library || allRanges[0]?.library || '',
-    collection: defaultCollection,
+    libraryName: rangesOnShelf[0]?.libraryName || allRanges[0]?.libraryName || '',
+    collectionName: defaultCollection,
     rangeStart: '',
     rangeEnd: '',
   });

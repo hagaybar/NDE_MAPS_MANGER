@@ -19,9 +19,9 @@
 import { parseRangeBoundary } from '../../services/data-model.js?v=5';
 
 export function overlapsConflict(a, b) {
-  if (a.library !== b.library) return false;
+  if (a.libraryName !== b.libraryName) return false;
   if (String(a.floor) !== String(b.floor)) return false;
-  if (a.collection !== b.collection) return false;
+  if (a.collectionName !== b.collectionName) return false;
 
   const aStart = parseRangeBoundary(a.rangeStart);
   const aEnd = parseRangeBoundary(a.rangeEnd);
@@ -50,10 +50,10 @@ export function validateRangeShape(range) {
 
 export function computeFloorConflicts(ranges) {
   const conflicts = new Map();
-  // Group by (library, floor, collection) for O(N²) within each small group only.
+  // Group by (libraryName, floor, collectionName) for O(N²) within each small group only.
   const groups = new Map();
   for (const r of ranges) {
-    const key = `${r.library}|${r.floor}|${r.collection}`;
+    const key = `${r.libraryName}|${r.floor}|${r.collectionName}`;
     let g = groups.get(key);
     if (!g) { g = []; groups.set(key, g); }
     g.push(r);

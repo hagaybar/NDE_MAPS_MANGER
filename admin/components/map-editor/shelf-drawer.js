@@ -13,7 +13,7 @@ export function showSingleShelf({ shelfId, shelfLabel, rangesOnShelf, conflictsB
   host.classList.remove('map-drawer--hidden');
   const conflictCount = rangesOnShelf.reduce((n, r) => n + (conflictsByRangeId.get(r.id)?.length || 0), 0);
   const banner = conflictCount > 0
-    ? `<div class="map-drawer__warn-banner">⚠ ${conflictCount} ${i18n.t('mapEditor.warning.banner').replace('{n}', conflictCount)}</div>`
+    ? `<div class="map-drawer__warn-banner">⚠ ${i18n.t('mapEditor.warning.banner').replace('{n}', conflictCount)}</div>`
     : '';
   host.innerHTML = `
     <div class="map-drawer__header">
@@ -76,8 +76,8 @@ function buildRow(range, { isLocked, conflicts, collectionsList, onChange, onMov
   row.className = `map-drawer__row${isLocked ? ' map-drawer__row--locked' : ''}`;
   row.dataset.rangeId = range.id;
   row.innerHTML = `
-    <select ${isLocked ? 'disabled' : ''} data-field="collection">
-      ${collectionsList.map(c => `<option value="${escape(c)}" ${c === range.collection ? 'selected' : ''}>${escape(c)}</option>`).join('')}
+    <select ${isLocked ? 'disabled' : ''} data-field="collectionName">
+      ${collectionsList.map(c => `<option value="${escape(c)}" ${c === range.collectionName ? 'selected' : ''}>${escape(c)}</option>`).join('')}
     </select>
     <input ${isLocked ? 'disabled' : ''} data-field="rangeStart" value="${escape(range.rangeStart || '')}" />
     <input ${isLocked ? 'disabled' : ''} data-field="rangeEnd" value="${escape(range.rangeEnd || '')}" />

@@ -4,8 +4,8 @@ import {
   computeFloorConflicts,
 } from '../components/map-editor/range-validation.js';
 
-const r = (library, floor, collection, start, end) =>
-  ({ library, floor, collection, rangeStart: start, rangeEnd: end });
+const r = (libraryName, floor, collectionName, start, end) =>
+  ({ libraryName, floor, collectionName, rangeStart: start, rangeEnd: end });
 
 describe('overlapsConflict — integer-touch positives', () => {
   test('A 100-105 + B 105-110: integer touch is OK', () => {
@@ -98,8 +98,8 @@ describe('validateRangeShape', () => {
 describe('computeFloorConflicts', () => {
   test('returns symmetric entries for both halves of a conflicting pair', () => {
     const ranges = [
-      { id: '1', library: 'Cen', floor: '1', collection: 'Soc', rangeStart: '100', rangeEnd: '105.5', svgCode: 'A' },
-      { id: '2', library: 'Cen', floor: '1', collection: 'Soc', rangeStart: '105.5', rangeEnd: '110', svgCode: 'B' },
+      { id: '1', libraryName: 'Cen', floor: '1', collectionName: 'Soc', rangeStart: '100', rangeEnd: '105.5', svgCode: 'A' },
+      { id: '2', libraryName: 'Cen', floor: '1', collectionName: 'Soc', rangeStart: '105.5', rangeEnd: '110', svgCode: 'B' },
     ];
     const c = computeFloorConflicts(ranges);
     expect(c.get('1')).toHaveLength(1);
@@ -110,8 +110,8 @@ describe('computeFloorConflicts', () => {
 
   test('disjoint group → empty map', () => {
     const ranges = [
-      { id: '1', library: 'Cen', floor: '1', collection: 'Soc', rangeStart: '100', rangeEnd: '105' },
-      { id: '2', library: 'Cen', floor: '1', collection: 'Soc', rangeStart: '105', rangeEnd: '110' },
+      { id: '1', libraryName: 'Cen', floor: '1', collectionName: 'Soc', rangeStart: '100', rangeEnd: '105' },
+      { id: '2', libraryName: 'Cen', floor: '1', collectionName: 'Soc', rangeStart: '105', rangeEnd: '110' },
     ];
     expect(computeFloorConflicts(ranges).size).toBe(0);
   });
