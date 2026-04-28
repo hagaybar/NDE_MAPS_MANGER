@@ -272,6 +272,27 @@ export function parseRangeValue(rangeValue) {
 }
 
 /**
+ * Thin wrapper around parseRangeValue that returns a single numeric boundary,
+ * suitable for overlap arithmetic in the map editor's range-validation module.
+ * Returns NaN when the boundary cannot be parsed as a number — callers can use
+ * Number.isNaN to detect invalid input. Single source of truth: this delegates
+ * to parseRangeValue so prefix/Dewey-with-parentheses handling stays consistent.
+ *
+ * @param {string} rangeValue
+ * @returns {number} numeric boundary, or NaN if unparsable
+ */
+export function parseRangeBoundary(rangeValue) {
+  const parsed = parseRangeValue(rangeValue);
+  if (parsed.numeric === null) return NaN;
+  // parseRangeValue treats a prefix-only token like "abc" as
+  // { numeric: 0, prefix: "ABC" } (an alphanumeric shelf code with no number).
+  // For the map editor's overlap arithmetic we treat such tokens as invalid:
+  // there is no real numeric ordering to compute against.
+  if (parsed.prefix && !/\d/.test(parsed.original)) return NaN;
+  return parsed.numeric;
+}
+
+/**
  * Checks if two ranges have a problematic overlap (interior overlap, not just boundary touch)
  *
  * Legitimate cases (returns false):
@@ -632,6 +653,7 @@ export default {
   areRowsEqual,
   findDuplicateRows,
   parseRangeValue,
+  parseRangeBoundary,
   doRangesOverlap,
   findOverlappingRanges,
   createEmptyRow,
