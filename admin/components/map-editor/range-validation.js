@@ -1,16 +1,21 @@
 /*
- * Range-overlap rule (intentional asymmetry — DO NOT "fix" it):
+ * Range-overlap rule:
  *
- * Integer touch-points (e.g., 100-105 next to 105-110) are accepted because
- * the data model uses integer shelf-range boundaries as the convention for
- * "these two shelves abut." A fractional touch-point (e.g., 100-105.5 next
- * to 105.5-110) is a data error: a fractional endpoint means real
- * interleaving, not a clean abutment, and the range entry was probably
- * mistyped.
+ * Two ranges conflict iff they share the same (libraryName, floor,
+ * collectionName) AND their numeric [start, end] intervals overlap by
+ * MORE THAN A SINGLE POINT.
  *
- * Conflict iff: same (library, floor, collection) AND
- *   intersection.length > 0 (more than a single point), OR
- *   intersection is exactly one point that is NOT an integer.
+ * Touching boundaries are always OK, regardless of whether the shared
+ * value is integer or fractional. Real data uses fractional abutments
+ * (e.g., shelf "292-471.7" next to shelf "471.7-…") — these are how
+ * the catalog is authored, not data errors.
+ *
+ * Examples:
+ *   OK:        100-105 + 105-110          (integer touch)
+ *   OK:        100-123.45 + 123.45-124    (fractional touch)
+ *   OK:        292-471.7 + 471.7-475      (real-data abutment)
+ *   CONFLICT:  100-123.45 + 123.41-124    (interior overlap [123.41, 123.45])
+ *   CONFLICT:  190-195 + 194-194.72       (interior point inside [190, 195])
  */
 
 // Reuses the Dewey range comparator from data-model.js / validation.js.
@@ -31,9 +36,9 @@ export function overlapsConflict(a, b) {
   const lo = Math.max(aStart, bStart);
   const hi = Math.min(aEnd, bEnd);
 
-  if (lo > hi) return false;                   // disjoint
-  if (lo === hi) return !Number.isInteger(lo); // touch — OK only at integer
-  return true;                                  // genuine overlap
+  if (lo > hi) return false;   // disjoint
+  if (lo === hi) return false; // single-point touch (integer or fractional) — OK
+  return true;                 // genuine interior overlap
 }
 
 export function validateRangeShape(range) {

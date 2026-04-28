@@ -32,13 +32,27 @@ describe('overlapsConflict — canonical positives (no conflict)', () => {
       r('Cen', '1', 'Soc', '107', '108'),
     )).toBe(false);
   });
-});
 
-describe('overlapsConflict — canonical conflicts', () => {
-  test('A 100-105.5 + B 105.5-110: single-point touch at non-integer', () => {
+  test('A 100-105.5 + B 105.5-110: fractional touch at the same point is OK', () => {
     expect(overlapsConflict(
       r('Cen', '1', 'Soc', '100', '105.5'),
       r('Cen', '1', 'Soc', '105.5', '110'),
+    )).toBe(false);
+  });
+
+  test('A 292-471.7 + B 471.7-475: real-data fractional abutment is OK', () => {
+    expect(overlapsConflict(
+      r('Cen', '1', 'Soc', '292', '471.7'),
+      r('Cen', '1', 'Soc', '471.7', '475'),
+    )).toBe(false);
+  });
+});
+
+describe('overlapsConflict — canonical conflicts', () => {
+  test('A 100-123.45 + B 123.41-124: interior overlap [123.41, 123.45]', () => {
+    expect(overlapsConflict(
+      r('Cen', '1', 'Soc', '100', '123.45'),
+      r('Cen', '1', 'Soc', '123.41', '124'),
     )).toBe(true);
   });
 
@@ -98,8 +112,8 @@ describe('validateRangeShape', () => {
 describe('computeFloorConflicts', () => {
   test('returns symmetric entries for both halves of a conflicting pair', () => {
     const ranges = [
-      { id: '1', libraryName: 'Cen', floor: '1', collectionName: 'Soc', rangeStart: '100', rangeEnd: '105.5', svgCode: 'A' },
-      { id: '2', libraryName: 'Cen', floor: '1', collectionName: 'Soc', rangeStart: '105.5', rangeEnd: '110', svgCode: 'B' },
+      { id: '1', libraryName: 'Cen', floor: '1', collectionName: 'Soc', rangeStart: '100', rangeEnd: '123.45', svgCode: 'A' },
+      { id: '2', libraryName: 'Cen', floor: '1', collectionName: 'Soc', rangeStart: '123.41', rangeEnd: '124', svgCode: 'B' },
     ];
     const c = computeFloorConflicts(ranges);
     expect(c.get('1')).toHaveLength(1);

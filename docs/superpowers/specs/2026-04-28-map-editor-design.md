@@ -27,7 +27,7 @@ The map editor reads and writes the same `data/mapping.csv` as the existing edit
 | Roles | **Admin + editor**. Editor's row-range restrictions carry over to the map editor. | Existing role model; commits `a24edfc` / `ecfee5b`. |
 | Multi-shelf bulk fields | `notes`, `shelfLabel`, `description` (all bilingual). | These are per-shelf, not per-range. |
 | Multi-shelf editing UX | "Distinct values list + Replace all with…" textbox. | Protects against silent overwrite when shelves currently differ. |
-| Overlap rule | Two ranges conflict iff same `(library, floor, collection)` and intersection is more than a single point, OR the intersection is exactly a single point that is not an integer. Canonical examples: <br>– OK: A 100-105 + B 105-110 (integer touch). <br>– OK: A 105-106 + B 106-106 + C 106-107 (integer touches). <br>– OK: A 105-106 + B 107-108 (disjoint). <br>– **Conflict: A 100-105.5 + B 105.5-110** (single-point touch at non-integer). <br>– Conflict: A 105-106, B 105.93-106 (fractional encroachment). <br>– Conflict: D 190-195, G 194-194.72 (interior point). | User-supplied rule. The asymmetry between integer and fractional touch-points is intentional — see §5.4. |
+| Overlap rule | Two ranges conflict iff same `(libraryName, floor, collectionName)` and intersection is more than a single point. Touching at a single boundary value is always OK, integer or fractional. Canonical examples: <br>– OK: A 100-105 + B 105-110 (integer touch). <br>– OK: A 105-106 + B 106-106 + C 106-107 (integer touches). <br>– OK: A 105-106 + B 107-108 (disjoint). <br>– OK: A 292-471.7 + B 471.7-475 (real-data fractional abutment). <br>– OK: A 100-123.45 + B 123.45-124 (fractional touch at the same point). <br>– **Conflict: A 100-123.45 + B 123.41-124** (intersection `[123.41, 123.45]` is wider than a point). <br>– Conflict: A 105-106 + B 105.93-106 (fractional encroachment). <br>– Conflict: D 190-195 + G 194-194.72 (interior point). | User-supplied rule. **Revised 2026-04-28** after observing real catalog data: catalogers use fractional abutments routinely (e.g., shelf "292-471.7" abuts "471.7-…"); flagging those as conflicts produced large false-positive counts. The earlier integer-vs-fractional asymmetry has been dropped. |
 | Severity | Warn but allow save. Both overlap and `start > end` are warnings. | User decision (Q4b-a). |
 | Pre-existing dirty data | Show all violations on load, in the same UI as live conflicts. | User decision (Q4c-a). |
 | Save model | Explicit Save / Discard per drawer session. One CSV write per save. | Pairs with version-history workflow. |
@@ -124,16 +124,16 @@ Cross-floor reassignment is supported via the dropdown only; map-pick mode stays
 
 ### 5.4 `range-validation.js`
 
-The module **must** open with a comment block explaining the rule's asymmetry. Future maintainers reading this code will see "integers OK, fractions not" and assume it's a bug. The block must say:
+The module opens with a comment block stating the simplified rule (revised 2026-04-28 after real-data observation):
 
-> Integer touch-points (e.g., `100-105` next to `105-110`) are accepted because the data model uses integer shelf-range boundaries as the convention for "these two shelves abut." A fractional touch-point (e.g., `100-105.5` next to `105.5-110`) is a data error: a fractional endpoint means real interleaving, not a clean abutment, and the range entry was probably mistyped.
+> Two ranges conflict iff they share the same `(libraryName, floor, collectionName)` AND their numeric `[start, end]` intervals overlap by **more than a single point**. Touching boundaries are always OK, regardless of whether the shared value is integer or fractional. Real catalog data uses fractional abutments routinely (e.g., shelf `292-471.7` next to shelf `471.7-…`); these are how the catalog is authored, not data errors.
 
 ```
 overlapsConflict(rangeA, rangeB) → boolean
 ```
 True iff:
-- Same `library`, same `floor`, same `collection`.
-- AND intersection of numeric `[start, end]` is more than a single point, OR is exactly a single point that is not an integer.
+- Same `libraryName`, same `floor`, same `collectionName`.
+- AND intersection of numeric `[start, end]` is more than a single point. (Single-point touches at any value, integer or fractional, are OK.)
 
 ```
 computeFloorConflicts(ranges) → Map<rangeId, conflictDetail[]>
