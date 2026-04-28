@@ -1,5 +1,5 @@
 import i18n from '../i18n.js?v=5';
-import { applyRoleBasedUI } from '../auth-guard.js?v=5';
+import { applyRoleBasedUI, getPermittedRowIds } from '../auth-guard.js?v=5';
 import { showToast } from './toast.js?v=5';
 import { getAuthHeaders, getCurrentUsername } from '../app.js?v=5';
 import { loadFloorSvg, indexShelvesById, buildRangeCountByShelf } from './map-editor/svg-loader.js?v=1';
@@ -125,8 +125,9 @@ async function loadFloor(floorNumber) {
   rangeCountByShelf = buildRangeCountByShelf(floorRanges);
   floorConflicts = computeFloorConflicts(floorRanges);
 
-  // Permitted IDs come from auth-guard; null for admins.
-  const permitted = window.__editorPermittedRowIds || null;
+  // Permitted IDs come from auth-guard: null = admin (unlimited);
+  // Set<rangeId> for editors (empty Set when editor has no allowedRanges).
+  const permitted = getPermittedRowIds(allRanges);
   shelfState = shelfState || createShelfState({ ranges: allRanges, permittedRowIds: permitted });
 
   attachInteraction({

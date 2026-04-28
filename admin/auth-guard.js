@@ -5,6 +5,7 @@
 
 import authService from './auth-service.js?v=5';
 import i18n from './i18n.js?v=5';
+import { getMatchingRowIndices } from './utils/range-filter.js?v=5';
 
 // Permission matrix - matches backend role-auth.mjs
 const PERMISSIONS = {
@@ -118,6 +119,56 @@ export function getRole() {
  */
 export function isAdmin() {
   return currentRole === 'admin';
+}
+
+/**
+ * Get the current authenticated user (raw object from auth-service).
+ * @returns {object|null} User object with `role`, `allowedRanges`, etc., or null.
+ */
+export function getCurrentUser() {
+  return authService.getUser();
+}
+
+/**
+ * Compute the set of row ids the current user is permitted to edit.
+ *
+ * Mirrors the filtering pattern used by csv-editor.js (uses
+ * `getMatchingRowIndices` against `user.allowedRanges`). Unlike csv-editor,
+ * this returns a `Set<rangeId>` keyed off the row's `id` field (which
+ * map-editor assigns as `row.id || \`row-${idx}\``) — that's the shape
+ * `shelf-state.js` expects for `permittedRowIds`.
+ *
+ * Returns:
+ * - `null` for admin users (unlimited — shelf-state treats null as "all allowed")
+ * - `Set<string>` of permitted row ids for editors
+ * - empty `Set` when the editor has no access (no allowedRanges / disabled / empty filterGroups)
+ *
+ * @param {object[]} rows - Array of CSV rows; each must have an `id` field
+ *                           (assigned upstream as `row.id || \`row-${idx}\``).
+ * @returns {Set<string>|null}
+ */
+export function getPermittedRowIds(rows) {
+  // Admin (or any non-editor role) gets unlimited access.
+  if (isAdmin()) return null;
+
+  if (!Array.isArray(rows)) return new Set();
+
+  const user = authService.getUser();
+  const allowedRanges = user?.allowedRanges || null;
+
+  // No restrictions configured / disabled / no filter groups → no access.
+  if (!allowedRanges || allowedRanges.enabled === false) return new Set();
+  if (!Array.isArray(allowedRanges.filterGroups) || allowedRanges.filterGroups.length === 0) {
+    return new Set();
+  }
+
+  const indices = getMatchingRowIndices(rows, allowedRanges);
+  const permitted = new Set();
+  for (const idx of indices) {
+    const row = rows[idx];
+    if (row && row.id) permitted.add(row.id);
+  }
+  return permitted;
 }
 
 /**
@@ -312,6 +363,8 @@ export default {
   hasPermission,
   getRole,
   isAdmin,
+  getCurrentUser,
+  getPermittedRowIds,
   showIfAdmin,
   hideIfEditor,
   applyRoleBasedUI,
