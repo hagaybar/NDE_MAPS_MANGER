@@ -34,3 +34,6 @@ npm-debug.log*
 
 # Archive (old files)
 archive/
+
+# Superpowers brainstorming session files
+.superpowers/
