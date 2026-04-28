@@ -14,6 +14,7 @@ import authGuard, { isAdmin } from './auth-guard.js?v=5';
 import { initUserMenu } from './components/user-menu.js?v=5';
 import { initUserManagement } from './components/user-management.js?v=5';
 import { initLocationEditor } from './components/location-editor.js?v=5';
+import { initMapEditor } from './components/map-editor.js?v=1';
 import { initSearchBox } from './components/search-box.js?v=5';
 import { initErrorsDashboard } from './components/errors-dashboard.js?v=9';
 import logger from './services/logger.js?v=1';
@@ -126,6 +127,11 @@ function updateUI() {
         navLocationEditor.textContent = i18n.t('nav.locationEditor');
     }
 
+    const navMapEditor = document.getElementById('nav-map-editor');
+    if (navMapEditor) {
+        navMapEditor.textContent = i18n.t('nav.mapEditor');
+    }
+
     const navErrors = document.getElementById('nav-errors');
     if (navErrors) {
         navErrors.textContent = i18n.t('nav.errors');
@@ -212,6 +218,14 @@ function setupEventListeners() {
     if (navLocationEditor) {
         navLocationEditor.addEventListener('click', () => {
             showView('location-editor');
+        });
+    }
+
+    // Navigation - Map Editor
+    const navMapEditor = document.getElementById('nav-map-editor');
+    if (navMapEditor) {
+        navMapEditor.addEventListener('click', () => {
+            showView('map-editor');
         });
     }
 
@@ -331,6 +345,7 @@ function showView(view) {
     const versionHistory = document.getElementById('version-history');
     const userManagement = document.getElementById('user-management');
     const locationEditor = document.getElementById('location-editor');
+    const mapEditor = document.getElementById('map-editor');
     const errorsDashboard = document.getElementById('errors-dashboard');
 
     // Get navigation elements
@@ -339,6 +354,7 @@ function showView(view) {
     const navVersions = document.getElementById('nav-versions');
     const navUsers = document.getElementById('nav-users');
     const navLocationEditor = document.getElementById('nav-location-editor');
+    const navMapEditor = document.getElementById('nav-map-editor');
     const navErrors = document.getElementById('nav-errors');
 
     // Hide all views
@@ -347,6 +363,7 @@ function showView(view) {
     if (versionHistory) versionHistory.classList.add('hidden');
     if (userManagement) userManagement.classList.add('hidden');
     if (locationEditor) locationEditor.classList.add('hidden');
+    if (mapEditor) mapEditor.classList.add('hidden');
     if (errorsDashboard) errorsDashboard.classList.add('hidden');
 
     // Remove active state from all nav tabs
@@ -369,6 +386,10 @@ function showView(view) {
     if (navLocationEditor) {
         navLocationEditor.classList.remove('active');
         navLocationEditor.classList.add('border-transparent', 'text-gray-500');
+    }
+    if (navMapEditor) {
+        navMapEditor.classList.remove('active');
+        navMapEditor.classList.add('border-transparent', 'text-gray-500');
     }
     if (navErrors) {
         navErrors.classList.remove('active');
@@ -433,6 +454,16 @@ function showView(view) {
             if (navLocationEditor) {
                 navLocationEditor.classList.add('active');
                 navLocationEditor.classList.remove('border-transparent', 'text-gray-500');
+            }
+            break;
+        case 'map-editor':
+            if (mapEditor) {
+                mapEditor.classList.remove('hidden');
+                initMapEditor();
+            }
+            if (navMapEditor) {
+                navMapEditor.classList.add('active');
+                navMapEditor.classList.remove('border-transparent', 'text-gray-500');
             }
             break;
         case 'errors':

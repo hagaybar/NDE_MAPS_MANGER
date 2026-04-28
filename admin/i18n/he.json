@@ -20,6 +20,7 @@
     "users": "משתמשים",
     "settings": "הגדרות",
     "locationEditor": "עורך מיקומים",
+    "mapEditor": "עורך מפות",
     "errors": "שגיאות"
   },
   "csv": {
@@ -331,6 +332,39 @@
     "noIssues": "לא נמצאו בעיות תקינות",
     "refresh": "רענן",
     "export": "ייצא"
+  },
+  "mapEditor": {
+    "empty": "לחץ על מדף לעריכה, Shift-גרירה או Ctrl-לחיצה לבחירת מספר מדפים.",
+    "tab": {
+      "floor": "קומה {n}",
+      "orphans": "{n} ללא שיוך"
+    },
+    "discard": "בטל",
+    "save": "שמור",
+    "addRange": "+ הוסף טווח",
+    "move": "↗ העבר",
+    "delete": "מחק",
+    "reassign": {
+      "banner": "לחץ על מדף יעד, או {chooseFromList} עבור {rangeLabel}",
+      "chooseFromList": "בחר מהרשימה",
+      "cancel": "ביטול",
+      "confirm": "להעביר את {rangeLabel} למדף {shelfLabel}?"
+    },
+    "warning": {
+      "overlap": "חופף ל-{otherRangeLabel} במדף {otherShelfLabel}",
+      "startGtEnd": "תחילת הטווח גדולה מהסוף.",
+      "banner": "{n} התנגשויות במדף זה"
+    },
+    "shelves": {
+      "selected": "{n} מדפים נבחרו"
+    },
+    "shelf": {
+      "header": "מדף {label} — {n} טווחים"
+    },
+    "replaceAllWith": "החלף את הכל ב…",
+    "clearOnSelected": "נקה בכל הנבחרים",
+    "distinctValues": "ערכים נוכחיים: {valuesList}",
+    "locked": "נעול"
   },
   "ranges": {
     "editableRanges": "טווחים לעריכה",
