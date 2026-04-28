@@ -2643,3 +2643,28 @@ textarea:focus-visible,
 [dir="rtl"] .errors-item-arrow {
     transform: rotate(180deg);
 }
+
+/* Map Editor — SVG interaction states (Task 6) */
+.map-shelf { cursor: pointer; transition: fill .12s ease; }
+.map-shelf--hover { fill: rgb(99 102 241 / 0.85); }
+.map-shelf--selected { fill: rgb(245 158 11); }
+.map-shelf--locked {
+  fill: url(#map-shelf-hatch);
+  cursor: default;
+}
+.map-shelf--fully-locked { cursor: not-allowed; }
+.map-shelf--has-conflicts { /* ⚠ marker drawn separately */ }
+.map-tooltip {
+  position: absolute; pointer-events: none; z-index: 30;
+  background: #1e293b; color: white; font-size: 11px; padding: 4px 8px;
+  border-radius: 4px; white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map-shelf { transition: none; }
+  .map-pulse-target { animation: none !important; outline: 2px solid #15803d; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .map-pulse-target { animation: map-pulse 1.5s ease-in-out infinite; }
+  @keyframes map-pulse { 0%,100% { opacity: 1 } 50% { opacity: 0.55 } }
+}
