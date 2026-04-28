@@ -5,8 +5,70 @@ import { attachInteraction, applySelection } from './map-editor/svg-interaction.
 import { createShelfState } from './map-editor/shelf-state.js?v=1';
 import { computeFloorConflicts } from './map-editor/range-validation.js?v=1';
 
+const CLOUDFRONT_URL = 'https://d3h8i7y9p8lyw7.cloudfront.net';
 const DEPLOYMENT_ID = location.host.replace(/[^a-z0-9]+/gi, '-');
 const STORAGE_KEY_FLOOR = `mapEditor.activeFloor.${DEPLOYMENT_ID}`;
+
+/**
+ * Fetch + parse the mapping CSV.
+ * Mirrors the CSV-load pattern used by csv-editor.js / location-editor.js
+ * (no shared service module exists yet — see deviations note for Task 7).
+ */
+async function loadMappingCsv() {
+  const response = await fetch(`${CLOUDFRONT_URL}/data/mapping.csv`);
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+  const text = await response.text();
+  return parseCsv(text);
+}
+
+function parseCsv(text) {
+  const lines = text.split(/\r?\n/).filter(line => line.trim());
+  if (lines.length === 0) return [];
+  const headers = parseCsvLine(lines[0]);
+  const data = [];
+  for (let i = 1; i < lines.length; i++) {
+    const values = parseCsvLine(lines[i]);
+    const row = {};
+    headers.forEach((header, index) => {
+      row[header] = values[index] || '';
+    });
+    data.push(row);
+  }
+  return data;
+}
+
+function parseCsvLine(line) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    const nextChar = line[i + 1];
+    if (inQuotes) {
+      if (char === '"' && nextChar === '"') {
+        current += '"';
+        i++;
+      } else if (char === '"') {
+        inQuotes = false;
+      } else {
+        current += char;
+      }
+    } else {
+      if (char === '"') {
+        inQuotes = true;
+      } else if (char === ',') {
+        result.push(current);
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+  }
+  result.push(current);
+  return result;
+}
 
 function loadActiveFloor() {
   const v = localStorage.getItem(STORAGE_KEY_FLOOR);
@@ -99,7 +161,7 @@ window.addEventListener('mapeditor:floor-changed', e => loadFloor(e.detail.floor
 
 let initialized = false;
 
-export function initMapEditor() {
+export async function initMapEditor() {
   if (initialized) return;
   initialized = true;
   const container = document.getElementById('map-editor');
@@ -120,5 +182,14 @@ export function initMapEditor() {
   container.prepend(defs);
   renderFloorTabs(loadActiveFloor());
   applyRoleBasedUI(container);
-  (async () => { await loadFloor(loadActiveFloor()); })();
+
+  try {
+    const rows = await loadMappingCsv();
+    allRanges = rows.map((row, idx) => ({ ...row, id: row.id || `row-${idx}` }));
+  } catch (err) {
+    console.error('[MapEditor] Failed to load mapping CSV:', err);
+    allRanges = [];
+  }
+
+  await loadFloor(loadActiveFloor());
 }

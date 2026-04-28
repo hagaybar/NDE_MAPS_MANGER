@@ -336,7 +336,7 @@ async function handleVersionRestore(versionId) {
  * Show a specific view and update navigation state
  * @param {string} view - The view to show ('csv', 'svg', or 'versions')
  */
-function showView(view) {
+async function showView(view) {
     logger.info('user', 'View changed', { view });
 
     // Get view elements
@@ -459,7 +459,7 @@ function showView(view) {
         case 'map-editor':
             if (mapEditor) {
                 mapEditor.classList.remove('hidden');
-                initMapEditor();
+                await initMapEditor();
             }
             if (navMapEditor) {
                 navMapEditor.classList.add('active');
