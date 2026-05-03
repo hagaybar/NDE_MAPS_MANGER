@@ -28,6 +28,8 @@ npm-debug.log*
 
 # Playwright
 .playwright-mcp/
+playwright-report/
+test-results/
 
 # Babysitter runs (large files)
 .a5c/runs/
