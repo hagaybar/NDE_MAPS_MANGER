@@ -157,6 +157,33 @@ async function clickShelf(page: Page, shelfId: string): Promise<void> {
 }
 
 test.describe('@phase-3 Map Editor UX polish', () => {
+  test('canvas direction is LTR even when document is RTL (#2)', async ({ page }) => {
+    // Closes #2: in Hebrew mode, #map-canvas inherited dir="rtl" from the
+    // document, which flipped its scroll origin and displaced the entire
+    // SVG ~200px on the x-axis. The CSS rule `#map-canvas { direction: ltr }`
+    // pins the scroll container to LTR while leaving per-character BiDi
+    // intact, so Hebrew text inside the SVG still renders correctly.
+    await injectAuthState(page, mockUsers.admin);
+    await mockFixtures(page);
+    // Force HE locale via the same path injectAuthState uses internally.
+    await page.addInitScript(() => window.localStorage.setItem('locale', 'he'));
+
+    await page.goto('/admin/');
+    await page.waitForSelector('#nav-map-editor', { state: 'visible' });
+    await page.click('#nav-map-editor');
+    await page.waitForSelector('#map-canvas', { state: 'attached' });
+
+    const direction = await page.evaluate(() =>
+      getComputedStyle(document.getElementById('map-canvas')!).direction
+    );
+    expect(direction, 'document RTL must NOT cascade into #map-canvas').toBe('ltr');
+
+    // Confirm the document itself IS in RTL — otherwise this test becomes a
+    // no-op the day someone changes locale handling.
+    const docDir = await page.evaluate(() => document.documentElement.dir);
+    expect(docDir, 'document direction should be rtl when locale=he').toBe('rtl');
+  });
+
   test('drawer does not overlay canvas (#1)', async ({ page, consoleMessages }) => {
     await injectAuthState(page, mockUsers.admin);
     await mockFixtures(page);

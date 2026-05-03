@@ -2682,6 +2682,18 @@ textarea:focus-visible,
   overflow: auto;
 }
 
+/* The Map Editor canvas hosts an SVG floor map authored in LTR coordinate
+ * space (positions, text-anchors, viewBox). When the admin SPA runs in Hebrew,
+ * document.documentElement gets dir="rtl" — this cascades into #map-canvas,
+ * and because #map-canvas has overflow: auto, the scroll origin moves to the
+ * right edge. The whole SVG renders displaced by ~200px (closes #2). Force
+ * LTR direction on the scroll container to preserve the LTR-authored layout;
+ * per-character BiDi still renders Hebrew text correctly inside the SVG.
+ */
+#map-canvas {
+  direction: ltr;
+}
+
 .map-drawer {
   flex-shrink: 0;
   min-height: var(--drawer-min-height);
