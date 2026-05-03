@@ -19,22 +19,33 @@
  */
 
 // Reuses the Dewey range comparator from data-model.js / validation.js.
-// We expose a numeric-only helper here for the overlap math; if a value
-// can't be parsed as a number, the comparator from validation.js handles it.
-import { parseRangeBoundary } from '../../services/data-model.js?v=5';
+// parseRangeValue preserves both the alphabetic prefix (e.g. "ML") and the
+// numeric portion, so we can rule out cross-classification overlaps (Dewey vs
+// LC, or ML vs MA) before doing numeric arithmetic.
+import { parseRangeBoundary, parseRangeValue } from '../../services/data-model.js?v=5';
 
 export function overlapsConflict(a, b) {
   if (a.libraryName !== b.libraryName) return false;
   if (String(a.floor) !== String(b.floor)) return false;
   if (a.collectionName !== b.collectionName) return false;
 
-  const aStart = parseRangeBoundary(a.rangeStart);
-  const aEnd = parseRangeBoundary(a.rangeEnd);
-  const bStart = parseRangeBoundary(b.rangeStart);
-  const bEnd = parseRangeBoundary(b.rangeEnd);
+  const aStart = parseRangeValue(a.rangeStart);
+  const aEnd = parseRangeValue(a.rangeEnd);
+  const bStart = parseRangeValue(b.rangeStart);
+  const bEnd = parseRangeValue(b.rangeEnd);
 
-  const lo = Math.max(aStart, bStart);
-  const hi = Math.min(aEnd, bEnd);
+  // Different classification systems (Dewey "" vs LC "ML", or "ML" vs "MA")
+  // cannot overlap even when their numeric portions do.
+  if (aStart.prefix !== bStart.prefix) return false;
+  if (aEnd.prefix !== bEnd.prefix) return false;
+
+  if (aStart.numeric === null || aEnd.numeric === null ||
+      bStart.numeric === null || bEnd.numeric === null) {
+    return false;
+  }
+
+  const lo = Math.max(aStart.numeric, bStart.numeric);
+  const hi = Math.min(aEnd.numeric, bEnd.numeric);
 
   if (lo > hi) return false;   // disjoint
   if (lo === hi) return false; // single-point touch (integer or fractional) — OK

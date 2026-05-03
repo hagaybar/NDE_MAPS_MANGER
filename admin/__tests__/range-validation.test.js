@@ -71,6 +71,36 @@ describe('overlapsConflict — canonical conflicts', () => {
   });
 });
 
+describe('overlapsConflict — classification prefixes', () => {
+  test('LC ML range and Dewey range with overlapping numerics do not conflict (real data: 87 B ML455-ML1700 vs 49 B 813.54-818.3)', () => {
+    expect(overlapsConflict(
+      r('Sourasky', '2', 'Reading room 2 B - 2nd floor', 'ML455', 'ML1700'),
+      r('Sourasky', '2', 'Reading room 2 B - 2nd floor', '813.54', '818.3'),
+    )).toBe(false);
+  });
+
+  test('Different LC classes (ML vs MA) do not conflict even when numerics overlap', () => {
+    expect(overlapsConflict(
+      r('Cen', '2', 'Soc', 'ML100', 'ML500'),
+      r('Cen', '2', 'Soc', 'MA200', 'MA400'),
+    )).toBe(false);
+  });
+
+  test('Same LC class with interior numeric overlap does conflict', () => {
+    expect(overlapsConflict(
+      r('Cen', '2', 'Soc', 'ML100', 'ML500'),
+      r('Cen', '2', 'Soc', 'ML400', 'ML600'),
+    )).toBe(true);
+  });
+
+  test('Same LC class with boundary touch does not conflict', () => {
+    expect(overlapsConflict(
+      r('Cen', '2', 'Soc', 'ML100', 'ML500'),
+      r('Cen', '2', 'Soc', 'ML500', 'ML600'),
+    )).toBe(false);
+  });
+});
+
 describe('overlapsConflict — grouping', () => {
   test('Different libraries do not conflict', () => {
     expect(overlapsConflict(
