@@ -7,8 +7,7 @@ export {
   test,
   expect,
   mockApiResponses,
-  mockUsers,
-  createAuthenticatedContext
+  mockUsers
 } from './auth.fixture';
 
 export type { UserRole, MockUser, AuthFixtures } from './auth.fixture';
