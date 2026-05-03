@@ -1,0 +1,29 @@
+/* Map Editor UX polish — design tokens.
+ * Loaded BEFORE app.css so all consuming rules can use var(--token).
+ * Token scale derived from ui-design:spacing-system / visual-hierarchy / layout-grid.
+ */
+:root {
+  /* Spacing scale */
+  --space-half: 2px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 32px;
+
+  /* Border tokens */
+  --border-input: #d1d5db;
+  --border-input-hover: #94a3b8;
+  --border-input-focus: #3b82f6;
+  --border-row-divider: #f1f5f9;
+
+  /* Background tokens */
+  --bg-input-idle: #f9fafb;
+  --bg-input-hover: #ffffff;
+  --bg-input-focus: #ffffff;
+  --bg-row-hover: #f8fafc;
+
+  /* Layout tokens */
+  --drawer-min-height: 12rem;
+  --drawer-max-height: 50vh;
+}

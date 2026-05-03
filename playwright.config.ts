@@ -48,21 +48,44 @@ export default defineConfig({
     timeout: 5000
   },
 
-  /* Configure projects for major browsers */
+  /*
+   * Snapshot baselines live next to the spec under
+   * `e2e/tests/__screenshots__/<spec>/<arg>` — no project/platform suffix is
+   * appended because the snapshot tests bake the project matrix
+   * (`{state}-{locale}-{role}`) into the filename themselves.
+   */
+  snapshotPathTemplate: '{testDir}/__screenshots__/{testFileName}/{arg}{ext}',
+
+  /*
+   * Configure projects: locale × role variants for Phase-3 snapshot suite.
+   *
+   * Role distinction is conveyed via the auth-mock injection in the test
+   * itself (the test reads `test.info().project.name` and picks
+   * `mockUsers.admin` or `mockUsers.editor`). Locale is read off the project
+   * name and written into `localStorage.locale` via addInitScript — the
+   * `use.locale` option here only affects `navigator.language`.
+   *
+   * The previous default `chromium` project was removed: snapshot tests bake
+   * `{state}-{locale}-{role}.png` into filenames, so a generic chromium run
+   * would collide with `en-admin` baselines.
+   */
   projects: [
     {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      name: 'en-admin',
+      use: { ...devices['Desktop Chrome'], locale: 'en' },
     },
-    // Uncomment to test on additional browsers
-    // {
-    //   name: 'firefox',
-    //   use: { ...devices['Desktop Firefox'] },
-    // },
-    // {
-    //   name: 'webkit',
-    //   use: { ...devices['Desktop Safari'] },
-    // },
+    {
+      name: 'he-admin',
+      use: { ...devices['Desktop Chrome'], locale: 'he' },
+    },
+    {
+      name: 'en-editor',
+      use: { ...devices['Desktop Chrome'], locale: 'en' },
+    },
+    {
+      name: 'he-editor',
+      use: { ...devices['Desktop Chrome'], locale: 'he' },
+    },
   ],
 
   /* Run your local dev server before starting the tests */

@@ -1,6 +1,5 @@
 import i18n from '../../i18n.js?v=5';
 import { validateRangeShape } from './range-validation.js?v=1';
-import { buildDistinctValuesWidget } from './distinct-values-widget.js?v=1';
 
 let host = null;
 
@@ -8,17 +7,19 @@ export function mountDrawer(elementId) {
   host = document.getElementById(elementId);
 }
 
-export function showSingleShelf({ shelfId, shelfLabel, rangesOnShelf, conflictsByRangeId, conflictingShelves, permission, collectionsList, onChange, onAdd, onMove, onDelete, onDiscard, onSave, onSelectShelf, hasPendingEdits }) {
+export function showSingleShelf({ shelfId, shelfLabel, rangesOnShelf, conflictsByRangeId, conflictingShelves, permission, collectionsList, onChange, onAdd, onMove, onDelete, onDiscard, onSave, onSelectShelf, onClose, hasPendingEdits }) {
   if (!host) return;
   host.classList.remove('map-drawer--hidden');
   const conflictCount = rangesOnShelf.reduce((n, r) => n + (conflictsByRangeId.get(r.id)?.length || 0), 0);
   const banner = buildConflictBanner(conflictCount, conflictingShelves || []);
+  const closeLabel = i18n.t('mapEditor.close');
   host.innerHTML = `
     <div class="map-drawer__header">
       <h3 class="text-sm font-semibold">${i18n.t('mapEditor.shelf.header').replace('{label}', shelfLabel).replace('{n}', rangesOnShelf.length)}</h3>
-      <div class="flex gap-2">
+      <div class="flex gap-2 items-center">
         <button id="drawer-discard" class="px-3 py-1 text-sm border rounded" ${hasPendingEdits ? '' : 'disabled'}>${i18n.t('mapEditor.discard')}</button>
         <button id="drawer-save" class="px-3 py-1 text-sm bg-blue-600 text-white rounded" ${hasPendingEdits ? '' : 'disabled'}>${i18n.t('mapEditor.save')}</button>
+        <button id="drawer-close" aria-label="${closeLabel}" title="${closeLabel}" class="px-2 py-1 text-gray-500 hover:text-gray-800 text-lg leading-none">×</button>
       </div>
     </div>
     ${banner}
@@ -34,6 +35,10 @@ export function showSingleShelf({ shelfId, shelfLabel, rangesOnShelf, conflictsB
   host.querySelector('#drawer-discard').onclick = onDiscard;
   host.querySelector('#drawer-save').onclick = onSave;
   host.querySelector('#drawer-add').onclick = onAdd;
+  const closeBtn = host.querySelector('#drawer-close');
+  if (closeBtn) {
+    closeBtn.onclick = () => { if (typeof onClose === 'function') onClose(); };
+  }
   if (typeof onSelectShelf === 'function') {
     host.querySelectorAll('.map-drawer__warn-link').forEach(btn => {
       btn.addEventListener('click', () => onSelectShelf(btn.dataset.targetShelf));
@@ -54,33 +59,6 @@ function buildConflictBanner(conflictCount, conflictingShelves) {
     return `<button type="button" class="map-drawer__warn-link" data-target-shelf="${escape(s.svgCode)}" title="${escape(tooltip)}">${escape(s.label)}</button>`;
   }).join(' ');
   return `<div class="map-drawer__warn-banner">⚠ ${countText} ${i18n.t('mapEditor.warning.with')} ${links}</div>`;
-}
-
-export function showMultiShelf({ shelfIds, shelvesData, onFieldChange, onDiscard, onSave, hasPendingEdits }) {
-  if (!host) return;
-  host.classList.remove('map-drawer--hidden');
-  host.innerHTML = `
-    <div class="map-drawer__header">
-      <h3 class="text-sm font-semibold">${i18n.t('mapEditor.shelves.selected').replace('{n}', shelfIds.length)}</h3>
-      <div class="flex gap-2">
-        <button id="drawer-discard" class="px-3 py-1 text-sm border rounded" ${hasPendingEdits ? '' : 'disabled'}>${i18n.t('mapEditor.discard')}</button>
-        <button id="drawer-save" class="px-3 py-1 text-sm bg-blue-600 text-white rounded" ${hasPendingEdits ? '' : 'disabled'}>${i18n.t('mapEditor.save')}</button>
-      </div>
-    </div>
-    <div id="drawer-fields"></div>
-  `;
-  const fieldsRoot = host.querySelector('#drawer-fields');
-  const fields = ['notes', 'notesHe', 'shelfLabel', 'shelfLabelHe', 'description', 'descriptionHe'];
-  for (const f of fields) {
-    const values = shelvesData.map(s => s[f]);
-    fieldsRoot.appendChild(buildDistinctValuesWidget({
-      field: f,
-      values,
-      onChange: (op) => onFieldChange(f, op),
-    }));
-  }
-  host.querySelector('#drawer-discard').onclick = onDiscard;
-  host.querySelector('#drawer-save').onclick = onSave;
 }
 
 export function hideDrawer() {
