@@ -334,7 +334,7 @@
     "export": "Export"
   },
   "mapEditor": {
-    "empty": "Click a shelf to edit, Shift-drag or Ctrl-click to select multiple.",
+    "empty": "Click a shelf to edit.",
     "tab": {
       "floor": "Floor {n}",
       "orphans": "{n} unassigned"
