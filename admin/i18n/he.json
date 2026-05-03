@@ -356,15 +356,9 @@
       "banner": "{n} התנגשויות במדף זה",
       "with": "— גם במדפים:"
     },
-    "shelves": {
-      "selected": "{n} מדפים נבחרו"
-    },
     "shelf": {
       "header": "מדף {label} — {n} טווחים"
     },
-    "replaceAllWith": "החלף את הכל ב…",
-    "clearOnSelected": "נקה בכל הנבחרים",
-    "distinctValues": "ערכים נוכחיים: {valuesList}",
     "locked": "נעול"
   },
   "ranges": {

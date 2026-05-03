@@ -1,6 +1,5 @@
 import i18n from '../../i18n.js?v=5';
 import { validateRangeShape } from './range-validation.js?v=1';
-import { buildDistinctValuesWidget } from './distinct-values-widget.js?v=1';
 
 let host = null;
 
@@ -54,33 +53,6 @@ function buildConflictBanner(conflictCount, conflictingShelves) {
     return `<button type="button" class="map-drawer__warn-link" data-target-shelf="${escape(s.svgCode)}" title="${escape(tooltip)}">${escape(s.label)}</button>`;
   }).join(' ');
   return `<div class="map-drawer__warn-banner">⚠ ${countText} ${i18n.t('mapEditor.warning.with')} ${links}</div>`;
-}
-
-export function showMultiShelf({ shelfIds, shelvesData, onFieldChange, onDiscard, onSave, hasPendingEdits }) {
-  if (!host) return;
-  host.classList.remove('map-drawer--hidden');
-  host.innerHTML = `
-    <div class="map-drawer__header">
-      <h3 class="text-sm font-semibold">${i18n.t('mapEditor.shelves.selected').replace('{n}', shelfIds.length)}</h3>
-      <div class="flex gap-2">
-        <button id="drawer-discard" class="px-3 py-1 text-sm border rounded" ${hasPendingEdits ? '' : 'disabled'}>${i18n.t('mapEditor.discard')}</button>
-        <button id="drawer-save" class="px-3 py-1 text-sm bg-blue-600 text-white rounded" ${hasPendingEdits ? '' : 'disabled'}>${i18n.t('mapEditor.save')}</button>
-      </div>
-    </div>
-    <div id="drawer-fields"></div>
-  `;
-  const fieldsRoot = host.querySelector('#drawer-fields');
-  const fields = ['notes', 'notesHe', 'shelfLabel', 'shelfLabelHe', 'description', 'descriptionHe'];
-  for (const f of fields) {
-    const values = shelvesData.map(s => s[f]);
-    fieldsRoot.appendChild(buildDistinctValuesWidget({
-      field: f,
-      values,
-      onChange: (op) => onFieldChange(f, op),
-    }));
-  }
-  host.querySelector('#drawer-discard').onclick = onDiscard;
-  host.querySelector('#drawer-save').onclick = onSave;
 }
 
 export function hideDrawer() {

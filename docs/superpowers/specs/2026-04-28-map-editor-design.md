@@ -269,3 +269,4 @@ Single active admin (the user). Ship to all roles at once on merge.
 - Sub-projects B (password-reset flood) and C (weekly Alma collection-name validation) — to be specified separately.
 - Mobile-responsive layout — admin tooling is desktop-first.
 - Pan / zoom on the SVG — existing maps fit at default scale; can be added later if needed.
+- Multi-shelf batch editing (Shift-drag marquee, Ctrl-click multi-select, distinct-values widget, bulk per-shelf field replace/clear). Removed during UX polish — see issue #3.

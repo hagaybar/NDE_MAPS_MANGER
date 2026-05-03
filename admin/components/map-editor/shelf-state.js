@@ -12,20 +12,6 @@ export function createShelfState({ ranges, permittedRowIds }) {
     selectSingle(shelfId) {
       _selection = { kind: 'single', shelfIds: [shelfId] };
     },
-    selectMulti(shelfIds) {
-      const unique = Array.from(new Set(shelfIds));
-      _selection = unique.length <= 1
-        ? { kind: unique.length === 1 ? 'single' : 'none', shelfIds: unique }
-        : { kind: 'multi', shelfIds: unique };
-    },
-    addToSelection(shelfId) {
-      const next = Array.from(new Set([..._selection.shelfIds, shelfId]));
-      this.selectMulti(next);
-    },
-    removeFromSelection(shelfId) {
-      const next = _selection.shelfIds.filter(id => id !== shelfId);
-      this.selectMulti(next);
-    },
     clearSelection() { _selection = { kind: 'none', shelfIds: [] }; },
 
     isAllowed(rangeId) {

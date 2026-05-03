@@ -12,18 +12,6 @@ describe('shelfState selection', () => {
     expect(s.selection()).toEqual({ kind: 'single', shelfIds: ['A1'] });
   });
 
-  test('selectMulti with one element flips to single', () => {
-    const s = createShelfState({ ranges: [], permittedRowIds: null });
-    s.selectMulti(['A1']);
-    expect(s.selection().kind).toBe('single');
-  });
-
-  test('selectMulti with two flips to multi', () => {
-    const s = createShelfState({ ranges: [], permittedRowIds: null });
-    s.selectMulti(['A1', 'B1']);
-    expect(s.selection().kind).toBe('multi');
-  });
-
   test('clear resets to none', () => {
     const s = createShelfState({ ranges: [], permittedRowIds: null });
     s.selectSingle('A1');

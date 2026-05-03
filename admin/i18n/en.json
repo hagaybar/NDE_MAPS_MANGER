@@ -356,15 +356,9 @@
       "banner": "{n} conflict(s) on this shelf",
       "with": "— also on:"
     },
-    "shelves": {
-      "selected": "{n} shelves selected"
-    },
     "shelf": {
       "header": "Shelf {label} — {n} ranges"
     },
-    "replaceAllWith": "Replace all with…",
-    "clearOnSelected": "Clear on all selected",
-    "distinctValues": "current values: {valuesList}",
     "locked": "Locked"
   },
   "ranges": {

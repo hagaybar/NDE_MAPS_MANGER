@@ -1,8 +1,8 @@
 /**
  * E2E tests for the Map Editor (Task 18).
  *
- * Covers the seven core flows from the plan: shelf selection, conflict warning
- * + save, marquee bulk edit, two reassign paths, editor lock visualization, and
+ * Covers the core flows from the plan: shelf selection, conflict warning
+ * + save, two reassign paths, editor lock visualization, and
  * orphan-badge deep-link.
  *
  * Notes about adapted selectors vs. the plan:
@@ -178,31 +178,6 @@ test('Map Editor: warning shown on overlap, save still allowed', async ({ page }
   // Triggering input directly fills the value but Playwright `.fill()` already
   // dispatches an input event — the editor recomputes conflicts synchronously.
   await expect(page.locator('.map-drawer__warn-banner')).toBeVisible();
-  await page.click('#drawer-save');
-  await expect(page.locator('#toast-container >> text=Changes saved successfully')).toBeVisible({ timeout: 5_000 });
-});
-
-// -----------------------------------------------------------------------------
-// Step 3 — Shift-drag marquee + bulk edit notes
-// -----------------------------------------------------------------------------
-test('Map Editor: Shift-drag marquee selects multiple, bulk edit notes', async ({ page }) => {
-  await openMapEditor(page, 'admin');
-  await switchToFloor(page, 1);
-  const a1 = await page.locator('#A1').boundingBox();
-  const b1 = await page.locator('#B1').boundingBox();
-  expect(a1).not.toBeNull();
-  expect(b1).not.toBeNull();
-  await page.keyboard.down('Shift');
-  await page.mouse.move(a1!.x - 10, a1!.y - 10);
-  await page.mouse.down();
-  await page.mouse.move(b1!.x + b1!.width + 10, b1!.y + b1!.height + 10, { steps: 10 });
-  await page.mouse.up();
-  await page.keyboard.up('Shift');
-  await expect(page.locator('#map-drawer')).toContainText('shelves selected');
-  // Distinct-values widgets render in the order: notes, notesHe, ... — first
-  // `.border-b` is the `notes` field. Replace input is `[data-role="replace"]`.
-  const notesInput = page.locator('#drawer-fields .border-b').first().locator('[data-role="replace"]');
-  await notesInput.fill('Bulk note');
   await page.click('#drawer-save');
   await expect(page.locator('#toast-container >> text=Changes saved successfully')).toBeVisible({ timeout: 5_000 });
 });
