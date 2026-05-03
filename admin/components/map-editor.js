@@ -391,12 +391,14 @@ export async function initMapEditor() {
   initialized = true;
   const container = document.getElementById('map-editor');
   container.innerHTML = `
-    <div class="bg-white rounded-lg shadow p-4">
-      <div id="map-floor-tabs" class="flex gap-2 mb-4 border-b border-gray-200" role="tablist"></div>
-      <div id="map-canvas" class="relative bg-gray-50 border border-gray-200 rounded min-h-96"></div>
-      <p id="map-editor-empty" class="text-gray-500 text-sm mt-3">${i18n.t('mapEditor.empty')}</p>
+    <div id="map-editor-view">
+      <div class="bg-white rounded-lg shadow p-4 map-editor__header">
+        <div id="map-floor-tabs" class="flex gap-2 border-b border-gray-200" role="tablist"></div>
+        <p id="map-editor-empty" class="text-gray-500 text-sm mt-3">${i18n.t('mapEditor.empty')}</p>
+      </div>
+      <div id="map-canvas" class="relative bg-gray-50 border border-gray-200 rounded"></div>
+      <div id="map-drawer" class="map-drawer map-drawer--hidden"></div>
     </div>
-    <div id="map-drawer" class="map-drawer map-drawer--hidden"></div>
   `;
   mountDrawer('map-drawer');
 
