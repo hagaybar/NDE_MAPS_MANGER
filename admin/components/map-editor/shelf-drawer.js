@@ -7,17 +7,19 @@ export function mountDrawer(elementId) {
   host = document.getElementById(elementId);
 }
 
-export function showSingleShelf({ shelfId, shelfLabel, rangesOnShelf, conflictsByRangeId, conflictingShelves, permission, collectionsList, onChange, onAdd, onMove, onDelete, onDiscard, onSave, onSelectShelf, hasPendingEdits }) {
+export function showSingleShelf({ shelfId, shelfLabel, rangesOnShelf, conflictsByRangeId, conflictingShelves, permission, collectionsList, onChange, onAdd, onMove, onDelete, onDiscard, onSave, onSelectShelf, onClose, hasPendingEdits }) {
   if (!host) return;
   host.classList.remove('map-drawer--hidden');
   const conflictCount = rangesOnShelf.reduce((n, r) => n + (conflictsByRangeId.get(r.id)?.length || 0), 0);
   const banner = buildConflictBanner(conflictCount, conflictingShelves || []);
+  const closeLabel = i18n.t('mapEditor.close');
   host.innerHTML = `
     <div class="map-drawer__header">
       <h3 class="text-sm font-semibold">${i18n.t('mapEditor.shelf.header').replace('{label}', shelfLabel).replace('{n}', rangesOnShelf.length)}</h3>
-      <div class="flex gap-2">
+      <div class="flex gap-2 items-center">
         <button id="drawer-discard" class="px-3 py-1 text-sm border rounded" ${hasPendingEdits ? '' : 'disabled'}>${i18n.t('mapEditor.discard')}</button>
         <button id="drawer-save" class="px-3 py-1 text-sm bg-blue-600 text-white rounded" ${hasPendingEdits ? '' : 'disabled'}>${i18n.t('mapEditor.save')}</button>
+        <button id="drawer-close" aria-label="${closeLabel}" title="${closeLabel}" class="px-2 py-1 text-gray-500 hover:text-gray-800 text-lg leading-none">×</button>
       </div>
     </div>
     ${banner}
@@ -33,6 +35,10 @@ export function showSingleShelf({ shelfId, shelfLabel, rangesOnShelf, conflictsB
   host.querySelector('#drawer-discard').onclick = onDiscard;
   host.querySelector('#drawer-save').onclick = onSave;
   host.querySelector('#drawer-add').onclick = onAdd;
+  const closeBtn = host.querySelector('#drawer-close');
+  if (closeBtn) {
+    closeBtn.onclick = () => { if (typeof onClose === 'function') onClose(); };
+  }
   if (typeof onSelectShelf === 'function') {
     host.querySelectorAll('.map-drawer__warn-link').forEach(btn => {
       btn.addEventListener('click', () => onSelectShelf(btn.dataset.targetShelf));

@@ -359,7 +359,9 @@
     "shelf": {
       "header": "Shelf {label} — {n} ranges"
     },
-    "locked": "Locked"
+    "locked": "Locked",
+    "close": "Close",
+    "unsavedChangesConfirm": "You have unsaved changes. Discard and close?"
   },
   "ranges": {
     "editableRanges": "Editable Ranges",

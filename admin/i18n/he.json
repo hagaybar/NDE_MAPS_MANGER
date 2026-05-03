@@ -359,7 +359,9 @@
     "shelf": {
       "header": "מדף {label} — {n} טווחים"
     },
-    "locked": "נעול"
+    "locked": "נעול",
+    "close": "סגור",
+    "unsavedChangesConfirm": "יש שינויים שלא נשמרו. לבטל ולסגור?"
   },
   "ranges": {
     "editableRanges": "טווחים לעריכה",

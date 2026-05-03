@@ -111,4 +111,130 @@ test.describe('@phase-3 Map Editor UX polish', () => {
     // so a regression points at the layout interaction rather than teardown.
     consoleMessages.assertClean();
   });
+
+  // ---------------------------------------------------------------------------
+  // Issue #6 — close affordance: X button + Esc handler.
+  //
+  // The drawer's only previous exits were "click another shelf" and "click
+  // empty canvas" (which doesn't clear selection). These tests cover the new
+  // explicit close paths.
+  // ---------------------------------------------------------------------------
+
+  test('click X closes drawer (#6)', async ({ page }) => {
+    await injectAuthState(page, mockUsers.admin);
+    await mockFixtures(page);
+
+    await page.goto('/admin/');
+    await page.waitForSelector('#nav-map-editor', { state: 'visible' });
+    await page.click('#nav-map-editor');
+
+    await page.click('[data-floor="1"]');
+    await page.waitForFunction(
+      () => !!document.querySelector('#A1.map-shelf'),
+      null,
+      { timeout: 10_000 }
+    );
+
+    await clickShelf(page, 'A1');
+    await expect(page.locator('#map-drawer')).toBeVisible();
+
+    await page.click('#drawer-close');
+    await expect(page.locator('#map-drawer')).toHaveClass(/map-drawer--hidden/);
+    // No shelf should be selected after close.
+    const selected = await page.locator('.map-shelf--selected').count();
+    expect(selected).toBe(0);
+  });
+
+  test('Esc with no pending edits closes drawer silently (#6)', async ({ page }) => {
+    await injectAuthState(page, mockUsers.admin);
+    await mockFixtures(page);
+
+    // Track any confirm() invocations — there should be none.
+    let confirmCalled = false;
+    page.on('dialog', async (d) => {
+      if (d.type() === 'confirm') confirmCalled = true;
+      await d.dismiss();
+    });
+
+    await page.goto('/admin/');
+    await page.waitForSelector('#nav-map-editor', { state: 'visible' });
+    await page.click('#nav-map-editor');
+
+    await page.click('[data-floor="1"]');
+    await page.waitForFunction(
+      () => !!document.querySelector('#A1.map-shelf'),
+      null,
+      { timeout: 10_000 }
+    );
+
+    await clickShelf(page, 'A1');
+    await expect(page.locator('#map-drawer')).toBeVisible();
+
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#map-drawer')).toHaveClass(/map-drawer--hidden/);
+    expect(confirmCalled).toBe(false);
+  });
+
+  test('Esc with pending edits prompts confirm; cancel keeps drawer (#6)', async ({ page }) => {
+    await injectAuthState(page, mockUsers.admin);
+    await mockFixtures(page);
+
+    await page.goto('/admin/');
+    await page.waitForSelector('#nav-map-editor', { state: 'visible' });
+    await page.click('#nav-map-editor');
+
+    await page.click('[data-floor="1"]');
+    await page.waitForFunction(
+      () => !!document.querySelector('#A1.map-shelf'),
+      null,
+      { timeout: 10_000 }
+    );
+
+    await clickShelf(page, 'A1');
+    await expect(page.locator('#map-drawer')).toBeVisible();
+
+    // Force window.confirm to return false so the Esc-cancel path is exercised
+    // synchronously (avoids the async dialog round-trip and its timing).
+    await page.evaluate(() => { (window as any).confirm = () => false; });
+
+    // Create a pending edit by modifying the rangeStart input.
+    const startInput = page.locator('#map-drawer [data-field="rangeStart"]').first();
+    await startInput.fill('999');
+
+    await page.keyboard.press('Escape');
+    // Drawer must still be visible (confirm returned false → no close).
+    await expect(page.locator('#map-drawer')).toBeVisible();
+    // Pending edit must still be present (input value preserved).
+    await expect(startInput).toHaveValue('999');
+  });
+
+  test('Esc during reassign-mode does not close drawer (#6)', async ({ page }) => {
+    await injectAuthState(page, mockUsers.admin);
+    await mockFixtures(page);
+    // Auto-accept any confirm dialogs that surface (none expected here).
+    page.on('dialog', d => d.accept());
+
+    await page.goto('/admin/');
+    await page.waitForSelector('#nav-map-editor', { state: 'visible' });
+    await page.click('#nav-map-editor');
+
+    await page.click('[data-floor="1"]');
+    await page.waitForFunction(
+      () => !!document.querySelector('#A1.map-shelf'),
+      null,
+      { timeout: 10_000 }
+    );
+
+    await clickShelf(page, 'A1');
+    await expect(page.locator('#map-drawer')).toBeVisible();
+
+    // Enter reassign-mode via the row's "Move" button.
+    await page.click('#map-drawer [data-action="move"]');
+    await expect(page.locator('#map-reassign-banner')).toBeVisible();
+
+    await page.keyboard.press('Escape');
+    // Reassign-mode handles its own Esc → banner disappears, drawer remains.
+    await expect(page.locator('#map-reassign-banner')).toBeHidden();
+    await expect(page.locator('#map-drawer')).toBeVisible();
+  });
 });

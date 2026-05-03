@@ -6,8 +6,9 @@ import { loadFloorSvg, indexShelvesById, buildRangeCountByShelf, buildKnownSvgCo
 import { attachInteraction, applySelection } from './map-editor/svg-interaction.js?v=1';
 import { createShelfState } from './map-editor/shelf-state.js?v=1';
 import { computeFloorConflicts } from './map-editor/range-validation.js?v=1';
-import { mountDrawer, showSingleShelf, hideDrawer } from './map-editor/shelf-drawer.js?v=1';
+import { mountDrawer, showSingleShelf, hideDrawer } from './map-editor/shelf-drawer.js?v=2';
 import { startReassign, cancelReassign, isReassignActive } from './map-editor/reassign-mode.js?v=1';
+import { handleEscape } from './map-editor/esc-handler.js?v=1';
 
 const CLOUDFRONT_URL = 'https://d3h8i7y9p8lyw7.cloudfront.net';
 const API_ENDPOINT = 'https://tt3xt4tr09.execute-api.us-east-1.amazonaws.com/prod';
@@ -290,6 +291,11 @@ function renderDrawer() {
         applySelection(shelfElements, shelfState.selection().shelfIds);
         window.dispatchEvent(new CustomEvent('mapeditor:selection-changed'));
       },
+      onClose: () => {
+        shelfState.clearSelection();
+        applySelection(shelfElements, []);
+        window.dispatchEvent(new CustomEvent('mapeditor:selection-changed'));
+      },
       hasPendingEdits: shelfState.pendingEdits().size > 0,
     });
   }
@@ -422,4 +428,19 @@ export async function initMapEditor() {
   }
 
   await loadFloor(loadActiveFloor());
+
+  // Global Esc handler: close drawer / clear selection. With pending edits,
+  // prompt for confirmation first. Reassign mode handles its own Esc, so we
+  // bail early there. Extracted to esc-handler.js for testability.
+  document.addEventListener('keydown', (event) => {
+    handleEscape({
+      event,
+      shelfState,
+      applySelection,
+      shelfElements,
+      refreshConflicts,
+      isReassignActive,
+      i18n,
+    });
+  });
 }
