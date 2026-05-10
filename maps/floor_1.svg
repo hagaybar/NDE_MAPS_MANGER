@@ -2494,7 +2494,7 @@
      width="4.2114053"
      height="86"
      fill="#ff7979"
-     id="cl_107_b"
+     id="cl1_107_b"
      style="stroke-width:0.917759" />
   <rect
      x="694"
@@ -2502,21 +2502,21 @@
      width="4"
      height="86"
      fill="#ff7979"
-     id="cl_107_a" />
+     id="cl1_107_a" />
   <rect
      x="706.78857"
      y="594"
      width="4"
      height="86"
      fill="#ff7979"
-     id="cl_106_b" />
+     id="cl1_106_b" />
   <rect
      x="712"
      y="594"
      width="4.3691239"
      height="86"
      fill="#ff7979"
-     id="cl_106_a"
+     id="cl1_106_a"
      style="stroke-width:0.934786" />
   <rect
      x="668.78857"
@@ -2531,7 +2531,7 @@
      width="5"
      height="86"
      fill="#ff7979"
-     id="cl_108_a" />
+     id="cl1_108_a" />
   <text
      font-family="Arial, Arial_MSFontService, sans-serif"
      font-weight="700"
