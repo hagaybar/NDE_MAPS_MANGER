@@ -270,6 +270,7 @@ function renderDrawer() {
         startReassign({
           rangeId: id,
           rangeLabel: `${range.collectionName} ${range.rangeStart}-${range.rangeEnd}`,
+          oldShelfLabel: range.shelfLabel || range.svgCode || '',
           shelfElements: new Map([...shelfElements].filter(([sid]) => sid !== range.svgCode)),
           allShelves: allShelvesList,
           onConfirm: ({ newSvgCode, newFloor }) => {
@@ -277,9 +278,20 @@ function renderDrawer() {
             if (newFloor !== undefined) target.floor = newFloor;
             shelfState.move(id, target);
             refreshConflicts();
+            // Reopen-destination behavior for move intent: if the destination
+            // shelf is on the current floor, shift the drawer's selection to
+            // it so the librarian sees the moved range in its new context. If
+            // the destination is on a different floor, the drawer closes
+            // (renderDrawer with no current-floor selection) and the librarian
+            // can switch tabs to inspect.
+            if (shelfElements.has(newSvgCode)) {
+              shelfState.selectSingle(newSvgCode);
+              applySelection(shelfElements, shelfState.selection().shelfIds);
+            }
             renderDrawer();
           },
           onCancel: () => { /* nothing — banner already removed */ },
+          intent: 'move',
         });
       },
       onDelete: (id) => { shelfState.delete(id); renderDrawer(); },
