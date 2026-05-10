@@ -342,13 +342,35 @@
     "discard": "בטל",
     "save": "שמור",
     "addRange": "+ הוסף טווח",
-    "move": "↗ העבר",
+    "move": "העבר למדף אחר",
     "delete": "מחק",
     "reassign": {
-      "banner": "לחץ על מדף יעד, או {chooseFromList} עבור {rangeLabel}",
+      "banner": {
+        "repair": "לחץ על המדף שאליו שייך טווח זה",
+        "move": "לחץ על המדף החדש לטווח זה"
+      },
       "chooseFromList": "בחר מהרשימה",
       "cancel": "ביטול",
-      "confirm": "להעביר את {rangeLabel} למדף {shelfLabel}?"
+      "confirm": {
+        "repair": "להצמיד את {label} למדף {picked}?",
+        "move": "להעביר את {label} מהמדף {old} למדף {new}?"
+      }
+    },
+    "orphan": {
+      "panel": {
+        "title": "שורות הזקוקות להצמדת מדף",
+        "empty": "אין שורות יתומות בקומה {n} — עברו ללשוניות אחרות",
+        "allRepaired": "כל השורות היתומות תוקנו בקומה זו"
+      },
+      "card": {
+        "setShelf": "קבע מדף במפה",
+        "editElsewhere": "ערוך בעורך ה-CSV",
+        "readOnly": "לקריאה בלבד — בקש ממנהל לתקן שורה זו",
+        "kind": {
+          "wrongSvgCode": "קוד SVG שגוי",
+          "missingSvgCode": "ללא קוד SVG"
+        }
+      }
     },
     "warning": {
       "overlap": "חופף ל-{otherRangeLabel} במדף {otherShelfLabel}",

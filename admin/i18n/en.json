@@ -342,13 +342,35 @@
     "discard": "Discard",
     "save": "Save",
     "addRange": "+ Add range",
-    "move": "↗ Move",
+    "move": "Move to another shelf",
     "delete": "Delete",
     "reassign": {
-      "banner": "Click a destination shelf, or {chooseFromList} for {rangeLabel}",
+      "banner": {
+        "repair": "Click the shelf where this range belongs",
+        "move": "Click the new shelf for this range"
+      },
       "chooseFromList": "choose from list",
       "cancel": "Cancel",
-      "confirm": "Move {rangeLabel} to shelf {shelfLabel}?"
+      "confirm": {
+        "repair": "Set shelf for {label} to {picked}?",
+        "move": "Move {label} from {old} to {new}?"
+      }
+    },
+    "orphan": {
+      "panel": {
+        "title": "Rows needing shelf assignment",
+        "empty": "No orphans on floor {n} — switch tabs to see others",
+        "allRepaired": "All orphans repaired on this floor"
+      },
+      "card": {
+        "setShelf": "Set shelf on map",
+        "editElsewhere": "Edit in CSV editor",
+        "readOnly": "Read-only — ask an admin to repair this row",
+        "kind": {
+          "wrongSvgCode": "Wrong svgCode",
+          "missingSvgCode": "No svgCode set"
+        }
+      }
     },
     "warning": {
       "overlap": "Overlaps {otherRangeLabel} on shelf {otherShelfLabel}",
