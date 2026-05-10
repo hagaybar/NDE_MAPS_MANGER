@@ -18,6 +18,7 @@ import { initMapEditor } from './components/map-editor.js?v=1';
 import { initSearchBox } from './components/search-box.js?v=5';
 import { initErrorsDashboard } from './components/errors-dashboard.js?v=9';
 import logger from './services/logger.js?v=1';
+import { preloadAllFloors } from './services/svg-parser.js?v=5';
 import { initDebugConsole } from './components/debug-console.js?v=1';
 
 /**
@@ -57,6 +58,15 @@ async function init() {
 
         // Initialize i18n module
         await i18n.init();
+
+        // Warm the SVG-id cache used by data-model.validateRow's E006 rule.
+        // Fire-and-forget — the parser is lenient until cache lands, and the
+        // dashboard / save path will see accurate findings once it does.
+        preloadAllFloors().catch(err => {
+            logger.warn('system', 'preloadAllFloors failed (E006 detection will be lenient)', {
+                error: err.message
+            });
+        });
 
         // Initialize auth guard (will show login overlay if not authenticated)
         await authGuard.init();
