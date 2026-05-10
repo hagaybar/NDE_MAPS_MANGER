@@ -4,6 +4,12 @@
  * @module services/data-model
  */
 
+// Imports `isValidSvgCode` for the E006 rule. svg-parser.js imports FLOOR_VALUES
+// from this module — the resulting circular dependency is safe because every
+// cross-module reference happens inside function bodies (not top-level code),
+// so ES module live bindings resolve correctly at call time.
+import { isValidSvgCode } from './svg-parser.js';
+
 /**
  * CSV Column names in order
  * @constant {string[]}
@@ -585,6 +591,24 @@ export function validateRow(row, allRows = [], originalRow = null) {
         svgCode: row.svgCode
       }
     });
+  }
+
+  // E006: svgCode resolution — does this row's svgCode match an actual
+  // element id on the declared floor's SVG? `isValidSvgCode` is lenient
+  // when the cache is cold (returns true) so this rule cannot false-positive
+  // during page load. Suppressed when svgCode is empty (E001 owns that case)
+  // or when floor is invalid (E003 owns that case).
+  const e006SvgCode = (row.svgCode ?? '').toString().trim();
+  const e006Floor = (row.floor ?? '').toString().trim();
+  if (e006SvgCode && e006Floor && FLOOR_VALUES.includes(e006Floor)) {
+    if (!isValidSvgCode(e006SvgCode, e006Floor)) {
+      errors.push({
+        field: 'svgCode',
+        code: 'E006',
+        message: `SVG code "${e006SvgCode}" not found on floor ${e006Floor}`,
+        details: { svgCode: e006SvgCode, floor: e006Floor }
+      });
+    }
   }
 
   // Check for range overlaps (warning only)
