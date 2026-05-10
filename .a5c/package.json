@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "dependencies": {
-    "@a5c-ai/babysitter-sdk": "^0.0.175"
+    "@a5c-ai/babysitter-sdk": "^0.0.187"
   },
   "main": "index.js",
   "scripts": {
