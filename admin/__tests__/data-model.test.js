@@ -340,3 +340,93 @@ describe('Data Model Service', () => {
     });
   });
 });
+
+import { jest } from '@jest/globals';
+
+describe('validateRow — E006 svgCode resolution', () => {
+  let dataModel;
+  let mockIsValidSvgCode;
+
+  beforeEach(async () => {
+    jest.resetModules();
+    mockIsValidSvgCode = jest.fn();
+    jest.unstable_mockModule('../services/svg-parser.js', () => ({
+      isValidSvgCode: mockIsValidSvgCode,
+      // Other exports left undefined — validateRow uses only isValidSvgCode.
+    }));
+    dataModel = await import('../services/data-model.js');
+  });
+
+  test('E006 fires when svgCode does not resolve on the declared floor', () => {
+    mockIsValidSvgCode.mockReturnValue(false);
+    const row = {
+      libraryName: 'Sourasky', libraryNameHe: 'סוראסקי',
+      collectionName: 'CL1', collectionNameHe: 'CL1',
+      rangeStart: '010', rangeEnd: '184',
+      svgCode: 'cl1_106_a', floor: '1',
+      shelfLabel: '106 A', shelfLabelHe: '106 א',
+    };
+    const { errors } = dataModel.validateRow(row, [row], row);
+    const e006 = errors.find(e => e.code === 'E006');
+    expect(e006).toBeDefined();
+    expect(e006.field).toBe('svgCode');
+    expect(e006.message).toContain('cl1_106_a');
+    expect(e006.message).toContain('floor 1');
+    expect(e006.details).toEqual({ svgCode: 'cl1_106_a', floor: '1' });
+    expect(mockIsValidSvgCode).toHaveBeenCalledWith('cl1_106_a', '1');
+  });
+
+  test('E006 does not fire when svgCode resolves correctly', () => {
+    mockIsValidSvgCode.mockReturnValue(true);
+    const row = {
+      libraryName: 'Sourasky', libraryNameHe: 'סוראסקי',
+      collectionName: 'CL1', collectionNameHe: 'CL1',
+      rangeStart: '010', rangeEnd: '184',
+      svgCode: 'cl1_106_a', floor: '1',
+      shelfLabel: '106 A', shelfLabelHe: '106 א',
+    };
+    const { errors } = dataModel.validateRow(row, [row], row);
+    expect(errors.find(e => e.code === 'E006')).toBeUndefined();
+  });
+
+  test('E006 is suppressed when svgCode is empty (E001 owns that case)', () => {
+    mockIsValidSvgCode.mockReturnValue(false);
+    const row = {
+      libraryName: 'Sourasky', libraryNameHe: 'סוראסקי',
+      collectionName: 'CL1', collectionNameHe: 'CL1',
+      rangeStart: '010', rangeEnd: '184',
+      svgCode: '', floor: '1',
+      shelfLabel: '106 A', shelfLabelHe: '106 א',
+    };
+    const { errors } = dataModel.validateRow(row, [row], row);
+    expect(errors.find(e => e.code === 'E006')).toBeUndefined();
+    expect(mockIsValidSvgCode).not.toHaveBeenCalled();
+  });
+
+  test('E006 is suppressed when floor is invalid (E003 owns that case)', () => {
+    mockIsValidSvgCode.mockReturnValue(false);
+    const row = {
+      libraryName: 'Sourasky', libraryNameHe: 'סוראסקי',
+      collectionName: 'CL1', collectionNameHe: 'CL1',
+      rangeStart: '010', rangeEnd: '184',
+      svgCode: 'cl1_106_a', floor: '7',
+      shelfLabel: '106 A', shelfLabelHe: '106 א',
+    };
+    const { errors } = dataModel.validateRow(row, [row], row);
+    expect(errors.find(e => e.code === 'E006')).toBeUndefined();
+    expect(mockIsValidSvgCode).not.toHaveBeenCalled();
+  });
+
+  test('E006 trims whitespace from svgCode and floor before checking', () => {
+    mockIsValidSvgCode.mockReturnValue(true);
+    const row = {
+      libraryName: 'Sourasky', libraryNameHe: 'סוראסקי',
+      collectionName: 'CL1', collectionNameHe: 'CL1',
+      rangeStart: '010', rangeEnd: '184',
+      svgCode: '  cl1_106_a  ', floor: '  1  ',
+      shelfLabel: '106 A', shelfLabelHe: '106 א',
+    };
+    dataModel.validateRow(row, [row], row);
+    expect(mockIsValidSvgCode).toHaveBeenCalledWith('cl1_106_a', '1');
+  });
+});
