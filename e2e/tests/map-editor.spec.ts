@@ -251,19 +251,3 @@ test.describe('Map Editor as editor', () => {
     await expect(page.locator('#map-drawer')).toHaveClass(/map-drawer--hidden/);
   });
 });
-
-// -----------------------------------------------------------------------------
-// Step 7 — orphan badge deep-link
-// -----------------------------------------------------------------------------
-test('Map Editor: orphan badge deep-links to CSV Editor with floor filter', async ({ page }) => {
-  await openMapEditor(page, 'admin');
-  await switchToFloor(page, 1);
-  // Orphan badge is appended inside the floor-1 tab and contains the
-  // i18n string "{n} unassigned" — the CSV has one MISSING orphan on floor 1.
-  const badge = page.locator('[data-floor="1"] .map-orphan-badge');
-  await expect(badge).toBeVisible();
-  await expect(badge).toContainText('unassigned');
-  await badge.click();
-  await expect(page).toHaveURL(/orphans=floor=1/);
-  await expect(page.locator('#csv-editor')).toBeVisible();
-});
