@@ -5,6 +5,7 @@
 
 export const VALID_FLOOR_1 = {
   id: 'row-001',
+  rowId: 'row-001',
   libraryName: 'Sourasky', libraryNameHe: 'סוראסקי',
   collectionName: 'CL1', collectionNameHe: 'CL1',
   rangeStart: '010', rangeEnd: '184',
@@ -14,6 +15,7 @@ export const VALID_FLOOR_1 = {
 
 export const VALID_FLOOR_2 = {
   id: 'row-002',
+  rowId: 'row-002',
   libraryName: 'Sourasky', libraryNameHe: 'סוראסקי',
   collectionName: 'CY', collectionNameHe: 'CY',
   rangeStart: '892.439', rangeEnd: '892.498',
@@ -24,6 +26,7 @@ export const VALID_FLOOR_2 = {
 // Orphan: svgCode does not resolve on declared floor.
 export const ORPHAN_BAD_SVGCODE_F1 = {
   id: 'row-101',
+  rowId: 'row-101',
   libraryName: 'Sourasky', libraryNameHe: 'סוראסקי',
   collectionName: 'KA', collectionNameHe: 'KA',
   rangeStart: '300', rangeEnd: '305',
@@ -33,6 +36,7 @@ export const ORPHAN_BAD_SVGCODE_F1 = {
 
 export const ORPHAN_BAD_SVGCODE_F2 = {
   id: 'row-102',
+  rowId: 'row-102',
   libraryName: 'Sourasky', libraryNameHe: 'סוראסקי',
   collectionName: 'CY', collectionNameHe: 'CY',
   rangeStart: '296.012', rangeEnd: '892.493',
@@ -43,6 +47,7 @@ export const ORPHAN_BAD_SVGCODE_F2 = {
 // Orphan: svgCode is empty.
 export const ORPHAN_MISSING_SVGCODE_F1 = {
   id: 'row-103',
+  rowId: 'row-103',
   libraryName: 'Sourasky', libraryNameHe: 'סוראסקי',
   collectionName: 'CC', collectionNameHe: 'CC',
   rangeStart: '500', rangeEnd: '510',
@@ -52,6 +57,7 @@ export const ORPHAN_MISSING_SVGCODE_F1 = {
 
 export const ORPHAN_MISSING_SVGCODE_F2 = {
   id: 'row-104',
+  rowId: 'row-104',
   libraryName: 'Sourasky', libraryNameHe: 'סוראסקי',
   collectionName: 'CHI', collectionNameHe: 'CHI',
   rangeStart: '800', rangeEnd: '850',
