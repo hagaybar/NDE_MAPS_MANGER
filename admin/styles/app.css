@@ -2770,3 +2770,209 @@ textarea:focus-visible,
   padding: 8px 16px; border-radius: 6px; z-index: 40;
   display: flex; gap: 12px; align-items: center;
 }
+
+/* ============================================================
+   Issue #14 phase 2a — Map Editor orphan panel
+   ============================================================ */
+
+.map-orphan-panel {
+  position: absolute;
+  inset-block-start: 0;
+  inset-block-end: 0;
+  inset-inline-end: 0;
+  width: 340px;
+  background: #fff;
+  border-inline-start: 1px solid #e2e8f0;
+  box-shadow: -4px 0 12px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 200ms ease;
+  z-index: 20;
+  overflow-y: auto;
+}
+
+.map-orphan-panel--open {
+  transform: translateX(0);
+}
+
+[dir="rtl"] .map-orphan-panel {
+  transform: translateX(-100%);
+}
+
+[dir="rtl"] .map-orphan-panel--open {
+  transform: translateX(0);
+}
+
+.map-orphan-panel__header {
+  padding: 12px 16px;
+  border-block-end: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fafafa;
+}
+
+.map-orphan-panel__title {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+  color: #1f2937;
+}
+
+.map-orphan-panel__close {
+  background: transparent;
+  border: 0;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px 8px;
+  color: #6b7280;
+}
+
+.map-orphan-panel__close:hover {
+  color: #1f2937;
+}
+
+.map-orphan-panel__list {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+}
+
+.map-orphan-panel__empty {
+  padding: 24px 16px;
+  color: #6b7280;
+  font-size: 13px;
+  text-align: center;
+}
+
+.map-orphan-panel__announce {
+  padding: 12px 16px;
+  background: #ecfdf5;
+  color: #047857;
+  font-size: 13px;
+  text-align: center;
+  border-block-start: 1px solid #d1fae5;
+}
+
+.map-orphan-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 10px 12px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.map-orphan-card--active {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.map-orphan-card__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.map-orphan-card__collection {
+  font-weight: 600;
+  font-size: 13px;
+  color: #1f2937;
+}
+
+.map-orphan-card__shelf {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.map-orphan-card__body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.map-orphan-card__range {
+  color: #6b7280;
+}
+
+.map-orphan-card__bad-svgcode {
+  background: #fef2f2;
+  color: #b91c1c;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.map-orphan-card__kind-badge {
+  background: #fff7ed;
+  color: #b45309;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 11px;
+}
+
+.map-orphan-card__actions {
+  display: flex;
+  gap: 6px;
+  margin-block-start: 4px;
+}
+
+.map-orphan-card__primary {
+  flex: 1;
+  background: #3b82f6;
+  color: #fff;
+  border: 0;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.map-orphan-card__primary:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.map-orphan-card__primary:disabled {
+  background: #cbd5e1;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+.map-orphan-card__secondary {
+  background: transparent;
+  color: #2563eb;
+  border: 1px solid #2563eb;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.map-orphan-card__secondary:hover {
+  background: #eff6ff;
+}
+
+/* During an active reassign (panel knows via setActiveCard), subdue
+   the inactive cards' primary buttons so the librarian can't click
+   another orphan mid-pick. The active card stays interactive. */
+.map-orphan-panel--reassigning .map-orphan-card:not(.map-orphan-card--active) .map-orphan-card__primary {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+/* Narrow viewport: collapse the panel to a small toggle. */
+@media (max-width: 900px) {
+  .map-orphan-panel {
+    width: 280px;
+  }
+}
