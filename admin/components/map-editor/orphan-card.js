@@ -44,9 +44,13 @@ export function renderOrphanCard({ orphan, isActive, locale, readOnly, onSetShel
     : '';
 
   const badCodeText = orphan.svgCode || '[empty]';
-  const kindKey = orphan.kind === 'svgCode_not_on_floor'
+  const isWrongSvgCode = orphan.kind === 'svgCode_not_on_floor';
+  const kindKey = isWrongSvgCode
     ? 'mapEditor.orphan.card.kind.wrongSvgCode'
     : 'mapEditor.orphan.card.kind.missingSvgCode';
+  const explanationKey = isWrongSvgCode
+    ? 'mapEditor.orphan.card.explanation.wrongSvgCode'
+    : 'mapEditor.orphan.card.explanation.missingSvgCode';
 
   const setShelfDisabled = readOnly ? 'disabled' : '';
   const setShelfTitle = readOnly ? i18n.t('mapEditor.orphan.card.readOnly') : '';
@@ -61,8 +65,9 @@ export function renderOrphanCard({ orphan, isActive, locale, readOnly, onSetShel
       <span class="map-orphan-card__bad-svgcode">${escapeHtml(badCodeText)}</span>
       <span class="map-orphan-card__kind-badge">${escapeHtml(i18n.t(kindKey))}</span>
     </div>
+    <p class="map-orphan-card__explanation">${escapeHtml(i18n.t(explanationKey))}</p>
     <div class="map-orphan-card__actions">
-      <button type="button" data-action="set-shelf" ${setShelfDisabled} title="${escapeHtml(setShelfTitle)}" class="map-orphan-card__primary">${escapeHtml(i18n.t('mapEditor.orphan.card.setShelf'))}</button>
+      <button type="button" data-action="set-shelf" ${setShelfDisabled} title="${escapeHtml(setShelfTitle)}" class="map-orphan-card__primary"><span class="map-orphan-card__primary-icon" aria-hidden="true">📍</span> ${escapeHtml(i18n.t('mapEditor.orphan.card.setShelf'))}</button>
       <button type="button" data-action="edit-elsewhere" class="map-orphan-card__secondary">${escapeHtml(i18n.t('mapEditor.orphan.card.editElsewhere'))}</button>
     </div>
   `;

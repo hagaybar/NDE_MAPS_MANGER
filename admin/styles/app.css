@@ -2976,3 +2976,19 @@ textarea:focus-visible,
     width: 280px;
   }
 }
+
+/* Phase 2a polish — orphan-card explanation paragraph */
+.map-orphan-card__explanation {
+  font-size: 12px;
+  color: #4b5563;
+  line-height: 1.4;
+  margin: 0;
+  padding: 6px 8px;
+  background: #f9fafb;
+  border-inline-start: 3px solid #f59e0b;
+  border-radius: 3px;
+}
+
+.map-orphan-card__primary-icon {
+  margin-inline-end: 4px;
+}
