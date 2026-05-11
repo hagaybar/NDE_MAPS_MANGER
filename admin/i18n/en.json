@@ -358,17 +358,21 @@
     },
     "orphan": {
       "panel": {
-        "title": "Rows needing shelf assignment",
+        "title": "Shelf assignment needs fixing",
         "empty": "No orphans on floor {n} — switch tabs to see others",
         "allRepaired": "All orphans repaired on this floor"
       },
       "card": {
-        "setShelf": "Set shelf on map",
+        "setShelf": "Pick correct shelf on map",
         "editElsewhere": "Edit in CSV editor",
         "readOnly": "Read-only — ask an admin to repair this row",
         "kind": {
-          "wrongSvgCode": "Wrong svgCode",
-          "missingSvgCode": "No svgCode set"
+          "wrongSvgCode": "Shelf link is broken",
+          "missingSvgCode": "No shelf is set"
+        },
+        "explanation": {
+          "wrongSvgCode": "This row points at a shelf that no longer exists on this floor's map. Click \"Pick correct shelf on map\" to choose the right one visually.",
+          "missingSvgCode": "This row has no shelf assigned yet. Click \"Pick correct shelf on map\" to choose one visually."
         }
       }
     },
