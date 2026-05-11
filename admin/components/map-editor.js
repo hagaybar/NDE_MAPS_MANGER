@@ -9,6 +9,8 @@ import { computeFloorConflicts } from './map-editor/range-validation.js?v=1';
 import { mountDrawer, showSingleShelf, hideDrawer } from './map-editor/shelf-drawer.js?v=2';
 import { startReassign, cancelReassign, isReassignActive } from './map-editor/reassign-mode.js?v=1';
 import { handleEscape } from './map-editor/esc-handler.js?v=1';
+import { deriveOrphansForFloor } from './map-editor/orphan-deriver.js?v=1';
+import { mount as mountOrphanPanel, open as openOrphanPanel, close as closeOrphanPanel, setActiveCard as setOrphanActive, markRepaired as markOrphanRepaired } from './map-editor/orphan-panel.js?v=1';
 
 const CLOUDFRONT_URL = 'https://d3h8i7y9p8lyw7.cloudfront.net';
 const API_ENDPOINT = 'https://tt3xt4tr09.execute-api.us-east-1.amazonaws.com/prod';
@@ -110,6 +112,69 @@ function computeOrphanCounts() {
   return byFloor;
 }
 
+function refreshOrphanPanel({ openIfClosed = false } = {}) {
+  if (currentFloor === null || !allRanges) return;
+  const orphans = deriveOrphansForFloor(allRanges, currentFloor);
+  const locale = (i18n.getLocale && i18n.getLocale()) || 'en';
+  const options = {
+    floor: currentFloor,
+    locale,
+    readOnly: false, // map-editor uses shelfState.permission per row; orphan-card honors readOnly per-card too — refined later if needed
+    onSetShelf: handleOrphanSetShelf,
+    onEditElsewhere: handleOrphanEditElsewhere,
+  };
+  if (openIfClosed || isOrphanPanelOpen()) {
+    openOrphanPanel(orphans, options);
+  }
+}
+
+function isOrphanPanelOpen() {
+  const el = document.querySelector('.map-orphan-panel');
+  return el ? el.classList.contains('map-orphan-panel--open') : false;
+}
+
+function handleOrphanSetShelf(rowId) {
+  const range = shelfState.materialize().find(r => r.id === rowId);
+  if (!range) return;
+  setOrphanActive(rowId);
+  const allShelves = allRanges
+    .filter(r => r.svgCode)
+    .reduce((acc, r) => {
+      const key = `${r.svgCode}|${r.floor}`;
+      if (!acc.has(key)) acc.set(key, { svgCode: r.svgCode, floor: r.floor, label: r.shelfLabel || r.svgCode });
+      return acc;
+    }, new Map());
+  const allShelvesList = Array.from(allShelves.values()).sort((a, b) => a.label.localeCompare(b.label));
+  startReassign({
+    rangeId: rowId,
+    rangeLabel: `${range.collectionName} ${range.rangeStart}-${range.rangeEnd}`,
+    oldShelfLabel: range.shelfLabel || range.svgCode || '',
+    shelfElements,
+    allShelves: allShelvesList,
+    onConfirm: ({ newSvgCode, newFloor }) => {
+      const target = { svgCode: newSvgCode };
+      if (newFloor !== undefined) target.floor = newFloor;
+      shelfState.move(rowId, target);
+      refreshConflicts();
+      saveCsv().then(() => {
+        markOrphanRepaired(rowId);
+      });
+    },
+    onCancel: () => {
+      setOrphanActive(null);
+    },
+    intent: 'repair',
+  });
+}
+
+function handleOrphanEditElsewhere(rowId) {
+  // 2a soft deep-link: filter CSV editor by floor's empty-svgCode rows.
+  // 2b will widen this to use the validator's findings precisely.
+  window.location.hash = `#csv-editor?orphans=floor=${currentFloor}`;
+  const navCsv = document.getElementById('nav-csv');
+  if (navCsv) navCsv.click();
+}
+
 function renderFloorTabs(active) {
   const root = document.getElementById('map-floor-tabs');
   root.innerHTML = FLOORS.map(n => `
@@ -144,10 +209,14 @@ function renderFloorTabs(active) {
     badge.dataset.floor = String(n);
     badge.addEventListener('click', (e) => {
       e.stopPropagation();
-      window.location.hash = `#csv-editor?orphans=floor=${n}`;
-      // Also switch views — the deep-link is meant to navigate, not just bookmark.
-      const navCsv = document.getElementById('nav-csv');
-      if (navCsv) navCsv.click();
+      // If clicked on the inactive floor's badge, switch to that floor first.
+      if (n !== currentFloor) {
+        saveActiveFloor(n);
+        renderFloorTabs(n);
+        window.dispatchEvent(new CustomEvent('mapeditor:floor-changed', { detail: { floor: n } }));
+      }
+      // Open the orphan panel for the (now) active floor.
+      refreshOrphanPanel({ openIfClosed: true });
     });
     tab.appendChild(badge);
   }
@@ -209,6 +278,10 @@ async function loadFloor(floorNumber) {
   // Re-render floor tabs so the orphan badge picks up this floor's count
   // now that shelfElements is indexed.
   renderFloorTabs(currentFloor);
+  // If the orphan panel is open, refresh its contents for the new floor.
+  if (isOrphanPanelOpen()) {
+    refreshOrphanPanel({ openIfClosed: false });
+  }
 }
 
 window.addEventListener('mapeditor:floor-changed', e => loadFloor(e.detail.floor));
@@ -270,6 +343,7 @@ function renderDrawer() {
         startReassign({
           rangeId: id,
           rangeLabel: `${range.collectionName} ${range.rangeStart}-${range.rangeEnd}`,
+          oldShelfLabel: range.shelfLabel || range.svgCode || '',
           shelfElements: new Map([...shelfElements].filter(([sid]) => sid !== range.svgCode)),
           allShelves: allShelvesList,
           onConfirm: ({ newSvgCode, newFloor }) => {
@@ -277,9 +351,20 @@ function renderDrawer() {
             if (newFloor !== undefined) target.floor = newFloor;
             shelfState.move(id, target);
             refreshConflicts();
+            // Reopen-destination behavior for move intent: if the destination
+            // shelf is on the current floor, shift the drawer's selection to
+            // it so the librarian sees the moved range in its new context. If
+            // the destination is on a different floor, the drawer closes
+            // (renderDrawer with no current-floor selection) and the librarian
+            // can switch tabs to inspect.
+            if (shelfElements.has(newSvgCode)) {
+              shelfState.selectSingle(newSvgCode);
+              applySelection(shelfElements, shelfState.selection().shelfIds);
+            }
             renderDrawer();
           },
           onCancel: () => { /* nothing — banner already removed */ },
+          intent: 'move',
         });
       },
       onDelete: (id) => { shelfState.delete(id); renderDrawer(); },
@@ -379,6 +464,13 @@ async function saveCsv() {
 
     // Refresh local state from the new snapshot.
     allRanges = merged;
+    // Refresh orphan panel so newly-resolved rows animate out and any new
+    // orphans appear. markOrphanRepaired is called from handleOrphanSetShelf
+    // for the specific row that was just repaired; the wholesale refresh
+    // covers the case where the save included edits to other rows.
+    if (isOrphanPanelOpen()) {
+      refreshOrphanPanel({ openIfClosed: false });
+    }
     shelfState.revert();        // clears pendingEdits
     refreshConflicts();
     renderDrawer();             // drawer stays open with fresh values
@@ -407,6 +499,10 @@ export async function initMapEditor() {
     </div>
   `;
   mountDrawer('map-drawer');
+  const orphanHost = document.createElement('div');
+  orphanHost.id = 'map-orphan-host';
+  container.querySelector('#map-canvas').appendChild(orphanHost);
+  mountOrphanPanel('map-orphan-host');
 
   // Inject hatch pattern definition once (used by .map-shelf--locked)
   const defs = document.createElementNS('http://www.w3.org/2000/svg', 'svg');

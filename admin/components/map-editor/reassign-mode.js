@@ -2,16 +2,19 @@ import i18n from '../../i18n.js?v=5';
 
 let active = null;
 
-export function startReassign({ rangeId, rangeLabel, shelfElements, allShelves, onConfirm, onCancel }) {
+export function startReassign({ rangeId, rangeLabel, oldShelfLabel, shelfElements, allShelves, onConfirm, onCancel, intent = 'move' }) {
   if (active) cancel();
-  active = { rangeId, rangeLabel, allShelves, onConfirm, onCancel };
+  active = { rangeId, rangeLabel, oldShelfLabel, allShelves, onConfirm, onCancel, intent };
 
-  // Banner
+  // Banner — copy depends on intent
+  const bannerKey = intent === 'repair'
+    ? 'mapEditor.reassign.banner.repair'
+    : 'mapEditor.reassign.banner.move';
   const banner = document.createElement('div');
   banner.className = 'map-reassign-banner';
   banner.id = 'map-reassign-banner';
   banner.innerHTML = `
-    <span>📍 ${i18n.t('mapEditor.reassign.banner').replace('{rangeLabel}', rangeLabel).replace('{chooseFromList}', `<a href="#" id="map-reassign-list" class="underline">${i18n.t('mapEditor.reassign.chooseFromList')}</a>`)}</span>
+    <span>📍 ${i18n.t(bannerKey)} <span class="opacity-75">(${rangeLabel})</span> — <a href="#" id="map-reassign-list" class="underline">${i18n.t('mapEditor.reassign.chooseFromList')}</a></span>
     <button id="map-reassign-cancel" class="px-2 py-1 text-xs border rounded">${i18n.t('mapEditor.reassign.cancel')}</button>
   `;
   document.body.appendChild(banner);
@@ -32,7 +35,15 @@ export function startReassign({ rangeId, rangeLabel, shelfElements, allShelves, 
 function onShelfClicked(evt) {
   evt.stopPropagation(); evt.preventDefault();
   const target = evt.currentTarget.id;
-  const ok = window.confirm(i18n.t('mapEditor.reassign.confirm').replace('{rangeLabel}', active.rangeLabel).replace('{shelfLabel}', target));
+  const confirmKey = active.intent === 'repair'
+    ? 'mapEditor.reassign.confirm.repair'
+    : 'mapEditor.reassign.confirm.move';
+  const confirmText = i18n.t(confirmKey)
+    .replace('{label}', active.rangeLabel)
+    .replace('{picked}', target)
+    .replace('{old}', active.oldShelfLabel || '')
+    .replace('{new}', target);
+  const ok = window.confirm(confirmText);
   if (ok) {
     const { onConfirm } = active;
     cleanup();
@@ -80,7 +91,15 @@ function openDropdownPicker() {
       .join('');
     list.querySelectorAll('button').forEach(b => {
       b.onclick = () => {
-        const ok = window.confirm(`Move ${active.rangeLabel} to ${b.dataset.id}?`);
+        const confirmKey = active.intent === 'repair'
+          ? 'mapEditor.reassign.confirm.repair'
+          : 'mapEditor.reassign.confirm.move';
+        const confirmText = i18n.t(confirmKey)
+          .replace('{label}', active.rangeLabel)
+          .replace('{picked}', b.dataset.id)
+          .replace('{old}', active.oldShelfLabel || '')
+          .replace('{new}', b.dataset.id);
+        const ok = window.confirm(confirmText);
         if (!ok) return;
         const { onConfirm } = active;
         overlay.remove();

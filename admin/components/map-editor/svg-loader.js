@@ -7,7 +7,15 @@ export async function loadFloorSvg(floorNumber, container) {
     throw new Error(`SVG load failed: floor ${floorNumber} (${resp.status})`);
   }
   const text = await resp.text();
+  // Preserve any non-SVG element children (e.g. the orphan-panel host)
+  // across reloads. innerHTML replacement would otherwise detach them.
+  const preserved = Array.from(container.children).filter(
+    el => el.tagName && el.tagName.toLowerCase() !== 'svg'
+  );
   container.innerHTML = text;
+  for (const el of preserved) {
+    container.appendChild(el);
+  }
   return container.querySelector('svg');
 }
 
