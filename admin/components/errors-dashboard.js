@@ -4,6 +4,8 @@ import { validateRow, VALIDATION_ERRORS, VALIDATION_WARNINGS } from '../services
 import { showEditLocationDialog, setCollections } from './edit-location-dialog.js?v=6';
 import { getAuthHeaders } from '../app.js?v=5';
 import logger from '../services/logger.js?v=1';
+import { buildReportRows, toCsv, downloadCsv, reportFilename } from './errors-dashboard/report-export.js';
+import { showToast } from './toast.js?v=5';
 
 // CloudFront URL for fetching CSV data
 const CLOUDFRONT_URL = 'https://d3h8i7y9p8lyw7.cloudfront.net';
@@ -20,6 +22,9 @@ const FALLBACKS = {
   'errorsDashboard.loading': { en: 'Loading data...', he: 'טוען נתונים...' },
   'errorsDashboard.loadError': { en: 'Failed to load data', he: 'שגיאה בטעינת הנתונים' },
   'errorsDashboard.refresh': { en: 'Refresh', he: 'רענן' },
+  'errorsDashboard.export.cta': { en: '📥 Download errors report', he: '📥 הורד דוח שגיאות' },
+  'errorsDashboard.export.empty': { en: 'No errors to export', he: 'אין שגיאות לייצוא' },
+  'errorsDashboard.export.error': { en: 'Could not generate the report.', he: 'לא ניתן ליצור את הדוח.' },
   'errorsDashboard.back': { en: 'Back to Overview', he: 'חזרה לסקירה' },
   'errorsDashboard.fix': { en: 'Fix', he: 'תקן' },
   'errorsDashboard.fixAll': { en: 'Fix All in Category', he: 'תקן הכל בקטגוריה' },
@@ -677,6 +682,23 @@ function getCategoryIcon(iconName) {
     'alert-triangle': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>'
   };
   return icons[iconName] || icons['alert-circle'];
+}
+
+/**
+ * Build and trigger the download of the comprehensive errors CSV.
+ * Reads from `allIssues` (already aggregated by validateAllRows).
+ */
+function handleDownloadReport() {
+  if (!allIssues || allIssues.length === 0) return;
+  try {
+    const rows = buildReportRows(allIssues);
+    const csv = toCsv(rows);
+    downloadCsv(reportFilename(), csv);
+    logger.userAction('click', 'Download errors report', { count: rows.length });
+  } catch (err) {
+    logger.error('errors-dashboard', 'Report export failed', { error: String(err) });
+    showToast(t('errorsDashboard.export.error'), 'error');
+  }
 }
 
 /**
