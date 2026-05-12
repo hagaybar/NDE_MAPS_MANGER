@@ -361,7 +361,7 @@
     </clipPath>
   </defs>
   <g
-     id="cfa_kb1">
+     id="cfa_kb1" data-map-object="shelf">
     <path
        d="M 376,668.32486 C 376,667.04088 374.95913,666 373.67515,666 H 215.325 c -1.284,0 -2.325,1.04088 -2.325,2.32486 v 29.35024 c 0,1.284 1.041,2.3249 2.325,2.3249 H 373.67515 C 374.95913,700 376,698.9591 376,697.6751 Z"
        fill="url(#pattern1)"
@@ -1582,28 +1582,28 @@
      width="210"
      height="4"
      fill="#b9cde5"
-     id="kb1_1_b" />
+     id="kb1_1_b" data-map-object="shelf" />
   <rect
      x="38"
      y="616.59479"
      width="185"
      height="4"
      fill="#b9cde5"
-     id="kb1_2_a" />
+     id="kb1_2_a" data-map-object="shelf" />
   <rect
      x="38"
      y="611.59479"
      width="185"
      height="4"
      fill="#b9cde5"
-     id="kb1_2_b" />
+     id="kb1_2_b" data-map-object="shelf" />
   <rect
      x="38"
      y="598.55865"
      width="185"
      height="3.6308758"
      fill="#b9cde5"
-     id="kb1_3_a"
+     id="kb1_3_a" data-map-object="shelf"
      style="stroke-width:1.10013" />
   <rect
      x="38"
@@ -1611,7 +1611,7 @@
      width="185"
      height="3.6308758"
      fill="#b9cde5"
-     id="kb1_3_b"
+     id="kb1_3_b" data-map-object="shelf"
      style="stroke-width:1.10013" />
   <rect
      x="38"
@@ -1619,42 +1619,42 @@
      width="160"
      height="4"
      fill="#b9cde5"
-     id="kb1_5_a" />
+     id="kb1_5_a" data-map-object="shelf" />
   <rect
      x="38"
      y="557.74823"
      width="160"
      height="4"
      fill="#b9cde5"
-     id="kb1_5_b" />
+     id="kb1_5_b" data-map-object="shelf" />
   <rect
      x="38"
      y="526.93774"
      width="125"
      height="4"
      fill="#b9cde5"
-     id="kb1_7_a" />
+     id="kb1_7_a" data-map-object="shelf" />
   <rect
      x="38"
      y="521.93774"
      width="125"
      height="4"
      fill="#b9cde5"
-     id="kb1_7_b" />
+     id="kb1_7_b" data-map-object="shelf" />
   <rect
      x="38"
      y="490.12729"
      width="125"
      height="4"
      fill="#b9cde5"
-     id="kb1_9_a" />
+     id="kb1_9_a" data-map-object="shelf" />
   <rect
      x="38"
      y="486.12729"
      width="125"
      height="3.6308758"
      fill="#b9cde5"
-     id="kb1_9_b"
+     id="kb1_9_b" data-map-object="shelf"
      style="stroke-width:1.10013" />
   <rect
      x="38"
@@ -1662,7 +1662,7 @@
      width="185"
      height="3.6308758"
      fill="#b9cde5"
-     id="kb1_4_a"
+     id="kb1_4_a" data-map-object="shelf"
      style="stroke-width:1.10013" />
   <rect
      x="38"
@@ -1670,14 +1670,14 @@
      width="185"
      height="4"
      fill="#b9cde5"
-     id="kb1_4_b" />
+     id="kb1_4_b" data-map-object="shelf" />
   <rect
      x="38"
      y="544.55438"
      width="185"
      height="3.788595"
      fill="#b9cde5"
-     id="kb1_6_a"
+     id="kb1_6_a" data-map-object="shelf"
      style="stroke-width:1.12377" />
   <rect
      x="38"
@@ -1685,7 +1685,7 @@
      width="185"
      height="3.6308758"
      fill="#b9cde5"
-     id="kb1_6_b"
+     id="kb1_6_b" data-map-object="shelf"
      style="stroke-width:1.10013" />
   <rect
      x="38"
@@ -1693,21 +1693,21 @@
      width="125"
      height="4"
      fill="#b9cde5"
-     id="kb1_8_a" />
+     id="kb1_8_a" data-map-object="shelf" />
   <rect
      x="38"
      y="503.5325"
      width="125"
      height="4"
      fill="#b9cde5"
-     id="kb1_8_b" />
+     id="kb1_8_b" data-map-object="shelf" />
   <rect
      x="38"
      y="473.16443"
      width="125"
      height="3.5576208"
      fill="#b9cde5"
-     id="kb1_10_a"
+     id="kb1_10_a" data-map-object="shelf"
      style="stroke-width:1.08898" />
   <rect
      x="38"
@@ -1715,14 +1715,14 @@
      width="125"
      height="4"
      fill="#b9cde5"
-     id="kb1_10_b" />
+     id="kb1_10_b" data-map-object="shelf" />
   <rect
      x="85.315437"
      y="454.84976"
      width="117"
      height="3.8884759"
      fill="#b9cde5"
-     id="kb1_12_a"
+     id="kb1_12_a" data-map-object="shelf"
      style="stroke-width:0.985961" />
   <rect
      x="85.315437"
@@ -1730,7 +1730,7 @@
      width="117"
      height="3.5384862"
      fill="#b9cde5"
-     id="kb1_12_b"
+     id="kb1_12_b" data-map-object="shelf"
      style="stroke-width:1.08605" />
   <rect
      x="38"
@@ -1738,7 +1738,7 @@
      width="126"
      height="3.3308551"
      fill="#b9cde5"
-     id="kb1_13_a"
+     id="kb1_13_a" data-map-object="shelf"
      style="stroke-width:0.912531" />
   <rect
      x="38"
@@ -1746,7 +1746,7 @@
      width="126"
      height="3.6654274"
      fill="#b9cde5"
-     id="kb1_13_b"
+     id="kb1_13_b" data-map-object="shelf"
      style="stroke-width:0.957265" />
   <rect
      x="38"
@@ -1754,7 +1754,7 @@
      width="126"
      height="3.4460967"
      fill="#b9cde5"
-     id="kb1_14_a"
+     id="kb1_14_a" data-map-object="shelf"
      style="stroke-width:1.07177" />
   <rect
      x="38"
@@ -1762,21 +1762,21 @@
      width="126"
      height="4"
      fill="#b9cde5"
-     id="kb1_14_b" />
+     id="kb1_14_b" data-map-object="shelf" />
   <rect
      x="38"
      y="403.10117"
      width="126"
      height="4"
      fill="#b9cde5"
-     id="kb1_15_a" />
+     id="kb1_15_a" data-map-object="shelf" />
   <rect
      x="38"
      y="399.10117"
      width="126"
      height="3.3345726"
      fill="#b9cde5"
-     id="kb1_15_b"
+     id="kb1_15_b" data-map-object="shelf"
      style="stroke-width:1.05429" />
   <rect
      x="38"
@@ -1784,7 +1784,7 @@
      width="45.573849"
      height="4"
      fill="#b9cde5"
-     id="kb1_17_a"
+     id="kb1_17_a" data-map-object="shelf"
      style="stroke-width:1.0543" />
   <rect
      x="38"
@@ -1792,7 +1792,7 @@
      width="45.573849"
      height="3.4731569"
      fill="#b9cde5"
-     id="kb1_17_b"
+     id="kb1_17_b" data-map-object="shelf"
      style="stroke-width:1.1344" />
   <rect
      x="66"
@@ -1800,7 +1800,7 @@
      width="164"
      height="3.4460964"
      fill="#b9cde5"
-     id="kb1_19_a"
+     id="kb1_19_a" data-map-object="shelf"
      style="stroke-width:1.07178" />
   <rect
      x="66"
@@ -1808,49 +1808,49 @@
      width="164"
      height="4"
      fill="#b9cde5"
-     id="kb1_19_b" />
+     id="kb1_19_b" data-map-object="shelf" />
   <rect
      x="66"
      y="298.98526"
      width="66"
      height="3"
      fill="#b9cde5"
-     id="kb1_21_a" />
+     id="kb1_21_a" data-map-object="shelf" />
   <rect
      x="66"
      y="294.98526"
      width="66"
      height="3"
      fill="#b9cde5"
-     id="kb1_21_b" />
+     id="kb1_21_b" data-map-object="shelf" />
   <rect
      x="38"
      y="385.69595"
      width="126"
      height="4"
      fill="#b9cde5"
-     id="kb1_16_a" />
+     id="kb1_16_a" data-map-object="shelf" />
   <rect
      x="38"
      y="380.69595"
      width="126"
      height="4"
      fill="#b9cde5"
-     id="kb1_16_b" />
+     id="kb1_16_b" data-map-object="shelf" />
   <rect
      x="86"
      y="349.8855"
      width="144"
      height="4"
      fill="#b9cde5"
-     id="kb1_18_a" />
+     id="kb1_18_a" data-map-object="shelf" />
   <rect
      x="86"
      y="345.8855"
      width="144"
      height="3.4460967"
      fill="#b9cde5"
-     id="kb1_18_b"
+     id="kb1_18_b" data-map-object="shelf"
      style="stroke-width:1.07177" />
   <rect
      x="66"
@@ -1858,7 +1858,7 @@
      width="67"
      height="3.684562"
      fill="#b9cde5"
-     id="kb1_20_a"
+     id="kb1_20_a" data-map-object="shelf"
      style="stroke-width:0.959761" />
   <rect
      x="66"
@@ -1866,7 +1866,7 @@
      width="67"
      height="3.3942974"
      fill="#b9cde5"
-     id="kb1_20_b"
+     id="kb1_20_b" data-map-object="shelf"
      style="stroke-width:1.06369" />
   <rect
      x="66"
@@ -1874,7 +1874,7 @@
      width="66"
      height="3.6654274"
      fill="#b9cde5"
-     id="kb1_22_a"
+     id="kb1_22_a" data-map-object="shelf"
      style="stroke-width:0.957265" />
   <rect
      x="66"
@@ -1882,7 +1882,7 @@
      width="66"
      height="3.4423792"
      fill="#b9cde5"
-     id="kb1_22_b"
+     id="kb1_22_b" data-map-object="shelf"
      style="stroke-width:0.927682" />
   <rect
      x="66"
@@ -1890,21 +1890,21 @@
      width="66"
      height="3"
      fill="#b9cde5"
-     id="kb1_23_a" />
+     id="kb1_23_a" data-map-object="shelf" />
   <rect
      x="66"
      y="261.17484"
      width="66"
      height="3"
      fill="#b9cde5"
-     id="kb1_23_b" />
+     id="kb1_23_b" data-map-object="shelf" />
   <rect
      x="66"
      y="238.29645"
      width="78"
      height="3.4731569"
      fill="#b9cde5"
-     id="kb1_24_a"
+     id="kb1_24_a" data-map-object="shelf"
      style="stroke-width:1.07597" />
   <rect
      x="66"
@@ -1912,14 +1912,14 @@
      width="78"
      height="4"
      fill="#b9cde5"
-     id="kb1_24_b" />
+     id="kb1_24_b" data-map-object="shelf" />
   <rect
      x="38"
      y="207.29372"
      width="192"
      height="3.6654274"
      fill="#b9cde5"
-     id="kb1_26_a"
+     id="kb1_26_a" data-map-object="shelf"
      style="stroke-width:0.957265" />
   <rect
      x="38"
@@ -1927,7 +1927,7 @@
      width="192"
      height="3.3345726"
      fill="#b9cde5"
-     id="kb1_26_b"
+     id="kb1_26_b" data-map-object="shelf"
      style="stroke-width:1.05429" />
   <rect
      x="66"
@@ -1935,7 +1935,7 @@
      width="164"
      height="3.4460967"
      fill="#b9cde5"
-     id="kb1_25_a"
+     id="kb1_25_a" data-map-object="shelf"
      style="stroke-width:1.07177" />
   <rect
      x="66"
@@ -1943,21 +1943,21 @@
      width="164"
      height="4"
      fill="#b9cde5"
-     id="kb1_25_b" />
+     id="kb1_25_b" data-map-object="shelf" />
   <rect
      x="38"
      y="186"
      width="192"
      height="4"
      fill="#b9cde5"
-     id="kb1_27_b" />
+     id="kb1_27_b" data-map-object="shelf" />
   <rect
      x="38"
      y="190.55391"
      width="192"
      height="3.4460967"
      fill="#b9cde5"
-     id="kb1_27_a"
+     id="kb1_27_a" data-map-object="shelf"
      style="stroke-width:1.07177" />
   <rect
      x="303"
@@ -1965,14 +1965,14 @@
      width="5"
      height="129"
      fill="#b9cde5"
-     id="kb2_40_a" />
+     id="kb2_40_a" data-map-object="shelf" />
   <rect
      x="309.52686"
      y="24.999901"
      width="4.4731569"
      height="129"
      fill="#b9cde5"
-     id="kb2_40_b"
+     id="kb2_40_b" data-map-object="shelf"
      style="stroke-width:1.05749" />
   <rect
      x="280"
@@ -1980,42 +1980,42 @@
      width="4"
      height="129"
      fill="#b9cde5"
-     id="kb2_39_a" />
+     id="kb2_39_a" data-map-object="shelf" />
   <rect
      x="286"
      y="24.999901"
      width="4"
      height="129"
      fill="#b9cde5"
-     id="kb2_39_b" />
+     id="kb2_39_b" data-map-object="shelf" />
   <rect
      x="232"
      y="25"
      width="5"
      height="129"
      fill="#b9cde5"
-     id="kb1_37_a" />
+     id="kb1_37_a" data-map-object="shelf" />
   <rect
      x="239"
      y="25"
      width="5"
      height="129"
      fill="#b9cde5"
-     id="kb2_37_b" />
+     id="kb2_37_b" data-map-object="shelf" />
   <rect
      x="209"
      y="25"
      width="5"
      height="129"
      fill="#b9cde5"
-     id="kb1_36_a" />
+     id="kb1_36_a" data-map-object="shelf" />
   <rect
      x="215.36913"
      y="24.999901"
      width="4.6308761"
      height="129"
      fill="#b9cde5"
-     id="kb1_36_b"
+     id="kb1_36_b" data-map-object="shelf"
      style="stroke-width:1.07597" />
   <rect
      x="186"
@@ -2023,7 +2023,7 @@
      width="4.9463139"
      height="129"
      fill="#b9cde5"
-     id="kb1_35_a"
+     id="kb1_35_a" data-map-object="shelf"
      style="stroke-width:1.11202" />
   <rect
      x="192"
@@ -2031,49 +2031,49 @@
      width="5"
      height="129"
      fill="#b9cde5"
-     id="kb1_35_b" />
+     id="kb1_35_b" data-map-object="shelf" />
   <rect
      x="162"
      y="25"
      width="5"
      height="129"
      fill="#b9cde5"
-     id="kb1_34_a" />
+     id="kb1_34_a" data-map-object="shelf" />
   <rect
      x="169"
      y="25"
      width="5"
      height="129"
      fill="#b9cde5"
-     id="kb1_34_b" />
+     id="kb1_34_b" data-map-object="shelf" />
   <rect
      x="326"
      y="25"
      width="5"
      height="129"
      fill="#b9cde5"
-     id="kb2_41_a" />
+     id="kb2_41_a" data-map-object="shelf" />
   <rect
      x="333"
      y="25"
      width="5"
      height="129"
      fill="#b9cde5"
-     id="kb2_41_b" />
+     id="kb2_41_b" data-map-object="shelf" />
   <rect
      x="139"
      y="25"
      width="5"
      height="129"
      fill="#b9cde5"
-     id="kb1_33_a" />
+     id="kb1_33_a" data-map-object="shelf" />
   <rect
      x="145.13254"
      y="24.999901"
      width="4.8674545"
      height="129"
      fill="#b9cde5"
-     id="kb1_33_b"
+     id="kb1_33_b" data-map-object="shelf"
      style="stroke-width:1.10311" />
   <rect
      x="116"
@@ -2081,35 +2081,35 @@
      width="5"
      height="129"
      fill="#b9cde5"
-     id="kb1_32_a" />
+     id="kb1_32_a" data-map-object="shelf" />
   <rect
      x="122"
      y="25"
      width="5"
      height="129"
      fill="#b9cde5"
-     id="kb1_32_b" />
+     id="kb1_32_b" data-map-object="shelf" />
   <rect
      x="93"
      y="25"
      width="5"
      height="129"
      fill="#b9cde5"
-     id="kb1_31_a" />
+     id="kb1_31_a" data-map-object="shelf" />
   <rect
      x="99"
      y="25"
      width="5"
      height="129"
      fill="#b9cde5"
-     id="kb1_31_b" />
+     id="kb1_31_b" data-map-object="shelf" />
   <rect
      x="583"
      y="24.999901"
      width="4.557621"
      height="129"
      fill="#b9cde5"
-     id="kb2_52_a"
+     id="kb2_52_a" data-map-object="shelf"
      style="stroke-width:1.06743" />
   <rect
      x="588.55389"
@@ -2117,7 +2117,7 @@
      width="4.4460964"
      height="129"
      fill="#b9cde5"
-     id="kb2_52_b"
+     id="kb2_52_b" data-map-object="shelf"
      style="stroke-width:1.05429" />
   <rect
      x="559"
@@ -2125,98 +2125,98 @@
      width="5"
      height="129"
      fill="#b9cde5"
-     id="kb2_51_a" />
+     id="kb2_51_a" data-map-object="shelf" />
   <rect
      x="565"
      y="25"
      width="5"
      height="129"
      fill="#b9cde5"
-     id="kb2_51_b" />
+     id="kb2_51_b" data-map-object="shelf" />
   <rect
      x="536"
      y="25"
      width="5"
      height="129"
      fill="#b9cde5"
-     id="kb2_50_a" />
+     id="kb2_50_a" data-map-object="shelf" />
   <rect
      x="542"
      y="25"
      width="5"
      height="129"
      fill="#b9cde5"
-     id="kb2_50_b" />
+     id="kb2_50_b" data-map-object="shelf" />
   <rect
      x="513"
      y="25"
      width="5"
      height="129"
      fill="#b9cde5"
-     id="kb2_49_a" />
+     id="kb2_49_a" data-map-object="shelf" />
   <rect
      x="519"
      y="25"
      width="5"
      height="129"
      fill="#b9cde5"
-     id="kb2_49_b" />
+     id="kb2_49_b" data-map-object="shelf" />
   <rect
      x="489"
      y="25"
      width="5"
      height="129"
      fill="#b9cde5"
-     id="kb2_48_a" />
+     id="kb2_48_a" data-map-object="shelf" />
   <rect
      x="495"
      y="25"
      width="5"
      height="129"
      fill="#b9cde5"
-     id="kb2_48_b" />
+     id="kb2_48_b" data-map-object="shelf" />
   <rect
      x="466"
      y="25"
      width="5"
      height="129"
      fill="#b9cde5"
-     id="kb2_47_a" />
+     id="kb2_47_a" data-map-object="shelf" />
   <rect
      x="472"
      y="25"
      width="5"
      height="129"
      fill="#b9cde5"
-     id="kb2_47_b" />
+     id="kb2_47_b" data-map-object="shelf" />
   <rect
      x="606"
      y="25"
      width="5"
      height="129"
      fill="#b9cde5"
-     id="kb2_53_a" />
+     id="kb2_53_a" data-map-object="shelf" />
   <rect
      x="612"
      y="25"
      width="5"
      height="129"
      fill="#b9cde5"
-     id="kb2_53_b" />
+     id="kb2_53_b" data-map-object="shelf" />
   <rect
      x="419"
      y="25"
      width="5"
      height="129"
      fill="#b9cde5"
-     id="kb2_45_a" />
+     id="kb2_45_a" data-map-object="shelf" />
   <rect
      x="425"
      y="25"
      width="5"
      height="129"
      fill="#b9cde5"
-     id="ck_45_b"
+     id="ck_45_b" data-map-object="shelf"
      style="fill:#ffe680" />
   <rect
      x="396"
@@ -2224,35 +2224,35 @@
      width="5"
      height="129"
      fill="#b9cde5"
-     id="kb2_44_a" />
+     id="kb2_44_a" data-map-object="shelf" />
   <rect
      x="402"
      y="25"
      width="5"
      height="129"
      fill="#b9cde5"
-     id="kb2_44_b" />
+     id="kb2_44_b" data-map-object="shelf" />
   <rect
      x="373"
      y="25"
      width="5"
      height="129"
      fill="#b9cde5"
-     id="kb2_43_a" />
+     id="kb2_43_a" data-map-object="shelf" />
   <rect
      x="379"
      y="25"
      width="5"
      height="129"
      fill="#b9cde5"
-     id="kb2_43_b" />
+     id="kb2_43_b" data-map-object="shelf" />
   <rect
      x="350"
      y="24.999901"
      width="4.4460964"
      height="129"
      fill="#b9cde5"
-     id="kb2_42_a"
+     id="kb2_42_a" data-map-object="shelf"
      style="stroke-width:1.05429" />
   <rect
      x="355.44238"
@@ -2260,7 +2260,7 @@
      width="4.557621"
      height="129"
      fill="#b9cde5"
-     id="kb2_42_b"
+     id="kb2_42_b" data-map-object="shelf"
      style="stroke-width:1.06743" />
   <rect
      x="653"
@@ -2268,7 +2268,7 @@
      width="4.557621"
      height="129"
      fill="#b9cde5"
-     id="kb2_55_a"
+     id="kb2_55_a" data-map-object="shelf"
      style="stroke-width:1.06743" />
   <rect
      x="658.44238"
@@ -2276,7 +2276,7 @@
      width="4.557621"
      height="129"
      fill="#b9cde5"
-     id="kb2_55_b"
+     id="kb2_55_b" data-map-object="shelf"
      style="stroke-width:1.06743" />
   <rect
      x="676"
@@ -2284,21 +2284,21 @@
      width="5"
      height="129"
      fill="#b9cde5"
-     id="kb2_56_a" />
+     id="kb2_56_a" data-map-object="shelf" />
   <rect
      x="682"
      y="25"
      width="5"
      height="129"
      fill="#b9cde5"
-     id="kb2_56_b" />
+     id="kb2_56_b" data-map-object="shelf" />
   <rect
      x="793"
      y="24.999901"
      width="4.6691451"
      height="129"
      fill="#b9cde5"
-     id="kb2_61_a"
+     id="kb2_61_a" data-map-object="shelf"
      style="stroke-width:1.08041" />
   <rect
      x="798.66541"
@@ -2306,7 +2306,7 @@
      width="4.3345723"
      height="129"
      fill="#b9cde5"
-     id="kb2_61_b"
+     id="kb2_61_b" data-map-object="shelf"
      style="stroke-width:1.04098" />
   <rect
      x="769"
@@ -2314,35 +2314,35 @@
      width="5"
      height="129"
      fill="#b9cde5"
-     id="kb2_60_a" />
+     id="kb2_60_a" data-map-object="shelf" />
   <rect
      x="775"
      y="25"
      width="5"
      height="129"
      fill="#b9cde5"
-     id="kb2_60_b" />
+     id="kb2_60_b" data-map-object="shelf" />
   <rect
      x="746"
      y="25"
      width="5"
      height="129"
      fill="#b9cde5"
-     id="kb2_59_a" />
+     id="kb2_59_a" data-map-object="shelf" />
   <rect
      x="752"
      y="25"
      width="5"
      height="129"
      fill="#b9cde5"
-     id="kb2_59_b" />
+     id="kb2_59_b" data-map-object="shelf" />
   <rect
      x="723"
      y="24.999901"
      width="4.4460964"
      height="129"
      fill="#b9cde5"
-     id="kb2_58_a"
+     id="kb2_58_a" data-map-object="shelf"
      style="stroke-width:1.05429" />
   <rect
      x="728.44238"
@@ -2350,7 +2350,7 @@
      width="4.557621"
      height="129"
      fill="#b9cde5"
-     id="kb2_58_b"
+     id="kb2_58_b" data-map-object="shelf"
      style="stroke-width:1.06743" />
   <rect
      x="699"
@@ -2358,56 +2358,56 @@
      width="5"
      height="129"
      fill="#b9cde5"
-     id="kb2_57_a" />
+     id="kb2_57_a" data-map-object="shelf" />
   <rect
      x="705"
      y="25"
      width="5"
      height="129"
      fill="#b9cde5"
-     id="kb2_57_b" />
+     id="kb2_57_b" data-map-object="shelf" />
   <rect
      x="839"
      y="25"
      width="5"
      height="129"
      fill="#b9cde5"
-     id="kb2_63_a" />
+     id="kb2_63_a" data-map-object="shelf" />
   <rect
      x="845"
      y="25"
      width="5"
      height="129"
      fill="#b9cde5"
-     id="kb2_63_b" />
+     id="kb2_63_b" data-map-object="shelf" />
   <rect
      x="52"
      y="25"
      width="5"
      height="129"
      fill="#c4bd97"
-     id="cy_29_b" />
+     id="cy_29_b" data-map-object="shelf" />
   <rect
      x="46"
      y="25"
      width="5"
      height="129"
      fill="#c4bd97"
-     id="cy_29_a" />
+     id="cy_29_a" data-map-object="shelf" />
   <rect
      x="29"
      y="25"
      width="5"
      height="129"
      fill="#c4bd97"
-     id="cy_28_b" />
+     id="cy_28_b" data-map-object="shelf" />
   <rect
      x="861"
      y="25"
      width="5"
      height="129"
      fill="#b9cde5"
-     id="kb2_64_a" />
+     id="kb2_64_a" data-map-object="shelf" />
   <path
      d="m 207,560.5 c 0,-4.694 3.806,-8.5 8.5,-8.5 4.694,0 8.5,3.806 8.5,8.5 0,4.694 -3.806,8.5 -8.5,8.5 -4.694,0 -8.5,-3.806 -8.5,-8.5 z"
      fill="#f2f2f2"
@@ -2833,7 +2833,7 @@
      width="165"
      height="3.3345726"
      fill="#b9cde5"
-     id="kb2_67_b"
+     id="kb2_67_b" data-map-object="shelf"
      style="stroke-width:1.05429" />
   <rect
      x="697"
@@ -2841,21 +2841,21 @@
      width="165"
      height="4"
      fill="#b9cde5"
-     id="kb2_67_a" />
+     id="kb2_67_a" data-map-object="shelf" />
   <rect
      x="697"
      y="257"
      width="125"
      height="4"
      fill="#b9cde5"
-     id="kb2_68_b" />
+     id="kb2_68_b" data-map-object="shelf" />
   <rect
      x="697"
      y="253"
      width="125"
      height="3.2760081"
      fill="#b9cde5"
-     id="kb2_68_a"
+     id="kb2_68_a" data-map-object="shelf"
      style="stroke-width:1.04499" />
   <rect
      x="697"
@@ -2863,7 +2863,7 @@
      width="165"
      height="3.3345726"
      fill="#b9cde5"
-     id="kb2_66_b"
+     id="kb2_66_b" data-map-object="shelf"
      style="stroke-width:1.05429" />
   <rect
      x="697"
@@ -2871,14 +2871,14 @@
      width="165"
      height="4"
      fill="#b9cde5"
-     id="kb2_66_a" />
+     id="kb2_66_a" data-map-object="shelf" />
   <rect
      x="669"
      y="208.55391"
      width="193"
      height="3.4460967"
      fill="#b9cde5"
-     id="kb2_65_b"
+     id="kb2_65_b" data-map-object="shelf"
      style="stroke-width:1.07177" />
   <rect
      x="669.15771"
@@ -2894,14 +2894,14 @@
      width="68"
      height="4"
      fill="#b9cde5"
-     id="kb2_65_a" />
+     id="kb2_65_a" data-map-object="shelf" />
   <rect
      x="697"
      y="272.64514"
      width="125"
      height="3.3548677"
      fill="#b9cde5"
-     id="kb2_69_b"
+     id="kb2_69_b" data-map-object="shelf"
      style="stroke-width:1.05749" />
   <rect
      x="697"
@@ -2909,28 +2909,28 @@
      width="125"
      height="4"
      fill="#b9cde5"
-     id="kb2_69_a" />
+     id="kb2_69_a" data-map-object="shelf" />
   <rect
      x="697"
      y="289"
      width="125"
      height="4"
      fill="#b9cde5"
-     id="kb2_70_b" />
+     id="kb2_70_b" data-map-object="shelf" />
   <rect
      x="697"
      y="284"
      width="125"
      height="4"
      fill="#b9cde5"
-     id="kb2_70_a" />
+     id="kb2_70_a" data-map-object="shelf" />
   <rect
      x="732"
      y="321.55762"
      width="90"
      height="3.4423792"
      fill="#b9cde5"
-     id="kb2_72_b"
+     id="kb2_72_b" data-map-object="shelf"
      style="stroke-width:0.927682" />
   <rect
      x="732"
@@ -2938,7 +2938,7 @@
      width="90"
      height="3.6654274"
      fill="#b9cde5"
-     id="kb2_72_a"
+     id="kb2_72_a" data-map-object="shelf"
      style="stroke-width:0.957265" />
   <rect
      x="732"
@@ -2946,7 +2946,7 @@
      width="130"
      height="3.6308758"
      fill="#b9cde5"
-     id="kb2_73_b"
+     id="kb2_73_b" data-map-object="shelf"
      style="stroke-width:1.10013" />
   <rect
      x="732"
@@ -2954,7 +2954,7 @@
      width="130"
      height="3.4731569"
      fill="#b9cde5"
-     id="kb2_73_a"
+     id="kb2_73_a" data-map-object="shelf"
      style="stroke-width:1.07597" />
   <rect
      x="732"
@@ -2962,21 +2962,21 @@
      width="90"
      height="4"
      fill="#b9cde5"
-     id="kb2_71_b" />
+     id="kb2_71_b" data-map-object="shelf" />
   <rect
      x="732"
      y="300"
      width="90"
      height="4"
      fill="#b9cde5"
-     id="kb2_71_a" />
+     id="kb2_71_a" data-map-object="shelf" />
   <rect
      x="732"
      y="353.31543"
      width="130"
      height="3.684562"
      fill="#b9cde5"
-     id="kb2_74_b"
+     id="kb2_74_b" data-map-object="shelf"
      style="stroke-width:0.959761" />
   <rect
      x="732"
@@ -2984,7 +2984,7 @@
      width="130"
      height="3.211405"
      fill="#b9cde5"
-     id="kb2_74_a"
+     id="kb2_74_a" data-map-object="shelf"
      style="stroke-width:0.89602" />
   <rect
      x="732"
@@ -2992,7 +2992,7 @@
      width="130"
      height="3.315438"
      fill="#b9cde5"
-     id="kb2_75_b"
+     id="kb2_75_b" data-map-object="shelf"
      style="stroke-width:1.05126" />
   <rect
      x="732"
@@ -3000,7 +3000,7 @@
      width="130"
      height="3.5268431"
      fill="#b9cde5"
-     id="kb2_75_a"
+     id="kb2_75_a" data-map-object="shelf"
      style="stroke-width:0.938995" />
   <rect
      x="822"
@@ -3008,7 +3008,7 @@
      width="40"
      height="3.6096654"
      fill="#b9cde5"
-     id="kb2_76_b"
+     id="kb2_76_b" data-map-object="shelf"
      style="stroke-width:0.949956" />
   <rect
      x="822"
@@ -3016,7 +3016,7 @@
      width="40"
      height="3.1672862"
      fill="#b9cde5"
-     id="kb2_76_a"
+     id="kb2_76_a" data-map-object="shelf"
      style="stroke-width:1.0275" />
   <rect
      x="822"
@@ -3024,7 +3024,7 @@
      width="40"
      height="3.3903346"
      fill="#b9cde5"
-     id="kb2_77_b"
+     id="kb2_77_b" data-map-object="shelf"
      style="stroke-width:1.06307" />
   <rect
      x="822"
@@ -3032,7 +3032,7 @@
      width="40"
      height="3.5018587"
      fill="#b9cde5"
-     id="kb2_77_a"
+     id="kb2_77_a" data-map-object="shelf"
      style="stroke-width:1.08041" />
   <rect
      x="822"
@@ -3040,7 +3040,7 @@
      width="40"
      height="3.6133828"
      fill="#b9cde5"
-     id="kb2_78_b"
+     id="kb2_78_b" data-map-object="shelf"
      style="stroke-width:1.09748" />
   <rect
      x="822"
@@ -3048,7 +3048,7 @@
      width="40"
      height="3.7211895"
      fill="#b9cde5"
-     id="kb2_78_a"
+     id="kb2_78_a" data-map-object="shelf"
      style="stroke-width:0.964519" />
   <rect
      x="822"
@@ -3056,7 +3056,7 @@
      width="40"
      height="3.4337273"
      fill="#b9cde5"
-     id="kb2_79_b"
+     id="kb2_79_b" data-map-object="shelf"
      style="stroke-width:1.06985" />
   <rect
      x="822"
@@ -3064,7 +3064,7 @@
      width="40"
      height="3.6451323"
      fill="#b9cde5"
-     id="kb2_79_a"
+     id="kb2_79_a" data-map-object="shelf"
      style="stroke-width:0.954611" />
   <rect
      x="822"
@@ -3072,7 +3072,7 @@
      width="40"
      height="3.4337273"
      fill="#b9cde5"
-     id="kb2_80_b"
+     id="kb2_80_b" data-map-object="shelf"
      style="stroke-width:1.06985" />
   <rect
      x="822"
@@ -3080,7 +3080,7 @@
      width="40"
      height="4"
      fill="#b9cde5"
-     id="kb2_80_a" />
+     id="kb2_80_a" data-map-object="shelf" />
   <text
      font-family="Arial, Arial_MSFontService, sans-serif"
      font-weight="700"
@@ -3178,7 +3178,7 @@
      width="23"
      height="3.3345723"
      fill="#b9cde5"
-     id="kb1_11_a"
+     id="kb1_11_a" data-map-object="shelf"
      style="stroke-width:1.05429" />
   <rect
      x="38.315437"
@@ -3186,7 +3186,7 @@
      width="23"
      height="4"
      fill="#b9cde5"
-     id="kb1_11_b" />
+     id="kb1_11_b" data-map-object="shelf" />
   <path
      d="m 65,455.23825 c 0,-4.694 3.8056,-8.5 8.5,-8.5 4.6944,0 8.5,3.806 8.5,8.5 0,4.694 -3.8056,8.5 -8.5,8.5 -4.6944,0 -8.5,-3.806 -8.5,-8.5 z"
      fill="#f2f2f2"
@@ -3219,7 +3219,7 @@
      width="165"
      height="3.4731569"
      fill="#b9cde5"
-     id="kb2_81_b"
+     id="kb2_81_b" data-map-object="shelf"
      style="stroke-width:1.07597" />
   <rect
      x="697"
@@ -3227,7 +3227,7 @@
      width="165"
      height="3.6057026"
      fill="#b9cde5"
-     id="kb2_81_a"
+     id="kb2_81_a" data-map-object="shelf"
      style="stroke-width:0.949434" />
   <rect
      x="697"
@@ -3235,35 +3235,35 @@
      width="165"
      height="4"
      fill="#b9cde5"
-     id="kb2_82_b" />
+     id="kb2_82_b" data-map-object="shelf" />
   <rect
      x="697"
      y="477"
      width="165"
      height="4"
      fill="#b9cde5"
-     id="kb2_82_a" />
+     id="kb2_82_a" data-map-object="shelf" />
   <rect
      x="737"
      y="498"
      width="125"
      height="4"
      fill="#b6df89"
-     id="ml_83_b" />
+     id="ml_83_b" data-map-object="shelf" />
   <rect
      x="697"
      y="493"
      width="165"
      height="4"
      fill="#b9cde5"
-     id="kb2_83_a" />
+     id="kb2_83_a" data-map-object="shelf" />
   <rect
      x="730"
      y="514.448"
      width="111"
      height="3.5520165"
      fill="#b6df89"
-     id="ml_84_b"
+     id="ml_84_b" data-map-object="shelf"
      style="stroke-width:1.08812" />
   <rect
      x="730"
@@ -3271,7 +3271,7 @@
      width="111"
      height="3.6308758"
      fill="#b6df89"
-     id="ml_84_a"
+     id="ml_84_a" data-map-object="shelf"
      style="stroke-width:1.10013" />
   <rect
      x="802"
@@ -3279,7 +3279,7 @@
      width="39"
      height="3.2760081"
      fill="#b6df89"
-     id="ml_85_b"
+     id="ml_85_b" data-map-object="shelf"
      style="stroke-width:1.04499" />
   <rect
      x="802"
@@ -3287,7 +3287,7 @@
      width="39"
      height="3.7239919"
      fill="#b6df89"
-     id="ml_85_a"
+     id="ml_85_a" data-map-object="shelf"
      style="stroke-width:0.964882" />
   <rect
      x="802"
@@ -3295,7 +3295,7 @@
      width="39"
      height="3.3548677"
      fill="#b6df89"
-     id="ml_86_b"
+     id="ml_86_b" data-map-object="shelf"
      style="stroke-width:1.05749" />
   <rect
      x="802"
@@ -3303,7 +3303,7 @@
      width="39"
      height="3.7634215"
      fill="#b6df89"
-     id="ml_86_a"
+     id="ml_86_a" data-map-object="shelf"
      style="stroke-width:0.969977" />
   <rect
      x="802"
@@ -3311,7 +3311,7 @@
      width="39"
      height="3.3548677"
      fill="#b6df89"
-     id="ml_87_b"
+     id="ml_87_b" data-map-object="shelf"
      style="stroke-width:1.05749" />
   <rect
      x="802"
@@ -3319,14 +3319,14 @@
      width="39"
      height="4"
      fill="#b6df89"
-     id="ml_87_a" />
+     id="ml_87_a" data-map-object="shelf" />
   <rect
      x="802"
      y="578.23846"
      width="39"
      height="3.7615347"
      fill="#b6df89"
-     id="ml_88_b"
+     id="ml_88_b" data-map-object="shelf"
      style="stroke-width:1.11975" />
   <rect
      x="802"
@@ -3334,7 +3334,7 @@
      width="39"
      height="3.6654274"
      fill="#b6df89"
-     id="ml_88_a"
+     id="ml_88_a" data-map-object="shelf"
      style="stroke-width:0.957265" />
   <rect
      x="649"
@@ -3342,28 +3342,28 @@
      width="192"
      height="4"
      fill="#ff7979"
-     id="cl2_89_b" />
+     id="cl2_89_b" data-map-object="shelf" />
   <rect
      x="649"
      y="590"
      width="105"
      height="4"
      fill="#ff7979"
-     id="cl2_89_a" />
+     id="cl2_89_a" data-map-object="shelf" />
   <rect
      x="649"
      y="612"
      width="149"
      height="3"
      fill="#a6a6a6"
-     id="cj_90_b" />
+     id="cj_90_b" data-map-object="shelf" />
   <rect
      x="649"
      y="607"
      width="94"
      height="3.4460967"
      fill="#a6a6a6"
-     id="cj_90_a"
+     id="cj_90_a" data-map-object="shelf"
      style="stroke-width:1.07177" />
   <text
      font-family="Arial, Arial_MSFontService, sans-serif"
@@ -3592,7 +3592,7 @@
      stroke-miterlimit="10"
      fill="none"
      fill-rule="evenodd"
-     id="CP_kb2" />
+     id="CP_kb2" data-map-object="shelf" />
   <g
      id="g477"
      transform="matrix(1.1476148,0,0,1.1476148,-25.139232,-84.03075)">
@@ -3775,19 +3775,19 @@
      d="M 815,641.96411 C 815,641.43165 814.70151,641 814.33331,641 H 628.667 c -0.369,0 -0.667,0.43165 -0.667,0.96411 v 3.85616 c 0,0.53247 0.298,0.96412 0.667,0.96412 h 185.66631 c 0.3682,0 0.66669,-0.43165 0.66669,-0.96412 z"
      fill="#953735"
      fill-rule="evenodd"
-     id="chi_4_a"
+     id="chi_4_a" data-map-object="shelf"
      style="stroke-width:1.20254" />
   <path
      d="M 560,641.96417 C 560,641.43167 559.7015,641 559.33327,641 H 431.667 c -0.369,0 -0.667,0.43167 -0.667,0.96417 v 3.85605 c 0,0.53249 0.298,0.96417 0.667,0.96417 h 127.66627 c 0.36823,0 0.66673,-0.43168 0.66673,-0.96417 z"
      fill="#953735"
      fill-rule="evenodd"
-     id="chi_3_a"
+     id="chi_3_a" data-map-object="shelf"
      style="stroke-width:1.20254" />
   <path
      d="M 271,641.92689 C 271,641.41499 270.70386,641 270.33856,641 H 31.557685 c -0.366109,0 -0.661774,0.41499 -0.661774,0.92689 v 3.70755 c 0,0.51191 0.295665,0.9269 0.661774,0.9269 H 270.33856 c 0.3653,0 0.66144,-0.41499 0.66144,-0.9269 z"
      fill="#953735"
      fill-rule="evenodd"
-     id="chi_2_a"
+     id="chi_2_a" data-map-object="shelf"
      style="stroke-width:1.1745" />
   <path
      d="M 560.386,638.5 364.5,638.5001"
@@ -3799,7 +3799,7 @@
      fill-rule="evenodd"
      id="path368" />
   <g
-     id="CL2_2"
+     id="CL2_2" data-map-object="shelf"
      transform="translate(0,-2)">
     <text
        fill="#ff7979"
@@ -3849,13 +3849,13 @@
      d="M 428,641.96407 C 428,641.43163 427.70152,641 427.33333,641 H 364.6667 C 364.2985,641 364,641.43163 364,641.96407 v 3.85625 c 0,0.53244 0.2985,0.96407 0.6667,0.96407 h 62.66663 c 0.36819,0 0.66667,-0.43163 0.66667,-0.96407 z"
      fill="#8064a2"
      fill-rule="evenodd"
-     id="ctw_1_a"
+     id="ctw_1_a" data-map-object="shelf"
      style="fill:#ff00ff;stroke-width:1.20254" />
   <path
      d="m 739,668.72762 c 0,-0.47192 -0.22387,-0.8545 -0.50002,-0.8545 H 675.5 c -0.2761,0 -0.5,0.38258 -0.5,0.8545 v 3.41786 c 0,0.47193 0.2239,0.85452 0.5,0.85452 h 62.99998 C 738.77613,673 739,672.61741 739,672.14548 Z"
      fill="#953735"
      fill-rule="evenodd"
-     id="chi_5_a"
+     id="chi_5_a" data-map-object="shelf"
      style="stroke-width:1.30727" />
   <g
      id="g509">
@@ -4046,7 +4046,7 @@
      fill-rule="evenodd"
      id="path386" />
   <g
-     id="ck_46_a"
+     id="ck_46_a" data-map-object="shelf"
      style="fill:#ffe680">
     <rect
        x="442"
@@ -4066,7 +4066,7 @@
        style="fill:#ffe680" />
   </g>
   <g
-     id="ck_46_b"
+     id="ck_46_b" data-map-object="shelf"
      style="fill:#ffe680">
     <rect
        x="448"
@@ -4096,7 +4096,7 @@
      fill-rule="evenodd"
      id="path390" />
   <g
-     id="kb1_30_a">
+     id="kb1_30_a" data-map-object="shelf">
     <rect
        x="70.000099"
        y="62.999901"
@@ -4113,7 +4113,7 @@
        id="rect391" />
   </g>
   <g
-     id="kb1_30_b">
+     id="kb1_30_b" data-map-object="shelf">
     <rect
        x="76.000099"
        y="62.999901"
@@ -4140,7 +4140,7 @@
      fill-rule="evenodd"
      id="path394" />
   <g
-     id="kb2_38_a">
+     id="kb2_38_a" data-map-object="shelf">
     <rect
        x="254"
        y="62.999901"
@@ -4157,7 +4157,7 @@
        id="rect395" />
   </g>
   <g
-     id="kb2_38_b">
+     id="kb2_38_b" data-map-object="shelf">
     <rect
        x="261"
        y="62.999901"
@@ -4184,7 +4184,7 @@
      fill-rule="evenodd"
      id="path398" />
   <g
-     id="kb2_54_a">
+     id="kb2_54_a" data-map-object="shelf">
     <rect
        x="629"
        y="62.999901"
@@ -4201,7 +4201,7 @@
        id="rect399" />
   </g>
   <g
-     id="kb2_54_b">
+     id="kb2_54_b" data-map-object="shelf">
     <rect
        x="635"
        y="62.999901"
@@ -4228,7 +4228,7 @@
      fill-rule="evenodd"
      id="path402" />
   <g
-     id="kb2_62_a">
+     id="kb2_62_a" data-map-object="shelf">
     <rect
        x="815"
        y="62.999901"
@@ -4245,7 +4245,7 @@
        id="rect403" />
   </g>
   <g
-     id="kb2_62_b">
+     id="kb2_62_b" data-map-object="shelf">
     <rect
        x="821"
        y="62.999901"
@@ -4265,7 +4265,7 @@
      d="m 36.192144,671 c 0.573514,0 1.038439,-0.29848 1.038439,-0.66668 V 648.6667 c 0,-0.3682 -0.464925,-0.6667 -1.038439,-0.6667 h -4.153609 c -0.573516,0 -1.038435,0.2985 -1.038435,0.6667 v 21.66662 c 0,0.3682 0.464919,0.66668 1.038435,0.66668 z"
      fill="#953735"
      fill-rule="evenodd"
-     id="chi_1_a"
+     id="chi_1_a" data-map-object="shelf"
      style="stroke-width:1.24805" />
   <g
      id="g479"
@@ -4457,21 +4457,21 @@
      width="41"
      height="4"
      fill="#b6df89"
-     id="ml_89_a" />
+     id="ml_89_a" data-map-object="shelf" />
   <rect
      x="756"
      y="590"
      width="42"
      height="4"
      fill="#376092"
-     id="cb2_89_a" />
+     id="cb2_89_a" data-map-object="shelf" />
   <rect
      x="745"
      y="607"
      width="96"
      height="3.6691449"
      fill="#ff7979"
-     id="cl2_90_a"
+     id="cl2_90_a" data-map-object="shelf"
      style="stroke-width:1.10592" />
   <rect
      x="800"
@@ -4479,14 +4479,14 @@
      width="41"
      height="3"
      fill="#953735"
-     id="chi_90_b" />
+     id="chi_90_b" data-map-object="shelf" />
   <rect
      x="697"
      y="498"
      width="37"
      height="4"
      fill="#b9cde5"
-     id="kb2_83_b" />
+     id="kb2_83_b" data-map-object="shelf" />
   <text
      font-family="Arial, Arial_MSFontService, sans-serif"
      font-weight="700"
