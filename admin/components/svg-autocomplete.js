@@ -1,6 +1,6 @@
 // SVG Code Autocomplete Component - Floor-aware SVG code selection
 import i18n from '../i18n.js?v=5';
-import { getAvailableCodes } from '../services/svg-parser.js?v=5';
+import { getAvailableCodes } from '../services/svg-parser.js';
 
 // Fallback translations
 const FALLBACKS = {

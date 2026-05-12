@@ -11,7 +11,7 @@ import { startReassign, cancelReassign, isReassignActive } from './map-editor/re
 import { handleEscape } from './map-editor/esc-handler.js?v=1';
 import { deriveOrphansForFloor } from './map-editor/orphan-deriver.js?v=1';
 import { mount as mountOrphanPanel, open as openOrphanPanel, close as closeOrphanPanel, setActiveCard as setOrphanActive, markRepaired as markOrphanRepaired } from './map-editor/orphan-panel.js?v=1';
-import { fetchAndParseSvg } from '../services/svg-parser.js?v=5';
+import { fetchAndParseSvg } from '../services/svg-parser.js';
 
 const CLOUDFRONT_URL = 'https://d3h8i7y9p8lyw7.cloudfront.net';
 const API_ENDPOINT = 'https://tt3xt4tr09.execute-api.us-east-1.amazonaws.com/prod';
