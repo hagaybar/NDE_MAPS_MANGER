@@ -526,6 +526,9 @@ function renderSummaryView(stats, dir) {
           </svg>
           ${escapeHtml(t('errorsDashboard.refresh'))}
         </button>
+        <button class="btn btn-secondary export-btn" ${(!allIssues || allIssues.length === 0) ? `disabled title="${escapeHtml(t('errorsDashboard.export.empty'))}"` : ''}>
+          ${escapeHtml(t('errorsDashboard.export.cta'))}
+        </button>
       </div>
 
       <!-- Stats Overview -->
@@ -714,6 +717,12 @@ function setupEventHandlers() {
       logger.userAction('click', 'Refresh button');
       loadCSVData();
     });
+  }
+
+  // Export button
+  const exportBtn = containerElement.querySelector('.export-btn');
+  if (exportBtn && !exportBtn.disabled) {
+    exportBtn.addEventListener('click', handleDownloadReport);
   }
 
   // Back button
