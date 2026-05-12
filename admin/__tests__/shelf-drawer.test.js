@@ -14,7 +14,7 @@ describe('showSingleShelf — empty-state branch', () => {
     document.body.innerHTML = '<div id="drawer"></div>';
 
     // Minimal i18n mock — return the key path so tests can assert by key.
-    await jest.unstable_mockModule('../i18n.js?v=5', () => ({
+    await jest.unstable_mockModule('../i18n.js', () => ({
       default: {
         t: (key) => key,
         get locale() { return 'en'; },
@@ -22,7 +22,7 @@ describe('showSingleShelf — empty-state branch', () => {
     }));
 
     // Minimal range-validation stub — empty-state has no rows to validate.
-    await jest.unstable_mockModule('../components/map-editor/range-validation.js?v=1', () => ({
+    await jest.unstable_mockModule('../components/map-editor/range-validation.js', () => ({
       validateRangeShape: () => ({ ok: true }),
     }));
 
