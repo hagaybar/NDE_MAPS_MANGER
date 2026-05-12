@@ -2994,3 +2994,63 @@ textarea:focus-visible,
 .map-orphan-card__primary-icon {
   margin-inline-end: 4px;
 }
+
+/* Empty shelf visual treatment — dashed outline (issue #16 PR 2) */
+.map-shelf--empty {
+  stroke: #94a3b8;
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+  fill-opacity: 0.4;
+}
+
+/* Empty-state UI in the drawer (issue #16 PR 2) */
+.map-drawer__empty-state {
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.map-drawer__empty-state__message {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1f2937;
+  text-align: center;
+  margin: 0;
+}
+
+.map-drawer__empty-state__explanation {
+  font-size: 12px;
+  color: #4b5563;
+  line-height: 1.5;
+  margin: 0;
+  padding: 10px 12px;
+  background: #f9fafb;
+  border-inline-start: 3px solid #f59e0b;
+  border-radius: 3px;
+  max-width: 480px;
+}
+
+.map-drawer__empty-state__cta {
+  background: #3b82f6;
+  color: #fff;
+  border: 0;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.map-drawer__empty-state__cta:hover {
+  background: #2563eb;
+}
+
+.map-drawer__empty-state__cta__icon {
+  font-size: 14px;
+  line-height: 1;
+}
