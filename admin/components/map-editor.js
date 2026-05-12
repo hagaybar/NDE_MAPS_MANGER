@@ -3,6 +3,7 @@ import { applyRoleBasedUI, getPermittedRowIds } from '../auth-guard.js?v=5';
 import { showToast } from './toast.js?v=5';
 import { getAuthHeaders, getCurrentUsername } from '../app.js?v=5';
 import { loadFloorSvg, indexShelvesById, buildRangeCountByShelf, buildKnownSvgCodes } from './map-editor/svg-loader.js?v=2';
+import { indexShelfLocations } from './map-editor/location-model.js';
 import { attachInteraction, applySelection } from './map-editor/svg-interaction.js?v=1';
 import { createShelfState } from './map-editor/shelf-state.js?v=1';
 import { computeFloorConflicts } from './map-editor/range-validation.js?v=1';
@@ -103,10 +104,10 @@ const FLOORS = [0, 1, 2];
  */
 function computeOrphanCounts() {
   const byFloor = new Map();
-  if (!shelfElements || currentFloor == null) return byFloor;
+  if (!locationElements || currentFloor == null) return byFloor;
   for (const r of allRanges) {
     if (String(r.floor) !== String(currentFloor)) continue;
-    if (!r.svgCode || !shelfElements.has(r.svgCode)) {
+    if (!r.svgCode || !locationElements.has(r.svgCode)) {
       byFloor.set(currentFloor, (byFloor.get(currentFloor) || 0) + 1);
     }
   }
@@ -159,7 +160,7 @@ function handleOrphanSetShelf(rowId) {
     rangeId: rowId,
     rangeLabel: `${range.collectionName} ${range.rangeStart}-${range.rangeEnd}`,
     oldShelfLabel: range.shelfLabel || range.svgCode || '',
-    shelfElements,
+    shelfElements: locationElements,
     allShelves: allShelvesList,
     onConfirm: ({ newSvgCode, newFloor }) => {
       const target = { svgCode: newSvgCode };
@@ -235,7 +236,7 @@ function renderFloorTabs(active) {
 }
 
 let currentFloor = null;
-let shelfElements = null;       // Map<svgCode, SVGElement>
+let locationElements = null;       // Map<svgCode, SVGElement> — every shelf-kind Location on the active floor
 let rangeCountByShelf = null;   // Map<svgCode, number>
 let allRanges = [];             // populated in Task 5
 let shelfState = null;
@@ -250,10 +251,19 @@ async function loadFloor(floorNumber) {
   // with hundreds of internal `[id]` elements (patterns, defs, clip-paths). We
   // only want to index the svgCodes the CSV references on this floor.
   const floorRanges = allRanges.filter(r => String(r.floor) === String(floorNumber));
-  const knownSvgCodes = buildKnownSvgCodes(floorRanges);
-  shelfElements = indexShelvesById(svgRoot, knownSvgCodes);
-
   rangeCountByShelf = buildRangeCountByShelf(floorRanges);
+
+  // PR 1: read every shelf-kind Location from the marker.
+  // The "AND has at least one CSV row" filter below preserves today's
+  // clickability behaviour — empty shelves stay non-clickable until PR 2
+  // removes the filter and adds the empty-state UX.
+  const allShelfLocations = indexShelfLocations(svgRoot);
+  locationElements = new Map();
+  for (const [id, el] of allShelfLocations) {
+    if (rangeCountByShelf.has(id)) {
+      locationElements.set(id, el);
+    }
+  }
   floorConflicts = computeFloorConflicts(floorRanges);
 
   // Permitted IDs come from auth-guard: null = admin (unlimited);
@@ -262,7 +272,7 @@ async function loadFloor(floorNumber) {
   shelfState = shelfState || createShelfState({ ranges: allRanges, permittedRowIds: permitted });
 
   attachInteraction({
-    shelfElements,
+    shelfElements: locationElements,
     rangeCountByShelf,
     container: canvas,
     isLocked: shelfId => floorRanges.some(r => r.svgCode === shelfId && shelfState.permission(r.id) === 'readonly'),
@@ -276,19 +286,19 @@ async function loadFloor(floorNumber) {
     },
     onSelect: shelfId => {
       shelfState.selectSingle(shelfId);
-      applySelection(shelfElements, shelfState.selection().shelfIds);
+      applySelection(locationElements, shelfState.selection().shelfIds);
       window.dispatchEvent(new CustomEvent('mapeditor:selection-changed'));
     },
   });
 
   // Render conflict markers.
-  for (const [shelfId, el] of shelfElements) {
-    const shelfHasConflict = floorRanges.some(r => r.svgCode === shelfId && floorConflicts.has(r.id));
+  for (const [locationId, el] of locationElements) {
+    const shelfHasConflict = floorRanges.some(r => r.svgCode === locationId && floorConflicts.has(r.id));
     el.classList.toggle('map-shelf--has-conflicts', shelfHasConflict);
   }
 
   // Re-render floor tabs so the orphan badge picks up this floor's count
-  // now that shelfElements is indexed.
+  // now that locationElements is indexed.
   renderFloorTabs(currentFloor);
   // If the orphan panel is open, refresh its contents for the new floor.
   if (isOrphanPanelOpen()) {
@@ -304,10 +314,10 @@ function renderDrawer() {
   const sel = shelfState.selection();
   if (sel.kind === 'none') { hideDrawer(); return; }
   if (sel.kind === 'single') {
-    const shelfId = sel.shelfIds[0];
+    const locationId = sel.shelfIds[0];
     const merged = shelfState.materialize();
     const mergedFloor = merged.filter(r => String(r.floor) === String(currentFloor));
-    const rangesOnShelf = mergedFloor.filter(r => r.svgCode === shelfId);
+    const rangesOnShelf = mergedFloor.filter(r => r.svgCode === locationId);
     const conflictsByRangeId = floorConflicts;
     const collectionsList = Array.from(new Set(allRanges.map(r => r.collectionName).filter(Boolean))).sort();
 
@@ -332,15 +342,15 @@ function renderDrawer() {
     const conflictingShelves = Array.from(otherShelfMap.values()).sort((a, b) => a.label.localeCompare(b.label));
 
     showSingleShelf({
-      shelfId,
-      shelfLabel: rangesOnShelf[0]?.shelfLabel || shelfId,
+      shelfId: locationId,
+      shelfLabel: rangesOnShelf[0]?.shelfLabel || locationId,
       rangesOnShelf,
       conflictsByRangeId,
       conflictingShelves,
       permission: shelfState.permission.bind(shelfState),
       collectionsList,
       onChange: (id, patch) => { shelfState.edit(id, patch); refreshConflicts(); renderDrawer(); },
-      onAdd: () => addNewRangeToShelf(shelfId),
+      onAdd: () => addNewRangeToShelf(locationId),
       onMove: (id) => {
         const range = shelfState.materialize().find(r => r.id === id);
         if (!range) return;
@@ -356,7 +366,7 @@ function renderDrawer() {
           rangeId: id,
           rangeLabel: `${range.collectionName} ${range.rangeStart}-${range.rangeEnd}`,
           oldShelfLabel: range.shelfLabel || range.svgCode || '',
-          shelfElements: new Map([...shelfElements].filter(([sid]) => sid !== range.svgCode)),
+          shelfElements: new Map([...locationElements].filter(([sid]) => sid !== range.svgCode)),
           allShelves: allShelvesList,
           onConfirm: ({ newSvgCode, newFloor }) => {
             const target = { svgCode: newSvgCode };
@@ -369,9 +379,9 @@ function renderDrawer() {
             // the destination is on a different floor, the drawer closes
             // (renderDrawer with no current-floor selection) and the librarian
             // can switch tabs to inspect.
-            if (shelfElements.has(newSvgCode)) {
+            if (locationElements.has(newSvgCode)) {
               shelfState.selectSingle(newSvgCode);
-              applySelection(shelfElements, shelfState.selection().shelfIds);
+              applySelection(locationElements, shelfState.selection().shelfIds);
             }
             renderDrawer();
           },
@@ -383,14 +393,14 @@ function renderDrawer() {
       onDiscard: () => { shelfState.revert(); renderDrawer(); refreshConflicts(); },
       onSave: () => saveCsv(),
       onSelectShelf: (targetSvgCode) => {
-        if (!targetSvgCode || !shelfElements.has(targetSvgCode)) return;
+        if (!targetSvgCode || !locationElements.has(targetSvgCode)) return;
         shelfState.selectSingle(targetSvgCode);
-        applySelection(shelfElements, shelfState.selection().shelfIds);
+        applySelection(locationElements, shelfState.selection().shelfIds);
         window.dispatchEvent(new CustomEvent('mapeditor:selection-changed'));
       },
       onClose: () => {
         shelfState.clearSelection();
-        applySelection(shelfElements, []);
+        applySelection(locationElements, []);
         window.dispatchEvent(new CustomEvent('mapeditor:selection-changed'));
       },
       hasPendingEdits: shelfState.pendingEdits().size > 0,
@@ -402,19 +412,19 @@ function refreshConflicts() {
   const merged = shelfState.materialize();
   const floorRanges = merged.filter(r => String(r.floor) === String(currentFloor));
   floorConflicts = computeFloorConflicts(floorRanges);
-  for (const [id, el] of shelfElements) {
+  for (const [id, el] of locationElements) {
     const has = floorRanges.some(r => r.svgCode === id && floorConflicts.has(r.id));
     el.classList.toggle('map-shelf--has-conflicts', has);
   }
 }
 
-function addNewRangeToShelf(shelfId) {
+function addNewRangeToShelf(locationId) {
   const floorRanges = allRanges.filter(r => String(r.floor) === String(currentFloor));
-  const rangesOnShelf = floorRanges.filter(r => r.svgCode === shelfId);
+  const rangesOnShelf = floorRanges.filter(r => r.svgCode === locationId);
   const defaultCollection = rangesOnShelf[0]?.collectionName || (allRanges[0]?.collectionName || '');
   const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
   shelfState.add(tempId, {
-    svgCode: shelfId,
+    svgCode: locationId,
     floor: String(currentFloor),
     libraryName: rangesOnShelf[0]?.libraryName || allRanges[0]?.libraryName || '',
     collectionName: defaultCollection,
@@ -545,7 +555,7 @@ export async function initMapEditor() {
       event,
       shelfState,
       applySelection,
-      shelfElements,
+      shelfElements: locationElements,
       refreshConflicts,
       isReassignActive,
       i18n,

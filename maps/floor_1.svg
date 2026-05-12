@@ -1119,105 +1119,105 @@
      width="176"
      height="4"
      fill="#ddd9c3"
-     id="ka1_15_a" />
+     id="ka1_15_a" data-map-object="shelf" />
   <rect
      x="79"
      y="619"
      width="176"
      height="4"
      fill="#ddd9c3"
-     id="ka1_15_b" />
+     id="ka1_15_b" data-map-object="shelf" />
   <rect
      x="79"
      y="604"
      width="176"
      height="3"
      fill="#ddd9c3"
-     id="ka1_16_a" />
+     id="ka1_16_a" data-map-object="shelf" />
   <rect
      x="79"
      y="599"
      width="176"
      height="4"
      fill="#ddd9c3"
-     id="ka1_16_b" />
+     id="ka1_16_b" data-map-object="shelf" />
   <rect
      x="60.000099"
      y="607"
      width="4"
      height="61"
      fill="#ddd9c3"
-     id="ka1_12_b" />
+     id="ka1_12_b" data-map-object="shelf" />
   <rect
      x="55.000099"
      y="607"
      width="4"
      height="61"
      fill="#ddd9c3"
-     id="ka1_12_a" />
+     id="ka1_12_a" data-map-object="shelf" />
   <rect
      x="79"
      y="584"
      width="176"
      height="3"
      fill="#ddd9c3"
-     id="ka1_17_a" />
+     id="ka1_17_a" data-map-object="shelf" />
   <rect
      x="79"
      y="579"
      width="176"
      height="4"
      fill="#ddd9c3"
-     id="ka1_17_b" />
+     id="ka1_17_b" data-map-object="shelf" />
   <rect
      x="104"
      y="564"
      width="151"
      height="3"
      fill="#ddd9c3"
-     id="ka1_18_a" />
+     id="ka1_18_a" data-map-object="shelf" />
   <rect
      x="104"
      y="559"
      width="151"
      height="4"
      fill="#ddd9c3"
-     id="ka1_18_b" />
+     id="ka1_18_b" data-map-object="shelf" />
   <rect
      x="79"
      y="523"
      width="132"
      height="4"
      fill="#ddd9c3"
-     id="ka1_21_a" />
+     id="ka1_21_a" data-map-object="shelf" />
   <rect
      x="79"
      y="518"
      width="132"
      height="4"
      fill="#ddd9c3"
-     id="ka1_21_b" />
+     id="ka1_21_b" data-map-object="shelf" />
   <rect
      x="79"
      y="503"
      width="132"
      height="4"
      fill="#ddd9c3"
-     id="ka1_22_a" />
+     id="ka1_22_a" data-map-object="shelf" />
   <rect
      x="79"
      y="499"
      width="132"
      height="3"
      fill="#ddd9c3"
-     id="ka1_22_b" />
+     id="ka1_22_b" data-map-object="shelf" />
   <rect
      x="671"
      y="535"
      width="192"
      height="3.684562"
      fill="#ddd9c3"
-     id="ka2_95_b"
+     id="ka2_95_b" data-map-object="shelf"
      style="stroke-width:0.959761" />
   <rect
      x="671"
@@ -1225,7 +1225,7 @@
      width="192"
      height="3.3691242"
      fill="#ddd9c3"
-     id="ka2_95_a"
+     id="ka2_95_a" data-map-object="shelf"
      style="stroke-width:0.917759" />
   <rect
      x="671"
@@ -1233,7 +1233,7 @@
      width="192"
      height="3.211405"
      fill="#ddd9c3"
-     id="ka2_94_b"
+     id="ka2_94_b" data-map-object="shelf"
      style="stroke-width:0.89602" />
   <rect
      x="671"
@@ -1241,7 +1241,7 @@
      width="192"
      height="3.0536861"
      fill="#ddd9c3"
-     id="ka2_94_a"
+     id="ka2_94_a" data-map-object="shelf"
      style="stroke-width:0.87374" />
   <rect
      x="671"
@@ -1249,7 +1249,7 @@
      width="192"
      height="3.3691242"
      fill="#ddd9c3"
-     id="ka2_93_b"
+     id="ka2_93_b" data-map-object="shelf"
      style="stroke-width:0.917759" />
   <rect
      x="671"
@@ -1257,14 +1257,14 @@
      width="192"
      height="3"
      fill="#ddd9c3"
-     id="ka2_93_a" />
+     id="ka2_93_a" data-map-object="shelf" />
   <rect
      x="671"
      y="493"
      width="192"
      height="3.3691242"
      fill="#ddd9c3"
-     id="ka2_92_b"
+     id="ka2_92_b" data-map-object="shelf"
      style="stroke-width:0.917759" />
   <rect
      x="671"
@@ -1272,14 +1272,14 @@
      width="192"
      height="3"
      fill="#ddd9c3"
-     id="ka2_92_a" />
+     id="ka2_92_a" data-map-object="shelf" />
   <rect
      x="671"
      y="479"
      width="192"
      height="3.211405"
      fill="#ddd9c3"
-     id="ka2_91_b"
+     id="ka2_91_b" data-map-object="shelf"
      style="stroke-width:0.89602" />
   <rect
      x="671"
@@ -1287,14 +1287,14 @@
      width="192"
      height="3"
      fill="#ddd9c3"
-     id="ka2_91_a" />
+     id="ka2_91_a" data-map-object="shelf" />
   <rect
      x="671"
      y="465"
      width="192"
      height="3.3691242"
      fill="#ddd9c3"
-     id="ka2_90_b"
+     id="ka2_90_b" data-map-object="shelf"
      style="stroke-width:0.917759" />
   <rect
      x="671"
@@ -1302,14 +1302,14 @@
      width="192"
      height="3"
      fill="#ddd9c3"
-     id="ka2_90_a" />
+     id="ka2_90_a" data-map-object="shelf" />
   <rect
      x="783"
      y="451"
      width="80"
      height="3.3691242"
      fill="#ddd9c3"
-     id="ka2_89_b"
+     id="ka2_89_b" data-map-object="shelf"
      style="stroke-width:0.917759" />
   <rect
      x="783"
@@ -1317,28 +1317,28 @@
      width="80"
      height="3"
      fill="#ddd9c3"
-     id="ka2_89_a" />
+     id="ka2_89_a" data-map-object="shelf" />
   <rect
      x="783"
      y="437"
      width="80"
      height="3"
      fill="#ddd9c3"
-     id="ka2_88_b" />
+     id="ka2_88_b" data-map-object="shelf" />
   <rect
      x="783"
      y="433"
      width="80"
      height="3"
      fill="#ddd9c3"
-     id="ka2_88_a" />
+     id="ka2_88_a" data-map-object="shelf" />
   <rect
      x="783"
      y="423"
      width="80"
      height="3.211405"
      fill="#ddd9c3"
-     id="ka2_87_b"
+     id="ka2_87_b" data-map-object="shelf"
      style="stroke-width:0.89602" />
   <rect
      x="783"
@@ -1346,14 +1346,14 @@
      width="80"
      height="3"
      fill="#ddd9c3"
-     id="ka2_87_a" />
+     id="ka2_87_a" data-map-object="shelf" />
   <rect
      x="783"
      y="409.7886"
      width="80"
      height="3.211405"
      fill="#ddd9c3"
-     id="ka2_86_b"
+     id="ka2_86_b" data-map-object="shelf"
      style="stroke-width:0.89602" />
   <rect
      x="783.15771"
@@ -1361,14 +1361,14 @@
      width="80"
      height="3"
      fill="#ddd9c3"
-     id="ka2_86_a" />
+     id="ka2_86_a" data-map-object="shelf" />
   <rect
      x="783"
      y="395.63089"
      width="80"
      height="2.7382483"
      fill="#ddd9c3"
-     id="ka2_85_b"
+     id="ka2_85_b" data-map-object="shelf"
      style="stroke-width:0.827383" />
   <rect
      x="783"
@@ -1376,154 +1376,154 @@
      width="80"
      height="3"
      fill="#ddd9c3"
-     id="ka2_85_a" />
+     id="ka2_85_a" data-map-object="shelf" />
   <rect
      x="310"
      y="40.999901"
      width="5"
      height="154"
      fill="#ddd9c3"
-     id="ka1_49_a" />
+     id="ka1_49_a" data-map-object="shelf" />
   <rect
      x="317"
      y="40.999901"
      width="5"
      height="154"
      fill="#ddd9c3"
-     id="ka1_49_b" />
+     id="ka1_49_b" data-map-object="shelf" />
   <rect
      x="288"
      y="40.999901"
      width="5"
      height="154"
      fill="#ddd9c3"
-     id="ka1_48_a" />
+     id="ka1_48_a" data-map-object="shelf" />
   <rect
      x="295"
      y="40.999901"
      width="5"
      height="154"
      fill="#ddd9c3"
-     id="ka1_48_b" />
+     id="ka1_48_b" data-map-object="shelf" />
   <rect
      x="267"
      y="62"
      width="5"
      height="113"
      fill="#ddd9c3"
-     id="ka1_47_a" />
+     id="ka1_47_a" data-map-object="shelf" />
   <rect
      x="273"
      y="62"
      width="5"
      height="113"
      fill="#ddd9c3"
-     id="ka1_47_b" />
+     id="ka1_47_b" data-map-object="shelf" />
   <rect
      x="245"
      y="40.999901"
      width="5"
      height="154"
      fill="#ddd9c3"
-     id="ka1_46_a" />
+     id="ka1_46_a" data-map-object="shelf" />
   <rect
      x="252"
      y="40.999901"
      width="5"
      height="154"
      fill="#ddd9c3"
-     id="ka1_46_b" />
+     id="ka1_46_b" data-map-object="shelf" />
   <rect
      x="224"
      y="41"
      width="4"
      height="154"
      fill="#ddd9c3"
-     id="ka1_45_a" />
+     id="ka1_45_a" data-map-object="shelf" />
   <rect
      x="230"
      y="40.999901"
      width="5"
      height="154"
      fill="#ddd9c3"
-     id="ka1_45_b" />
+     id="ka1_45_b" data-map-object="shelf" />
   <rect
      x="202"
      y="40.999901"
      width="5"
      height="154"
      fill="#ddd9c3"
-     id="ka1_44_a" />
+     id="ka1_44_a" data-map-object="shelf" />
   <rect
      x="209"
      y="41"
      width="4"
      height="154"
      fill="#ddd9c3"
-     id="ka1_44_b" />
+     id="ka1_44_b" data-map-object="shelf" />
   <rect
      x="180"
      y="40.999901"
      width="5"
      height="154"
      fill="#ddd9c3"
-     id="ka1_43_a" />
+     id="ka1_43_a" data-map-object="shelf" />
   <rect
      x="187"
      y="40.999901"
      width="5"
      height="154"
      fill="#ddd9c3"
-     id="ka1_43_b" />
+     id="ka1_43_b" data-map-object="shelf" />
   <rect
      x="159"
      y="40.999901"
      width="5"
      height="154"
      fill="#ddd9c3"
-     id="ka1_42_a" />
+     id="ka1_42_a" data-map-object="shelf" />
   <rect
      x="165"
      y="40.999901"
      width="5"
      height="154"
      fill="#ddd9c3"
-     id="ka1_42_b" />
+     id="ka1_42_b" data-map-object="shelf" />
   <rect
      x="332"
      y="41"
      width="4"
      height="154"
      fill="#ddd9c3"
-     id="ka1_50_a" />
+     id="ka1_50_a" data-map-object="shelf" />
   <rect
      x="338"
      y="40.999901"
      width="5"
      height="154"
      fill="#ddd9c3"
-     id="ka1_50_b" />
+     id="ka1_50_b" data-map-object="shelf" />
   <rect
      x="137"
      y="40.999901"
      width="5"
      height="154"
      fill="#ddd9c3"
-     id="ka1_41_a" />
+     id="ka1_41_a" data-map-object="shelf" />
   <rect
      x="144"
      y="40.999901"
      width="5"
      height="154"
      fill="#ddd9c3"
-     id="ka1_41_b" />
+     id="ka1_41_b" data-map-object="shelf" />
   <rect
      x="114.73825"
      y="41"
      width="5.2617517"
      height="154"
      fill="#ddd9c3"
-     id="ka1_40_a"
+     id="ka1_40_a" data-map-object="shelf"
      style="stroke-width:1.14693" />
   <rect
      x="122"
@@ -1531,35 +1531,35 @@
      width="5"
      height="154"
      fill="#ddd9c3"
-     id="ka1_40_b" />
+     id="ka1_40_b" data-map-object="shelf" />
   <rect
      x="94.000099"
      y="60.999901"
      width="5"
      height="110"
      fill="#ddd9c3"
-     id="ka1_39_a" />
+     id="ka1_39_a" data-map-object="shelf" />
   <rect
      x="101"
      y="61"
      width="4"
      height="110"
      fill="#ddd9c3"
-     id="ka1_39_b" />
+     id="ka1_39_b" data-map-object="shelf" />
   <rect
      x="591"
      y="40.999901"
      width="5"
      height="154"
      fill="#ddd9c3"
-     id="ka2_62_a" />
+     id="ka2_62_a" data-map-object="shelf" />
   <rect
      x="597.21143"
      y="41"
      width="4.7885947"
      height="154"
      fill="#ddd9c3"
-     id="ka2_62_b"
+     id="ka2_62_b" data-map-object="shelf"
      style="stroke-width:1.09414" />
   <rect
      x="569"
@@ -1567,49 +1567,49 @@
      width="5"
      height="154"
      fill="#ddd9c3"
-     id="ka1_61_a" />
+     id="ka1_61_a" data-map-object="shelf" />
   <rect
      x="576"
      y="40.999901"
      width="5"
      height="154"
      fill="#ddd9c3"
-     id="ka1_61_b" />
+     id="ka1_61_b" data-map-object="shelf" />
   <rect
      x="548"
      y="40.999901"
      width="5"
      height="154"
      fill="#ddd9c3"
-     id="ka1_60_a" />
+     id="ka1_60_a" data-map-object="shelf" />
   <rect
      x="554"
      y="40.999901"
      width="5"
      height="154"
      fill="#ddd9c3"
-     id="ka1_60_b" />
+     id="ka1_60_b" data-map-object="shelf" />
   <rect
      x="526"
      y="40.999901"
      width="5"
      height="154"
      fill="#ddd9c3"
-     id="ka1_59_a" />
+     id="ka1_59_a" data-map-object="shelf" />
   <rect
      x="533"
      y="40.999901"
      width="5"
      height="154"
      fill="#ddd9c3"
-     id="ka1_59_b" />
+     id="ka1_59_b" data-map-object="shelf" />
   <rect
      x="505"
      y="41"
      width="4.7885947"
      height="154"
      fill="#ddd9c3"
-     id="ka1_58_a"
+     id="ka1_58_a" data-map-object="shelf"
      style="stroke-width:1.09414" />
   <rect
      x="511"
@@ -1617,91 +1617,91 @@
      width="5"
      height="154"
      fill="#ddd9c3"
-     id="ka1_58_b" />
+     id="ka1_58_b" data-map-object="shelf" />
   <rect
      x="483"
      y="40.999901"
      width="5"
      height="154"
      fill="#ddd9c3"
-     id="ka1_57_a" />
+     id="ka1_57_a" data-map-object="shelf" />
   <rect
      x="490"
      y="41"
      width="4"
      height="154"
      fill="#ddd9c3"
-     id="ka1_57_b" />
+     id="ka1_57_b" data-map-object="shelf" />
   <rect
      x="440"
      y="40.999901"
      width="5"
      height="154"
      fill="#ddd9c3"
-     id="ka1_55_a" />
+     id="ka1_55_a" data-map-object="shelf" />
   <rect
      x="446"
      y="40.999901"
      width="5"
      height="154"
      fill="#ddd9c3"
-     id="ka1_55_b" />
+     id="ka1_55_b" data-map-object="shelf" />
   <rect
      x="613"
      y="41"
      width="4"
      height="154"
      fill="#ddd9c3"
-     id="ka2_63_a" />
+     id="ka2_63_a" data-map-object="shelf" />
   <rect
      x="619"
      y="40.999901"
      width="5"
      height="154"
      fill="#ddd9c3"
-     id="ka2_63_b" />
+     id="ka2_63_b" data-map-object="shelf" />
   <rect
      x="418"
      y="40.999901"
      width="5"
      height="154"
      fill="#ddd9c3"
-     id="ka1_54_a" />
+     id="ka1_54_a" data-map-object="shelf" />
   <rect
      x="425"
      y="40.999901"
      width="5"
      height="154"
      fill="#ddd9c3"
-     id="ka1_54_b" />
+     id="ka1_54_b" data-map-object="shelf" />
   <rect
      x="396.31543"
      y="40.999901"
      width="5"
      height="154"
      fill="#ddd9c3"
-     id="ka1_53_a" />
+     id="ka1_53_a" data-map-object="shelf" />
   <rect
      x="403"
      y="40.999901"
      width="5"
      height="154"
      fill="#ddd9c3"
-     id="ka1_53_b" />
+     id="ka1_53_b" data-map-object="shelf" />
   <rect
      x="375"
      y="40.999901"
      width="5"
      height="154"
      fill="#ddd9c3"
-     id="ka1_52_a" />
+     id="ka1_52_a" data-map-object="shelf" />
   <rect
      x="381.05368"
      y="41"
      width="4.9463139"
      height="154"
      fill="#ddd9c3"
-     id="ka1_52_b"
+     id="ka1_52_b" data-map-object="shelf"
      style="stroke-width:1.11202" />
   <rect
      x="353"
@@ -1709,56 +1709,56 @@
      width="5"
      height="154"
      fill="#ddd9c3"
-     id="ka1_51_a" />
+     id="ka1_51_a" data-map-object="shelf" />
   <rect
      x="359"
      y="40.999901"
      width="5"
      height="154"
      fill="#ddd9c3"
-     id="ka1_51_b" />
+     id="ka1_51_b" data-map-object="shelf" />
   <rect
      x="677"
      y="40.999901"
      width="5"
      height="154"
      fill="#ddd9c3"
-     id="ka2_66_a" />
+     id="ka2_66_a" data-map-object="shelf" />
   <rect
      x="684"
      y="40.999901"
      width="5"
      height="154"
      fill="#ddd9c3"
-     id="ka2_66_b" />
+     id="ka2_66_b" data-map-object="shelf" />
   <rect
      x="634"
      y="40.999901"
      width="5"
      height="154"
      fill="#ddd9c3"
-     id="ka2_64_a" />
+     id="ka2_64_a" data-map-object="shelf" />
   <rect
      x="641"
      y="40.999901"
      width="5"
      height="154"
      fill="#ddd9c3"
-     id="ka2_64_b" />
+     id="ka2_64_b" data-map-object="shelf" />
   <rect
      x="699"
      y="40.999901"
      width="5"
      height="154"
      fill="#ddd9c3"
-     id="ka2_67_a" />
+     id="ka2_67_a" data-map-object="shelf" />
   <rect
      x="705.21143"
      y="41"
      width="4.7885947"
      height="154"
      fill="#ddd9c3"
-     id="ka2_67_b"
+     id="ka2_67_b" data-map-object="shelf"
      style="stroke-width:1.09414" />
   <rect
      x="807"
@@ -1766,126 +1766,126 @@
      width="5"
      height="154"
      fill="#ddd9c3"
-     id="ka2_72_a" />
+     id="ka2_72_a" data-map-object="shelf" />
   <rect
      x="813"
      y="40.999901"
      width="5"
      height="154"
      fill="#ddd9c3"
-     id="ka2_72_b" />
+     id="ka2_72_b" data-map-object="shelf" />
   <rect
      x="786"
      y="40.999901"
      width="5"
      height="154"
      fill="#ddd9c3"
-     id="ka2_71_a" />
+     id="ka2_71_a" data-map-object="shelf" />
   <rect
      x="792"
      y="40.999901"
      width="5"
      height="154"
      fill="#ddd9c3"
-     id="ka2_71_b" />
+     id="ka2_71_b" data-map-object="shelf" />
   <rect
      x="764"
      y="40.999901"
      width="5"
      height="154"
      fill="#ddd9c3"
-     id="ka2_70_a" />
+     id="ka2_70_a" data-map-object="shelf" />
   <rect
      x="770"
      y="40.999901"
      width="5"
      height="154"
      fill="#ddd9c3"
-     id="ka2_70_b" />
+     id="ka2_70_b" data-map-object="shelf" />
   <rect
      x="742"
      y="40.999901"
      width="5"
      height="154"
      fill="#ddd9c3"
-     id="ka2_69_a" />
+     id="ka2_69_a" data-map-object="shelf" />
   <rect
      x="749"
      y="40.999901"
      width="5"
      height="154"
      fill="#ddd9c3"
-     id="ka2_69_b" />
+     id="ka2_69_b" data-map-object="shelf" />
   <rect
      x="721"
      y="41"
      width="4"
      height="154"
      fill="#ddd9c3"
-     id="ka2_68_a" />
+     id="ka2_68_a" data-map-object="shelf" />
   <rect
      x="727"
      y="40.999901"
      width="5"
      height="154"
      fill="#ddd9c3"
-     id="ka2_68_b" />
+     id="ka2_68_b" data-map-object="shelf" />
   <rect
      x="79"
      y="483"
      width="132"
      height="4"
      fill="#ddd9c3"
-     id="ka1_23_a" />
+     id="ka1_23_a" data-map-object="shelf" />
   <rect
      x="79"
      y="479"
      width="132"
      height="3"
      fill="#ddd9c3"
-     id="ka1_23_b" />
+     id="ka1_23_b" data-map-object="shelf" />
   <rect
      x="79"
      y="463"
      width="132"
      height="4"
      fill="#ddd9c3"
-     id="ka1_24_a" />
+     id="ka1_24_a" data-map-object="shelf" />
   <rect
      x="79"
      y="459"
      width="132"
      height="3"
      fill="#ddd9c3"
-     id="ka1_24_b" />
+     id="ka1_24_b" data-map-object="shelf" />
   <rect
      x="79"
      y="443"
      width="192"
      height="4"
      fill="#ddd9c3"
-     id="ka1_25_a" />
+     id="ka1_25_a" data-map-object="shelf" />
   <rect
      x="79"
      y="438"
      width="192"
      height="4"
      fill="#ddd9c3"
-     id="ka1_25_b" />
+     id="ka1_25_b" data-map-object="shelf" />
   <rect
      x="79"
      y="423"
      width="192"
      height="4"
      fill="#ddd9c3"
-     id="ka1_26_a" />
+     id="ka1_26_a" data-map-object="shelf" />
   <rect
      x="79"
      y="418"
      width="192"
      height="3.788595"
      fill="#ddd9c3"
-     id="ka1_26_b"
+     id="ka1_26_b" data-map-object="shelf"
      style="stroke-width:1.12377" />
   <rect
      x="79"
@@ -1893,7 +1893,7 @@
      width="192"
      height="3.6308758"
      fill="#ddd9c3"
-     id="ka1_27_a"
+     id="ka1_27_a" data-map-object="shelf"
      style="stroke-width:1.10013" />
   <rect
      x="79"
@@ -1901,7 +1901,7 @@
      width="192"
      height="3.4731569"
      fill="#ddd9c3"
-     id="ka1_27_b"
+     id="ka1_27_b" data-map-object="shelf"
      style="stroke-width:1.07597" />
   <rect
      x="79"
@@ -1909,7 +1909,7 @@
      width="182"
      height="3.5576208"
      fill="#ddd9c3"
-     id="ka1_29_a"
+     id="ka1_29_a" data-map-object="shelf"
      style="stroke-width:1.08898" />
   <rect
      x="79"
@@ -1917,7 +1917,7 @@
      width="182"
      height="3.7769518"
      fill="#ddd9c3"
-     id="ka1_29_b"
+     id="ka1_29_b" data-map-object="shelf"
      style="stroke-width:0.971719" />
   <rect
      x="79"
@@ -1925,7 +1925,7 @@
      width="170"
      height="3.1078067"
      fill="#ddd9c3"
-     id="ka1_31_a"
+     id="ka1_31_a" data-map-object="shelf"
      style="stroke-width:0.881449" />
   <rect
      x="79"
@@ -1933,14 +1933,14 @@
      width="170"
      height="3"
      fill="#ddd9c3"
-     id="ka1_31_b" />
+     id="ka1_31_b" data-map-object="shelf" />
   <rect
      x="79"
      y="282"
      width="170"
      height="3.7769518"
      fill="#ddd9c3"
-     id="ka1_33_a"
+     id="ka1_33_a" data-map-object="shelf"
      style="stroke-width:0.971719" />
   <rect
      x="79"
@@ -1948,7 +1948,7 @@
      width="170"
      height="3.8921933"
      fill="#ddd9c3"
-     id="ka1_33_b"
+     id="ka1_33_b" data-map-object="shelf"
      style="stroke-width:1.13903" />
   <rect
      x="79"
@@ -1956,7 +1956,7 @@
      width="189"
      height="3.788595"
      fill="#ddd9c3"
-     id="ka1_28_a"
+     id="ka1_28_a" data-map-object="shelf"
      style="stroke-width:1.12377" />
   <rect
      x="79"
@@ -1964,14 +1964,14 @@
      width="189"
      height="4"
      fill="#ddd9c3"
-     id="ka1_28_b" />
+     id="ka1_28_b" data-map-object="shelf" />
   <rect
      x="79"
      y="342"
      width="182"
      height="3.3308551"
      fill="#ddd9c3"
-     id="ka1_30_a"
+     id="ka1_30_a" data-map-object="shelf"
      style="stroke-width:0.912531" />
   <rect
      x="79"
@@ -1979,35 +1979,35 @@
      width="182"
      height="3"
      fill="#ddd9c3"
-     id="ka1_30_b" />
+     id="ka1_30_b" data-map-object="shelf" />
   <rect
      x="79"
      y="302"
      width="170"
      height="4"
      fill="#ddd9c3"
-     id="ka1_32_a" />
+     id="ka1_32_a" data-map-object="shelf" />
   <rect
      x="79"
      y="297"
      width="170"
      height="4"
      fill="#ddd9c3"
-     id="ka1_32_b" />
+     id="ka1_32_b" data-map-object="shelf" />
   <rect
      x="79"
      y="242"
      width="192"
      height="3"
      fill="#ddd9c3"
-     id="ka1_35_a" />
+     id="ka1_35_a" data-map-object="shelf" />
   <rect
      x="79"
      y="237.66914"
      width="192"
      height="3.3308551"
      fill="#ddd9c3"
-     id="ka1_35_b"
+     id="ka1_35_b" data-map-object="shelf"
      style="stroke-width:0.912531" />
   <rect
      x="79"
@@ -2015,14 +2015,14 @@
      width="176"
      height="4"
      fill="#ddd9c3"
-     id="ka1_13_a" />
+     id="ka1_13_a" data-map-object="shelf" />
   <rect
      x="79"
      y="660"
      width="176"
      height="3.3942974"
      fill="#ddd9c3"
-     id="ka1_13_b"
+     id="ka1_13_b" data-map-object="shelf"
      style="stroke-width:1.06369" />
   <rect
      x="79"
@@ -2030,14 +2030,14 @@
      width="176"
      height="4"
      fill="#ddd9c3"
-     id="ka1_14_a" />
+     id="ka1_14_a" data-map-object="shelf" />
   <rect
      x="79"
      y="639"
      width="176"
      height="3.6308761"
      fill="#ddd9c3"
-     id="ka1_14_b"
+     id="ka1_14_b" data-map-object="shelf"
      style="stroke-width:1.10013" />
   <rect
      x="55.000099"
@@ -2229,14 +2229,14 @@
      width="75"
      height="3"
      fill="#ddd9c3"
-     id="ka1_20_a" />
+     id="ka1_20_a" data-map-object="shelf" />
   <rect
      x="180"
      y="540"
      width="75"
      height="3"
      fill="#ddd9c3"
-     id="ka1_20_b" />
+     id="ka1_20_b" data-map-object="shelf" />
   <text
      font-family="Arial, Arial_MSFontService, sans-serif"
      font-weight="700"
@@ -2250,14 +2250,14 @@
      width="77"
      height="3"
      fill="#ddd9c3"
-     id="ka1_19_a" />
+     id="ka1_19_a" data-map-object="shelf" />
   <rect
      x="79"
      y="539"
      width="77"
      height="4"
      fill="#ddd9c3"
-     id="ka1_19_b" />
+     id="ka1_19_b" data-map-object="shelf" />
   <text
      font-family="Arial, Arial_MSFontService, sans-serif"
      font-weight="700"
@@ -2285,21 +2285,21 @@
      width="8"
      height="177"
      fill="#ddd9c3"
-     id="ka1_36_b" />
+     id="ka1_36_b" data-map-object="shelf" />
   <rect
      x="761"
      y="11"
      width="113"
      height="5"
      fill="#8eb4e3"
-     id="CC_35-46" />
+     id="CC_35-46" data-map-object="shelf" />
   <rect
      x="870"
      y="21"
      width="5"
      height="117"
      fill="#8eb4e3"
-     id="CC_35-46_2" />
+     id="CC_35-46_2" data-map-object="shelf" />
   <g
      id="g15">
     <text
@@ -2325,7 +2325,7 @@
      width="79"
      height="5"
      fill="#ddd9c3"
-     id="ka1_37_b" />
+     id="ka1_37_b" data-map-object="shelf" />
   <text
      font-family="Arial, Arial_MSFontService, sans-serif"
      font-weight="700"
@@ -2381,112 +2381,112 @@
      width="5"
      height="86"
      fill="#ddd9c3"
-     id="ka2_99_b" />
+     id="ka2_99_b" data-map-object="shelf" />
   <rect
      x="843"
      y="594"
      width="5"
      height="86"
      fill="#ddd9c3"
-     id="ka2_99_a" />
+     id="ka2_99_a" data-map-object="shelf" />
   <rect
      x="855"
      y="594"
      width="5"
      height="86"
      fill="#ddd9c3"
-     id="ka2_98_b" />
+     id="ka2_98_b" data-map-object="shelf" />
   <rect
      x="861"
      y="594"
      width="5"
      height="86"
      fill="#ddd9c3"
-     id="ka2_98_a" />
+     id="ka2_98_a" data-map-object="shelf" />
   <rect
      x="799"
      y="594"
      width="5"
      height="86"
      fill="#ddd9c3"
-     id="ka2_101_b" />
+     id="ka2_101_b" data-map-object="shelf" />
   <rect
      x="805"
      y="594"
      width="5"
      height="86"
      fill="#ddd9c3"
-     id="ka2_101_a" />
+     id="ka2_101_a" data-map-object="shelf" />
   <rect
      x="818"
      y="594"
      width="5"
      height="86"
      fill="#ddd9c3"
-     id="ka2_100_b" />
+     id="ka2_100_b" data-map-object="shelf" />
   <rect
      x="824"
      y="594"
      width="5"
      height="86"
      fill="#ddd9c3"
-     id="ka2_100_a" />
+     id="ka2_100_a" data-map-object="shelf" />
   <rect
      x="762"
      y="594"
      width="5"
      height="86"
      fill="#ddd9c3"
-     id="ka2_103_b" />
+     id="ka2_103_b" data-map-object="shelf" />
   <rect
      x="768"
      y="594"
      width="5"
      height="86"
      fill="#ddd9c3"
-     id="ka2_103_a" />
+     id="ka2_103_a" data-map-object="shelf" />
   <rect
      x="781"
      y="594"
      width="5"
      height="86"
      fill="#ddd9c3"
-     id="ka2_102_b" />
+     id="ka2_102_b" data-map-object="shelf" />
   <rect
      x="787"
      y="594"
      width="5"
      height="86"
      fill="#ddd9c3"
-     id="ka2_102_a" />
+     id="ka2_102_a" data-map-object="shelf" />
   <rect
      x="725"
      y="594"
      width="5"
      height="86"
      fill="#ddd9c3"
-     id="ka2_105_b" />
+     id="ka2_105_b" data-map-object="shelf" />
   <rect
      x="731"
      y="594"
      width="5"
      height="86"
      fill="#ddd9c3"
-     id="ka2_105_a" />
+     id="ka2_105_a" data-map-object="shelf" />
   <rect
      x="744"
      y="594"
      width="4"
      height="86"
      fill="#ddd9c3"
-     id="ka2_104_b" />
+     id="ka2_104_b" data-map-object="shelf" />
   <rect
      x="749"
      y="594"
      width="4.2114053"
      height="86"
      fill="#ddd9c3"
-     id="ka2_104_a"
+     id="ka2_104_a" data-map-object="shelf"
      style="stroke-width:0.917759" />
   <rect
      x="688.57715"
@@ -2494,7 +2494,7 @@
      width="4.2114053"
      height="86"
      fill="#ff7979"
-     id="cl1_107_b"
+     id="cl1_107_b" data-map-object="shelf"
      style="stroke-width:0.917759" />
   <rect
      x="694"
@@ -2502,21 +2502,21 @@
      width="4"
      height="86"
      fill="#ff7979"
-     id="cl1_107_a" />
+     id="cl1_107_a" data-map-object="shelf" />
   <rect
      x="706.78857"
      y="594"
      width="4"
      height="86"
      fill="#ff7979"
-     id="cl1_106_b" />
+     id="cl1_106_b" data-map-object="shelf" />
   <rect
      x="712"
      y="594"
      width="4.3691239"
      height="86"
      fill="#ff7979"
-     id="cl1_106_a"
+     id="cl1_106_a" data-map-object="shelf"
      style="stroke-width:0.934786" />
   <rect
      x="668.78857"
@@ -2524,14 +2524,14 @@
      width="5"
      height="86"
      fill="#376092"
-     id="cb1_108_b" />
+     id="cb1_108_b" data-map-object="shelf" />
   <rect
      x="675"
      y="594"
      width="5"
      height="86"
      fill="#ff7979"
-     id="cl1_108_a" />
+     id="cl1_108_a" data-map-object="shelf" />
   <text
      font-family="Arial, Arial_MSFontService, sans-serif"
      font-weight="700"
@@ -2592,14 +2592,14 @@
      width="5"
      height="110"
      fill="#ddd9c3"
-     id="ka1_38_a" />
+     id="ka1_38_a" data-map-object="shelf" />
   <rect
      x="80.000099"
      y="60.999901"
      width="5"
      height="110"
      fill="#ddd9c3"
-     id="ka1_38_b" />
+     id="ka1_38_b" data-map-object="shelf" />
   <path
      d="m 79,185.5 c 0,-4.694 3.8056,-8.5 8.5,-8.5 4.6944,0 8.5,3.806 8.5,8.5 0,4.694 -3.8056,8.5 -8.5,8.5 -4.6944,0 -8.5,-3.806 -8.5,-8.5 z"
      fill="#f2f2f2"
@@ -2692,49 +2692,49 @@
      width="114"
      height="4"
      fill="#8eb4e3"
-     id="CC_27-34" />
+     id="CC_27-34" data-map-object="shelf" />
   <rect
      x="512"
      y="11"
      width="113"
      height="4"
      fill="#8eb4e3"
-     id="CC_17-26" />
+     id="CC_17-26" data-map-object="shelf" />
   <rect
      x="387"
      y="11"
      width="113"
      height="4"
      fill="#8eb4e3"
-     id="CC_13-16" />
+     id="CC_13-16" data-map-object="shelf" />
   <rect
      x="262"
      y="11"
      width="113"
      height="4"
      fill="#8eb4e3"
-     id="CC_5-12" />
+     id="CC_5-12" data-map-object="shelf" />
   <rect
      x="137"
      y="11"
      width="114"
      height="4"
      fill="#8eb4e3"
-     id="CC_1-4" />
+     id="CC_1-4" data-map-object="shelf" />
   <rect
      x="79"
      y="262"
      width="182"
      height="4"
      fill="#ddd9c3"
-     id="ka1_34_a" />
+     id="ka1_34_a" data-map-object="shelf" />
   <rect
      x="79"
      y="257"
      width="134"
      height="4"
      fill="#ddd9c3"
-     id="ka1_34_b" />
+     id="ka1_34_b" data-map-object="shelf" />
   <rect
      x="215"
      y="257"
@@ -2748,21 +2748,21 @@
      width="117"
      height="3"
      fill="#ddd9c3"
-     id="ka2_75_b" />
+     id="ka2_75_b" data-map-object="shelf" />
   <rect
      x="671"
      y="231"
      width="192"
      height="3"
      fill="#ddd9c3"
-     id="ka2_75_a" />
+     id="ka2_75_a" data-map-object="shelf" />
   <rect
      x="671"
      y="236"
      width="72"
      height="3"
      fill="#f2f2f2"
-     id="TP_ka2" />
+     id="TP_ka2" data-map-object="shelf" />
   <rect
      x="587.5"
      y="508.5"
@@ -3192,9 +3192,9 @@
      stroke-miterlimit="10"
      fill="none"
      fill-rule="evenodd"
-     id="CP_ka1" />
+     id="CP_ka1" data-map-object="shelf" />
   <g
-     id="ka2_84_b">
+     id="ka2_84_b" data-map-object="shelf">
     <rect
        x="731"
        y="367"
@@ -3211,7 +3211,7 @@
        id="rect338" />
   </g>
   <g
-     id="cs_84_a">
+     id="cs_84_a" data-map-object="shelf">
     <rect
        x="731"
        y="362"
@@ -3228,7 +3228,7 @@
        id="rect339" />
   </g>
   <g
-     id="cs_83_b">
+     id="cs_83_b" data-map-object="shelf">
     <rect
        x="731"
        y="352.77695"
@@ -3246,7 +3246,7 @@
        id="rect340" />
   </g>
   <g
-     id="cs_83_a">
+     id="cs_83_a" data-map-object="shelf">
     <rect
        x="731"
        y="348"
@@ -3263,7 +3263,7 @@
        id="rect341" />
   </g>
   <g
-     id="cs_82_b">
+     id="cs_82_b" data-map-object="shelf">
     <rect
        x="731"
        y="338.74908"
@@ -3282,7 +3282,7 @@
        style="stroke-width:1.03651" />
   </g>
   <g
-     id="ka2_82_a">
+     id="ka2_82_a" data-map-object="shelf">
     <rect
        x="731"
        y="334"
@@ -3299,7 +3299,7 @@
        id="rect343" />
   </g>
   <g
-     id="ka2_81_b">
+     id="ka2_81_b" data-map-object="shelf">
     <rect
        x="731"
        y="325"
@@ -3316,7 +3316,7 @@
        id="rect344" />
   </g>
   <g
-     id="ka2_81_a">
+     id="ka2_81_a" data-map-object="shelf">
     <rect
        x="731"
        y="320"
@@ -3338,16 +3338,16 @@
      width="64"
      height="4"
      fill="#ddd9c3"
-     id="ka2_80_b" />
+     id="ka2_80_b" data-map-object="shelf" />
   <rect
      x="731"
      y="306"
      width="64"
      height="4"
      fill="#ddd9c3"
-     id="ka2_80_a" />
+     id="ka2_80_a" data-map-object="shelf" />
   <g
-     id="ka2_79_b">
+     id="ka2_79_b" data-map-object="shelf">
     <rect
        x="731"
        y="296.60571"
@@ -3366,7 +3366,7 @@
        style="stroke-width:1.05126" />
   </g>
   <g
-     id="ka2_79_a">
+     id="ka2_79_a" data-map-object="shelf">
     <rect
        x="731"
        y="292"
@@ -3383,7 +3383,7 @@
        id="rect349" />
   </g>
   <g
-     id="ka2_78_b">
+     id="ka2_78_b" data-map-object="shelf">
     <rect
        x="731"
        y="282.60968"
@@ -3402,7 +3402,7 @@
        style="stroke-width:1.07177" />
   </g>
   <g
-     id="ka2_78_a">
+     id="ka2_78_a" data-map-object="shelf">
     <rect
        x="731"
        y="278"
@@ -3419,7 +3419,7 @@
        id="rect351" />
   </g>
   <g
-     id="ka2_77_b">
+     id="ka2_77_b" data-map-object="shelf">
     <rect
        x="731"
        y="268.60968"
@@ -3438,7 +3438,7 @@
        style="stroke-width:1.08898" />
   </g>
   <g
-     id="ka2_77_a">
+     id="ka2_77_a" data-map-object="shelf">
     <g
        id="g445">
       <rect
@@ -3460,7 +3460,7 @@
     </g>
   </g>
   <g
-     id="ka2_76_b"
+     id="ka2_76_b" data-map-object="shelf"
      transform="matrix(1,0,0,0.8915682,-0.03942975,27.334672)">
     <rect
        x="731"
@@ -3478,7 +3478,7 @@
        id="rect354" />
   </g>
   <g
-     id="ka2_76_a">
+     id="ka2_76_a" data-map-object="shelf">
     <rect
        x="731"
        y="251"
@@ -3499,7 +3499,7 @@
      font-family="Calibri, Calibri_MSFontService, sans-serif"
      font-weight="700"
      font-size="32px"
-     id="CL1_1"
+     id="CL1_1" data-map-object="shelf"
      x="678.64899"
      y="590">CL</text>
   <path
@@ -3900,7 +3900,7 @@
      width="5.5771899"
      height="114"
      fill="#ddd9c3"
-     id="ka1_56_a"
+     id="ka1_56_a" data-map-object="shelf"
      style="stroke-width:1.1808" />
   <rect
      x="468"
@@ -3908,7 +3908,7 @@
      width="5"
      height="114"
      fill="#ddd9c3"
-     id="ka1_56_b" />
+     id="ka1_56_b" data-map-object="shelf" />
   <path
      d="m 458,187.5 c 0,-4.694 3.806,-8.5 8.5,-8.5 4.694,0 8.5,3.806 8.5,8.5 0,4.694 -3.806,8.5 -8.5,8.5 -4.694,0 -8.5,-3.806 -8.5,-8.5 z"
      fill="#f2f2f2"
@@ -3925,14 +3925,14 @@
      width="4"
      height="113"
      fill="#ddd9c3"
-     id="ka2_65_a" />
+     id="ka2_65_a" data-map-object="shelf" />
   <rect
      x="662"
      y="63"
      width="5"
      height="113"
      fill="#ddd9c3"
-     id="ka2_65_b" />
+     id="ka2_65_b" data-map-object="shelf" />
   <path
      d="m 652,186.5 c 0,-4.694 3.806,-8.5 8.5,-8.5 4.694,0 8.5,3.806 8.5,8.5 0,4.694 -3.806,8.5 -8.5,8.5 -4.694,0 -8.5,-3.806 -8.5,-8.5 z"
      fill="#f2f2f2"
@@ -3949,7 +3949,7 @@
      width="4.6308761"
      height="110"
      fill="#ddd9c3"
-     id="ka2_74_a"
+     id="ka2_74_a" data-map-object="shelf"
      style="stroke-width:1.07597" />
   <rect
      x="855"
@@ -3957,21 +3957,21 @@
      width="5"
      height="110"
      fill="#ddd9c3"
-     id="ka2_74_b" />
+     id="ka2_74_b" data-map-object="shelf" />
   <rect
      x="828"
      y="62.999901"
      width="5"
      height="110"
      fill="#ddd9c3"
-     id="ka2_73_a" />
+     id="ka2_73_a" data-map-object="shelf" />
   <rect
      x="834"
      y="62.999901"
      width="5"
      height="110"
      fill="#ddd9c3"
-     id="ka2_73_b" />
+     id="ka2_73_b" data-map-object="shelf" />
   <path
      d="m 834.66915,187.38848 c 0,-4.694 3.806,-8.5 8.5,-8.5 4.694,0 8.5,3.806 8.5,8.5 0,4.694 -3.806,8.5 -8.5,8.5 -4.694,0 -8.5,-3.806 -8.5,-8.5 z"
      fill="#f2f2f2"
@@ -3993,7 +3993,7 @@
      width="5"
      height="53"
      fill="#8eb4e3"
-     id="CCG_ka2" />
+     id="CCG_ka2" data-map-object="shelf" />
   <path
      d="m 681,346.795 10e-5,-37.7953"
      stroke="#fcd5b5"
@@ -4002,14 +4002,14 @@
      stroke-miterlimit="10"
      fill="none"
      fill-rule="evenodd"
-     id="CP_ka2" />
+     id="CP_ka2" data-map-object="shelf" />
   <rect
      x="671"
      y="549"
      width="192"
      height="3.211405"
      fill="#ddd9c3"
-     id="ka2_96_b"
+     id="ka2_96_b" data-map-object="shelf"
      style="stroke-width:0.89602" />
   <rect
      x="671"
@@ -4017,7 +4017,7 @@
      width="192"
      height="3.211405"
      fill="#ddd9c3"
-     id="ka2_96_a"
+     id="ka2_96_a" data-map-object="shelf"
      style="stroke-width:0.89602" />
   <path
      d="m 948.811,138.485 h 3.316 v 14.824 h -3.316 z m 39.875,-6.071 h 4.008 l 4.219,6.809 c 0.554,-0.789 0.902,-1.953 1.043,-3.492 l 0.281,-3.305 h 3.543 l -0.25,2.789 c -0.12,1.328 -0.3,2.316 -0.55,2.965 -0.13,0.336 -0.28,0.715 -0.47,1.137 -0.37,0.82 -0.976,1.586 -1.804,2.296 l 3.014,3.856 v 2.062 h -12.917 v -2.73 h 5.836 l 2.672,0.164 v -0.047 l -3.293,-4.101 z m -18.887,0 h 3.574 v 15.117 h -3.574 z m -21,0 h 12.762 v 2.157 l -2.543,6.902 c -0.812,2.203 -1.219,4.09 -1.219,5.66 v 0.398 h -3.551 v -0.398 c 0,-0.633 0.102,-1.506 0.305,-2.619 0.203,-1.113 0.453,-2.08 0.75,-2.901 l 2.344,-6.468 h -8.848 z m -19.679,0 h 3.421 l 0.633,7.571 c 0.094,0.007 0.211,0.011 0.352,0.011 0.617,0 1.076,-0.164 1.377,-0.492 0.301,-0.328 0.482,-0.875 0.545,-1.641 l 0.445,-5.449 h 3.398 l -0.433,5.414 c -0.242,3.071 -1.844,4.606 -4.805,4.606 -0.164,0 -0.387,-0.008 -0.668,-0.024 l 0.199,2.391 h 3.821 c 1.304,0 2.308,-0.508 3.011,-1.523 0.704,-1.016 1.129,-2.415 1.278,-4.196 l 0.562,-6.668 h 3.422 l -0.562,6.574 c -0.125,1.422 -0.325,2.563 -0.598,3.422 -1.07,3.414 -3.496,5.121 -7.277,5.121 h -6.844 z m 50.193,-0.234 c 1.129,0 2.021,0.055 2.678,0.164 0.656,0.109 1.207,0.277 1.652,0.504 0.445,0.226 0.811,0.486 1.096,0.779 0.285,0.293 0.506,0.658 0.662,1.096 0.156,0.437 0.262,0.881 0.316,1.33 0.055,0.449 0.082,0.982 0.082,1.6 v 9.878 h -3.586 v -9.89 c 0,-1.805 -0.992,-2.707 -2.976,-2.707 -1,0 -2.27,0.082 -3.809,0.246 v -2.754 c 1.461,-0.164 2.756,-0.246 3.885,-0.246 z m -60,0 c 1.129,0 2.021,0.055 2.678,0.164 0.656,0.109 1.207,0.277 1.652,0.504 0.445,0.226 0.811,0.486 1.096,0.779 0.285,0.293 0.506,0.658 0.662,1.096 0.156,0.437 0.262,0.881 0.316,1.33 0.055,0.449 0.082,0.982 0.082,1.6 v 9.878 h -3.586 v -9.89 c 0,-1.805 -0.992,-2.707 -2.976,-2.707 -1,0 -2.27,0.082 -3.809,0.246 v -2.754 c 1.461,-0.164 2.756,-0.246 3.885,-0.246 z"
