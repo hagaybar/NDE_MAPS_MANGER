@@ -22,7 +22,7 @@
 // parseRangeValue preserves both the alphabetic prefix (e.g. "ML") and the
 // numeric portion, so we can rule out cross-classification overlaps (Dewey vs
 // LC, or ML vs MA) before doing numeric arithmetic.
-import { parseRangeBoundary, parseRangeValue } from '../../services/data-model.js?v=5';
+import { parseRangeBoundary, parseRangeValue } from '../../services/data-model.js';
 
 export function overlapsConflict(a, b) {
   if (a.libraryName !== b.libraryName) return false;

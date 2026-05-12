@@ -18,7 +18,7 @@ import { initMapEditor } from './components/map-editor.js?v=1';
 import { initSearchBox } from './components/search-box.js?v=5';
 import { initErrorsDashboard } from './components/errors-dashboard.js?v=9';
 import logger from './services/logger.js?v=1';
-import { preloadAllFloors } from './services/svg-parser.js?v=5';
+import { preloadAllFloors } from './services/svg-parser.js';
 import { initDebugConsole } from './components/debug-console.js?v=1';
 
 /**
