@@ -11,6 +11,7 @@ import { startReassign, cancelReassign, isReassignActive } from './map-editor/re
 import { handleEscape } from './map-editor/esc-handler.js?v=1';
 import { deriveOrphansForFloor } from './map-editor/orphan-deriver.js?v=1';
 import { mount as mountOrphanPanel, open as openOrphanPanel, close as closeOrphanPanel, setActiveCard as setOrphanActive, markRepaired as markOrphanRepaired } from './map-editor/orphan-panel.js?v=1';
+import { fetchAndParseSvg } from '../services/svg-parser.js?v=5';
 
 const CLOUDFRONT_URL = 'https://d3h8i7y9p8lyw7.cloudfront.net';
 const API_ENDPOINT = 'https://tt3xt4tr09.execute-api.us-east-1.amazonaws.com/prod';
@@ -112,8 +113,17 @@ function computeOrphanCounts() {
   return byFloor;
 }
 
-function refreshOrphanPanel({ openIfClosed = false } = {}) {
+async function refreshOrphanPanel({ openIfClosed = false } = {}) {
   if (currentFloor === null || !allRanges) return;
+  // Warm the svg-parser cache for the current floor before deriving.
+  // isValidSvgCode (which validateRow → E006 transitively consults) is
+  // lenient when the cache is cold — it returns `true` so we don't false-
+  // positive during page load. That same leniency makes the orphan deriver
+  // see ZERO orphans on the first click after init, until the cache lands
+  // a moment later. Awaiting fetchAndParseSvg here pins it down: the panel
+  // always opens with the actual list, never with the empty state by
+  // accident.
+  await fetchAndParseSvg(String(currentFloor));
   const orphans = deriveOrphansForFloor(allRanges, currentFloor);
   const locale = (i18n.getLocale && i18n.getLocale()) || 'en';
   const options = {
@@ -207,7 +217,7 @@ function renderFloorTabs(active) {
     badge.textContent = i18n.t('mapEditor.tab.orphans').replace('{n}', count);
     badge.title = 'View unassigned ranges in CSV Editor';
     badge.dataset.floor = String(n);
-    badge.addEventListener('click', (e) => {
+    badge.addEventListener('click', async (e) => {
       e.stopPropagation();
       // If clicked on the inactive floor's badge, switch to that floor first.
       if (n !== currentFloor) {
@@ -215,8 +225,10 @@ function renderFloorTabs(active) {
         renderFloorTabs(n);
         window.dispatchEvent(new CustomEvent('mapeditor:floor-changed', { detail: { floor: n } }));
       }
-      // Open the orphan panel for the (now) active floor.
-      refreshOrphanPanel({ openIfClosed: true });
+      // Open the orphan panel for the (now) active floor. Await so the
+      // panel always opens with the actual orphan list, never the empty
+      // state due to a cold svg-parser cache (see refreshOrphanPanel).
+      await refreshOrphanPanel({ openIfClosed: true });
     });
     tab.appendChild(badge);
   }
