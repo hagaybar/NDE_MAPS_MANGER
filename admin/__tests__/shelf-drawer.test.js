@@ -1,0 +1,96 @@
+/**
+ * @jest-environment jsdom
+ */
+
+import { jest } from '@jest/globals';
+
+describe('showSingleShelf — empty-state branch', () => {
+  let mountDrawer;
+  let showSingleShelf;
+  let hideDrawer;
+
+  beforeEach(async () => {
+    jest.resetModules();
+    document.body.innerHTML = '<div id="drawer"></div>';
+
+    // Minimal i18n mock — return the key path so tests can assert by key.
+    await jest.unstable_mockModule('../i18n.js?v=5', () => ({
+      default: {
+        t: (key) => key,
+        get locale() { return 'en'; },
+      },
+    }));
+
+    // Minimal range-validation stub — empty-state has no rows to validate.
+    await jest.unstable_mockModule('../components/map-editor/range-validation.js?v=1', () => ({
+      validateRangeShape: () => ({ ok: true }),
+    }));
+
+    ({ mountDrawer, showSingleShelf, hideDrawer } = await import('../components/map-editor/shelf-drawer.js'));
+    mountDrawer('drawer');
+  });
+
+  const baseProps = (overrides = {}) => ({
+    shelfId: 'E1',
+    shelfLabel: 'E1',
+    rangesOnShelf: [],
+    conflictsByRangeId: new Map(),
+    conflictingShelves: [],
+    permission: () => 'rw',
+    collectionsList: [],
+    onChange: jest.fn(),
+    onAdd: jest.fn(),
+    onMove: jest.fn(),
+    onDelete: jest.fn(),
+    onDiscard: jest.fn(),
+    onSave: jest.fn(),
+    onSelectShelf: jest.fn(),
+    onClose: jest.fn(),
+    hasPendingEdits: false,
+    ...overrides,
+  });
+
+  test('renders .map-drawer__empty-state container when rangesOnShelf is empty', () => {
+    showSingleShelf(baseProps());
+    expect(document.querySelector('.map-drawer__empty-state')).not.toBeNull();
+  });
+
+  test('empty-state contains message, explanation, and CTA elements', () => {
+    showSingleShelf(baseProps());
+    const container = document.querySelector('.map-drawer__empty-state');
+    expect(container.querySelector('.map-drawer__empty-state__message')).not.toBeNull();
+    expect(container.querySelector('.map-drawer__empty-state__explanation')).not.toBeNull();
+    expect(container.querySelector('.map-drawer__empty-state__cta')).not.toBeNull();
+  });
+
+  test('empty-state uses the i18n keys for message, explanation, and CTA', () => {
+    showSingleShelf(baseProps());
+    expect(document.querySelector('.map-drawer__empty-state__message').textContent)
+      .toContain('mapEditor.shelf.empty.message');
+    expect(document.querySelector('.map-drawer__empty-state__explanation').textContent)
+      .toContain('mapEditor.shelf.empty.explanation');
+    expect(document.querySelector('.map-drawer__empty-state__cta').textContent)
+      .toContain('mapEditor.shelf.empty.cta');
+  });
+
+  test('clicking the empty-state CTA fires onAdd', () => {
+    const onAdd = jest.fn();
+    showSingleShelf(baseProps({ onAdd }));
+    document.querySelector('.map-drawer__empty-state__cta').click();
+    expect(onAdd).toHaveBeenCalledTimes(1);
+  });
+
+  test('empty-state container is NOT rendered when rangesOnShelf has at least one row', () => {
+    showSingleShelf(baseProps({
+      rangesOnShelf: [{
+        id: 'r1',
+        svgCode: 'E1',
+        collectionName: 'GEN',
+        rangeStart: 'A',
+        rangeEnd: 'Z',
+        shelfLabel: 'E1',
+      }],
+    }));
+    expect(document.querySelector('.map-drawer__empty-state')).toBeNull();
+  });
+});
