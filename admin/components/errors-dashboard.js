@@ -622,6 +622,9 @@ function renderCategoryView(dir) {
           </svg>
           ${escapeHtml(t('errorsDashboard.refresh'))}
         </button>
+        <button class="btn btn-secondary export-btn" ${(!allIssues || allIssues.length === 0) ? `disabled title="${escapeHtml(t('errorsDashboard.export.empty'))}"` : ''}>
+          ${escapeHtml(t('errorsDashboard.export.cta'))}
+        </button>
       </div>
 
       <!-- Issues List -->
