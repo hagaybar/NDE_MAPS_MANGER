@@ -34,6 +34,12 @@ test-results/
 # Babysitter runs (large files)
 .a5c/runs/
 
+# Babysitter runtime cache
+.a5c/cache/
+
+# Claude Code local project config
+.claude/
+
 # Archive (old files)
 archive/
 
