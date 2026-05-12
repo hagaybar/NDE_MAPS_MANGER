@@ -13,6 +13,21 @@ export function showSingleShelf({ shelfId, shelfLabel, rangesOnShelf, conflictsB
   const conflictCount = rangesOnShelf.reduce((n, r) => n + (conflictsByRangeId.get(r.id)?.length || 0), 0);
   const banner = buildConflictBanner(conflictCount, conflictingShelves || []);
   const closeLabel = i18n.t('mapEditor.close');
+  const isEmpty = rangesOnShelf.length === 0;
+  const body = isEmpty
+    ? `
+      <div class="map-drawer__empty-state">
+        <p class="map-drawer__empty-state__message">${i18n.t('mapEditor.shelf.empty.message')}</p>
+        <p class="map-drawer__empty-state__explanation">${i18n.t('mapEditor.shelf.empty.explanation')}</p>
+        <button id="drawer-empty-cta" class="map-drawer__empty-state__cta" type="button">
+          <span class="map-drawer__empty-state__cta__icon">➕</span>${i18n.t('mapEditor.shelf.empty.cta')}
+        </button>
+      </div>
+    `
+    : `
+      <div class="map-drawer__rows" id="drawer-rows"></div>
+      <button id="drawer-add" class="mt-2 px-3 py-1 text-sm border rounded">${i18n.t('mapEditor.addRange')}</button>
+    `;
   host.innerHTML = `
     <div class="map-drawer__header">
       <h3 class="text-sm font-semibold">${i18n.t('mapEditor.shelf.header').replace('{label}', shelfLabel).replace('{n}', rangesOnShelf.length)}</h3>
@@ -23,18 +38,21 @@ export function showSingleShelf({ shelfId, shelfLabel, rangesOnShelf, conflictsB
       </div>
     </div>
     ${banner}
-    <div class="map-drawer__rows" id="drawer-rows"></div>
-    <button id="drawer-add" class="mt-2 px-3 py-1 text-sm border rounded">${i18n.t('mapEditor.addRange')}</button>
+    ${body}
   `;
-  const rowsEl = host.querySelector('#drawer-rows');
-  for (const r of rangesOnShelf) {
-    const isLocked = permission(r.id) === 'readonly';
-    const conflicts = conflictsByRangeId.get(r.id) || [];
-    rowsEl.appendChild(buildRow(r, { isLocked, conflicts, collectionsList, onChange, onMove, onDelete }));
+  if (!isEmpty) {
+    const rowsEl = host.querySelector('#drawer-rows');
+    for (const r of rangesOnShelf) {
+      const isLocked = permission(r.id) === 'readonly';
+      const conflicts = conflictsByRangeId.get(r.id) || [];
+      rowsEl.appendChild(buildRow(r, { isLocked, conflicts, collectionsList, onChange, onMove, onDelete }));
+    }
+    host.querySelector('#drawer-add').onclick = onAdd;
+  } else {
+    host.querySelector('#drawer-empty-cta').onclick = onAdd;
   }
   host.querySelector('#drawer-discard').onclick = onDiscard;
   host.querySelector('#drawer-save').onclick = onSave;
-  host.querySelector('#drawer-add').onclick = onAdd;
   const closeBtn = host.querySelector('#drawer-close');
   if (closeBtn) {
     closeBtn.onclick = () => { if (typeof onClose === 'function') onClose(); };

@@ -253,17 +253,10 @@ async function loadFloor(floorNumber) {
   const floorRanges = allRanges.filter(r => String(r.floor) === String(floorNumber));
   rangeCountByShelf = buildRangeCountByShelf(floorRanges);
 
-  // PR 1: read every shelf-kind Location from the marker.
-  // The "AND has at least one CSV row" filter below preserves today's
-  // clickability behaviour — empty shelves stay non-clickable until PR 2
-  // removes the filter and adds the empty-state UX.
-  const allShelfLocations = indexShelfLocations(svgRoot);
-  locationElements = new Map();
-  for (const [id, el] of allShelfLocations) {
-    if (rangeCountByShelf.has(id)) {
-      locationElements.set(id, el);
-    }
-  }
+  // PR 2: every shelf-kind Location is clickable. Empty shelves get the
+  // dashed outline (.map-shelf--empty) toggled below after attachInteraction
+  // has wired up its own class state.
+  locationElements = indexShelfLocations(svgRoot);
   floorConflicts = computeFloorConflicts(floorRanges);
 
   // Permitted IDs come from auth-guard: null = admin (unlimited);
@@ -291,10 +284,11 @@ async function loadFloor(floorNumber) {
     },
   });
 
-  // Render conflict markers.
+  // Render conflict markers + empty-shelf dashed outline.
   for (const [locationId, el] of locationElements) {
     const shelfHasConflict = floorRanges.some(r => r.svgCode === locationId && floorConflicts.has(r.id));
     el.classList.toggle('map-shelf--has-conflicts', shelfHasConflict);
+    el.classList.toggle('map-shelf--empty', !rangeCountByShelf.has(locationId));
   }
 
   // Re-render floor tabs so the orphan badge picks up this floor's count

@@ -383,7 +383,12 @@
       "with": "— also on:"
     },
     "shelf": {
-      "header": "Shelf {label} — {n} ranges"
+      "header": "Shelf {label} — {n} ranges",
+      "empty": {
+        "message": "No ranges are mapped to this shelf yet.",
+        "explanation": "This shelf is on the map but has no ranges assigned. Click 'Create the first range here' to add the first range — you can set the collection and the call-number range in the next step.",
+        "cta": "Create the first range here"
+      }
     },
     "locked": "Locked",
     "close": "Close",
