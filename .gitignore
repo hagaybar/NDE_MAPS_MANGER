@@ -33,6 +33,7 @@ test-results/
 
 # Babysitter runs (large files)
 .a5c/runs/
+admin/.a5c/
 
 # Babysitter runtime cache
 .a5c/cache/
