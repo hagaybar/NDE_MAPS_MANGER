@@ -190,19 +190,32 @@ function renderGrid() {
           <p class="text-xs text-gray-500 mb-3">
             ${escapeHtml(formattedSize)}
           </p>
-          <div class="flex gap-2">
+          <div class="flex flex-wrap gap-2">
             <button
               class="btn-preview flex-1 px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
               data-name="${escapeHtml(file.name)}"
             >
-              ${escapeHtml(i18n.t('svg.preview'))}
+              ${escapeHtml(t('svg.preview'))}
+            </button>
+            <button
+              class="btn-download flex-1 px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
+              data-name="${escapeHtml(file.name)}"
+            >
+              ${escapeHtml(t('svg.download'))}
+            </button>
+            <button
+              class="btn-replace flex-1 px-3 py-1.5 text-sm bg-amber-100 text-amber-800 rounded hover:bg-amber-200 transition-colors"
+              data-filename="${escapeHtml(filename)}"
+              data-role-required="admin"
+            >
+              ${escapeHtml(t('svg.replace'))}
             </button>
             <button
               class="btn-delete flex-1 px-3 py-1.5 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
               data-filename="${escapeHtml(filename)}"
               data-role-required="admin"
             >
-              ${escapeHtml(i18n.t('svg.delete'))}
+              ${escapeHtml(t('svg.delete'))}
             </button>
           </div>
         </div>
@@ -267,12 +280,42 @@ function setupManagerEvents() {
     }
   });
 
-  // Preview button clicks (delegated)
+  // Preview / Download / Replace / Delete button clicks (delegated)
   gridContainer?.addEventListener('click', (e) => {
     const previewBtn = e.target.closest('.btn-preview');
     if (previewBtn) {
       const name = previewBtn.dataset.name;
       showPreview(name);
+      return;
+    }
+
+    const downloadBtn = e.target.closest('.btn-download');
+    if (downloadBtn) {
+      const filename = downloadBtn.dataset.name;
+      const a = document.createElement('a');
+      a.href = `${CLOUDFRONT_URL}/maps/${encodeURIComponent(filename)}`;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      return;
+    }
+
+    const replaceBtn = e.target.closest('.btn-replace');
+    if (replaceBtn && !replaceBtn.disabled) {
+      const filename = replaceBtn.dataset.filename;
+      const picker = document.createElement('input');
+      picker.type = 'file';
+      picker.accept = '.svg';
+      picker.onchange = async () => {
+        const file = picker.files?.[0];
+        if (!file) return;
+        const msg = t('svg.confirmReplace').replace('{filename}', filename);
+        if (!confirm(msg)) return;
+        await replaceFile(filename, file);
+      };
+      picker.click();
+      return;
     }
 
     const deleteBtn = e.target.closest('.btn-delete');
