@@ -84,6 +84,18 @@ function detachEsc() {
   escListener = null;
 }
 
+function reRenderForLocale() {
+  if (!panel) return;
+  const wasOpen = panel.classList.contains('map-orphan-panel--open');
+  if (wasOpen && currentOrphans) {
+    open(currentOrphans, currentOptions || {});
+  } else {
+    panel.innerHTML = renderShell(0);
+    listEl = panel.querySelector('.map-orphan-panel__list');
+    panel.querySelector('[data-action="close"]').addEventListener('click', close);
+  }
+}
+
 export function mount(hostId) {
   host = document.getElementById(hostId);
   if (!host) {
@@ -95,6 +107,7 @@ export function mount(hostId) {
   panel.innerHTML = renderShell(0);
   listEl = panel.querySelector('.map-orphan-panel__list');
   panel.querySelector('[data-action="close"]').addEventListener('click', close);
+  document.addEventListener('localeChanged', reRenderForLocale);
 }
 
 export function open(orphans, options = {}) {
