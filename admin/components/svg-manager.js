@@ -11,6 +11,11 @@ const FALLBACKS = {
   'svg.delete': { en: 'Delete', he: 'מחק' },
   'svg.preview': { en: 'Preview', he: 'תצוגה מקדימה' },
   'svg.confirmDelete': { en: 'Are you sure you want to delete this file?', he: 'האם אתה בטוח שברצונך למחוק קובץ זה?' },
+  'svg.download': { en: 'Download', he: 'הורד' },
+  'svg.replace': { en: 'Replace', he: 'החלף' },
+  'svg.confirmReplace': { en: 'Replace {filename} with the new file? The current version will be archived in Version History.', he: 'להחליף את {filename} בקובץ החדש? הגרסה הקודמת תיארכב בהיסטוריית הגרסאות.' },
+  'svg.replaceSuccess': { en: 'Replaced {filename}. Previous version archived.', he: 'הקובץ {filename} הוחלף. הגרסה הקודמת נשמרה.' },
+  'svg.replaceError': { en: 'Failed to replace file.', he: 'נכשל בהחלפת הקובץ.' },
   'common.error': { en: 'An error occurred', he: 'אירעה שגיאה' },
   'common.loading': { en: 'Loading...', he: 'טוען...' }
 };
@@ -185,19 +190,32 @@ function renderGrid() {
           <p class="text-xs text-gray-500 mb-3">
             ${escapeHtml(formattedSize)}
           </p>
-          <div class="flex gap-2">
+          <div class="flex flex-wrap gap-2">
             <button
               class="btn-preview flex-1 px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
               data-name="${escapeHtml(file.name)}"
             >
-              ${escapeHtml(i18n.t('svg.preview'))}
+              ${escapeHtml(t('svg.preview'))}
+            </button>
+            <button
+              class="btn-download flex-1 px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
+              data-name="${escapeHtml(file.name)}"
+            >
+              ${escapeHtml(t('svg.download'))}
+            </button>
+            <button
+              class="btn-replace flex-1 px-3 py-1.5 text-sm bg-amber-100 text-amber-800 rounded hover:bg-amber-200 transition-colors"
+              data-filename="${escapeHtml(filename)}"
+              data-role-required="admin"
+            >
+              ${escapeHtml(t('svg.replace'))}
             </button>
             <button
               class="btn-delete flex-1 px-3 py-1.5 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
               data-filename="${escapeHtml(filename)}"
               data-role-required="admin"
             >
-              ${escapeHtml(i18n.t('svg.delete'))}
+              ${escapeHtml(t('svg.delete'))}
             </button>
           </div>
         </div>
@@ -262,12 +280,42 @@ function setupManagerEvents() {
     }
   });
 
-  // Preview button clicks (delegated)
+  // Preview / Download / Replace / Delete button clicks (delegated)
   gridContainer?.addEventListener('click', (e) => {
     const previewBtn = e.target.closest('.btn-preview');
     if (previewBtn) {
       const name = previewBtn.dataset.name;
       showPreview(name);
+      return;
+    }
+
+    const downloadBtn = e.target.closest('.btn-download');
+    if (downloadBtn) {
+      const filename = downloadBtn.dataset.name;
+      const a = document.createElement('a');
+      a.href = `${CLOUDFRONT_URL}/maps/${encodeURIComponent(filename)}`;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      return;
+    }
+
+    const replaceBtn = e.target.closest('.btn-replace');
+    if (replaceBtn && !replaceBtn.disabled) {
+      const filename = replaceBtn.dataset.filename;
+      const picker = document.createElement('input');
+      picker.type = 'file';
+      picker.accept = '.svg';
+      picker.onchange = async () => {
+        const file = picker.files?.[0];
+        if (!file) return;
+        const msg = t('svg.confirmReplace').replace('{filename}', filename);
+        if (!confirm(msg)) return;
+        await replaceFile(filename, file);
+      };
+      picker.click();
+      return;
     }
 
     const deleteBtn = e.target.closest('.btn-delete');
@@ -343,6 +391,54 @@ async function uploadFile(file) {
   } catch (error) {
     console.error('Failed to upload SVG:', error);
     showToast(i18n.t('svg.uploadError') || 'Failed to upload file', 'error');
+  }
+}
+
+/**
+ * Replace an existing SVG file with a new body, preserving the original filename.
+ *
+ * Backend (`lambda/uploadSvg.mjs`) writes the prior body to
+ * `versions/maps/${basename}_${timestamp}_${username}.svg` before overwriting,
+ * so a failed replace leaves the old file untouched.
+ *
+ * @param {string} targetFilename — the filename to keep on S3 (e.g. 'floor_2.svg')
+ * @param {File} file — the user-picked file; its `name` is intentionally ignored
+ */
+async function replaceFile(targetFilename, file) {
+  if (!file.name.toLowerCase().endsWith('.svg')) {
+    showToast(i18n.t('svg.invalidFile') || 'Only SVG files are allowed', 'error');
+    return;
+  }
+
+  try {
+    const content = await file.text();
+    const response = await fetch(`${API_ENDPOINT}/api/svg`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders(),
+      },
+      body: JSON.stringify({
+        filename: targetFilename,
+        content,
+        username: getCurrentUsername(),
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    if (!result.success) {
+      throw new Error(result.message || 'Replace failed');
+    }
+
+    showToast(t('svg.replaceSuccess').replace('{filename}', targetFilename), 'success');
+    await loadFiles();
+  } catch (err) {
+    console.error('Failed to replace SVG:', err);
+    showToast(t('svg.replaceError') || 'Failed to replace file', 'error');
   }
 }
 
@@ -436,3 +532,11 @@ function escapeHtml(str) {
   div.textContent = String(str);
   return div.innerHTML;
 }
+
+// Test-only surface — exposes internal helpers to Jest without leaking them into
+// the public module API. Keep this block at the very bottom of the file.
+export const __test = {
+  replaceFile,
+  renderGrid,
+  setSvgFiles(files) { svgFiles = files; },
+};
