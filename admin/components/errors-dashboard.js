@@ -4,6 +4,8 @@ import { validateRow, VALIDATION_ERRORS, VALIDATION_WARNINGS } from '../services
 import { showEditLocationDialog, setCollections } from './edit-location-dialog.js?v=6';
 import { getAuthHeaders } from '../app.js?v=5';
 import logger from '../services/logger.js?v=1';
+import { buildReportRows, toCsv, downloadCsv, reportFilename } from './errors-dashboard/report-export.js';
+import { showToast } from './toast.js?v=5';
 
 // CloudFront URL for fetching CSV data
 const CLOUDFRONT_URL = 'https://d3h8i7y9p8lyw7.cloudfront.net';
@@ -20,6 +22,9 @@ const FALLBACKS = {
   'errorsDashboard.loading': { en: 'Loading data...', he: 'טוען נתונים...' },
   'errorsDashboard.loadError': { en: 'Failed to load data', he: 'שגיאה בטעינת הנתונים' },
   'errorsDashboard.refresh': { en: 'Refresh', he: 'רענן' },
+  'errorsDashboard.export.cta': { en: '📥 Download errors report', he: '📥 הורד דוח שגיאות' },
+  'errorsDashboard.export.empty': { en: 'No errors to export', he: 'אין שגיאות לייצוא' },
+  'errorsDashboard.export.error': { en: 'Could not generate the report.', he: 'לא ניתן ליצור את הדוח.' },
   'errorsDashboard.back': { en: 'Back to Overview', he: 'חזרה לסקירה' },
   'errorsDashboard.fix': { en: 'Fix', he: 'תקן' },
   'errorsDashboard.fixAll': { en: 'Fix All in Category', he: 'תקן הכל בקטגוריה' },
@@ -521,6 +526,9 @@ function renderSummaryView(stats, dir) {
           </svg>
           ${escapeHtml(t('errorsDashboard.refresh'))}
         </button>
+        <button class="btn btn-secondary export-btn" ${(!allIssues || allIssues.length === 0) ? `disabled title="${escapeHtml(t('errorsDashboard.export.empty'))}"` : ''}>
+          ${escapeHtml(t('errorsDashboard.export.cta'))}
+        </button>
       </div>
 
       <!-- Stats Overview -->
@@ -614,6 +622,9 @@ function renderCategoryView(dir) {
           </svg>
           ${escapeHtml(t('errorsDashboard.refresh'))}
         </button>
+        <button class="btn btn-secondary export-btn" ${(!allIssues || allIssues.length === 0) ? `disabled title="${escapeHtml(t('errorsDashboard.export.empty'))}"` : ''}>
+          ${escapeHtml(t('errorsDashboard.export.cta'))}
+        </button>
       </div>
 
       <!-- Issues List -->
@@ -680,6 +691,23 @@ function getCategoryIcon(iconName) {
 }
 
 /**
+ * Build and trigger the download of the comprehensive errors CSV.
+ * Reads from `allIssues` (already aggregated by validateAllRows).
+ */
+function handleDownloadReport() {
+  if (!allIssues || allIssues.length === 0) return;
+  try {
+    const rows = buildReportRows(allIssues);
+    const csv = toCsv(rows);
+    downloadCsv(reportFilename(), csv);
+    logger.userAction('click', 'Download errors report', { count: rows.length });
+  } catch (err) {
+    logger.error('errors-dashboard', 'Report export failed', { error: String(err) });
+    showToast(t('errorsDashboard.export.error'), 'error');
+  }
+}
+
+/**
  * Setup event handlers
  */
 function setupEventHandlers() {
@@ -692,6 +720,12 @@ function setupEventHandlers() {
       logger.userAction('click', 'Refresh button');
       loadCSVData();
     });
+  }
+
+  // Export button
+  const exportBtn = containerElement.querySelector('.export-btn');
+  if (exportBtn && !exportBtn.disabled) {
+    exportBtn.addEventListener('click', handleDownloadReport);
   }
 
   // Back button
