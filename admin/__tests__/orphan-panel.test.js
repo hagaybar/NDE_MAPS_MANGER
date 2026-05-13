@@ -98,4 +98,36 @@ describe('orphan-panel', () => {
     host.querySelector('[data-action="edit-elsewhere"]').click();
     expect(editElsewhereSpy).toHaveBeenCalledWith('row-101');
   });
+
+  test('localeChanged event re-renders the shell header in the new locale and preserves open state', async () => {
+    // orphan-panel imports the real admin/i18n.js (the moduleNameMapper only
+    // catches one-level imports). Seed its translations + locale directly.
+    jest.resetModules();
+    document.body.innerHTML = '<div id="orphan-host"></div>';
+    // Use the exact URL orphan-panel imports — Jest treats different query
+    // strings as separate module instances, so we must match its `?v=5` to
+    // mutate the same singleton.
+    const i18n = (await import('../i18n.js?v=5')).default;
+    i18n.translations = {
+      en: { mapEditor: { orphan: { panel: { title: 'TITLE_EN', empty: '0 on {n}', allRepaired: 'done' } } } },
+      he: { mapEditor: { orphan: { panel: { title: 'TITLE_HE', empty: '0 ב{n}', allRepaired: 'הסתיים' } } } },
+    };
+    i18n.locale = 'en';
+
+    const fresh = await import('../components/map-editor/orphan-panel.js');
+    fresh.mount('orphan-host');
+    fresh.open([ORPHAN_BAD_SVGCODE_F1], { floor: '1', locale: 'en', readOnly: false });
+
+    const panel = document.querySelector('.map-orphan-panel');
+    expect(panel.querySelector('.map-orphan-panel__title').textContent).toBe('TITLE_EN');
+    expect(panel.classList.contains('map-orphan-panel--open')).toBe(true);
+
+    i18n.locale = 'he';
+    document.dispatchEvent(new CustomEvent('localeChanged'));
+
+    expect(panel.querySelector('.map-orphan-panel__title').textContent).toBe('TITLE_HE');
+    expect(panel.classList.contains('map-orphan-panel--open')).toBe(true);
+    // The card list survives the re-render.
+    expect(panel.querySelectorAll('.map-orphan-card')).toHaveLength(1);
+  });
 });
