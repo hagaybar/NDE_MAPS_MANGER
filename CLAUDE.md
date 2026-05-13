@@ -123,3 +123,6 @@ When rendering dynamic content (tables, grids), call `applyRoleBasedUI()` after 
 
 ### Lambda CORS headers
 All Lambda functions must return CORS headers in responses, including error responses. Use `createAuthResponse()` from `auth-middleware.mjs` for consistent headers.
+
+### Floor SVG fetches must use `cache: 'no-cache'`
+`loadFloorSvg` (`admin/components/map-editor/svg-loader.js`) and `fetchAndParseSvg` (`admin/services/svg-parser.js`) both pass `{ cache: 'no-cache' }` to `fetch()`. This is a sticky fix for a recurring bug: after any re-upload of `maps/floor_N.svg`, browsers held the previous body in cache and the Map Editor showed a wrong "N unassigned" badge with no clickable shelves. Conditional fetches let CloudFront return 304 when unchanged (no extra bandwidth) and the new body when changed. Full investigation: `docs/audits/2026-05-13-floor-svg-stale-cache.md`. Regression-guarded by `admin/__tests__/svg-loader.test.js` and `admin/__tests__/svg-parser.test.js`.
