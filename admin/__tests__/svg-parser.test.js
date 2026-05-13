@@ -3,16 +3,36 @@
  * Tests SVG parsing, ID extraction, and code validation
  */
 
+import { jest } from '@jest/globals';
 import {
   extractIdsFromSvg,
   isValidSvgCode,
   getAvailableCodes,
-  clearCache
+  clearCache,
+  fetchAndParseSvg,
 } from '../services/svg-parser.js';
 
 describe('SVG Parser Service', () => {
   beforeEach(() => {
     clearCache();
+  });
+
+  describe('fetchAndParseSvg', () => {
+    test('passes cache: "no-cache" so the browser revalidates with the origin', async () => {
+      const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue({
+        ok: true,
+        text: () => Promise.resolve('<svg><rect id="kb1_1_a" /></svg>'),
+      });
+      try {
+        await fetchAndParseSvg('1');
+        expect(fetchSpy).toHaveBeenCalledTimes(1);
+        const [url, opts] = fetchSpy.mock.calls[0];
+        expect(url).toMatch(/\/maps\/floor_1\.svg$/);
+        expect(opts).toEqual({ cache: 'no-cache' });
+      } finally {
+        fetchSpy.mockRestore();
+      }
+    });
   });
 
   describe('extractIdsFromSvg', () => {

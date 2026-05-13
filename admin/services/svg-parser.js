@@ -97,7 +97,9 @@ export async function fetchAndParseSvg(floor) {
   // Start loading
   const loadPromise = (async () => {
     try {
-      const response = await fetch(`${CLOUDFRONT_URL}/maps/floor_${floor}.svg`);
+      // cache: 'no-cache' — match svg-loader.js. Forces browser revalidation
+      // so a stale browser cache never serves an older marker-less SVG.
+      const response = await fetch(`${CLOUDFRONT_URL}/maps/floor_${floor}.svg`, { cache: 'no-cache' });
       if (!response.ok) {
         throw new Error(`Failed to fetch SVG for floor ${floor}: ${response.status}`);
       }

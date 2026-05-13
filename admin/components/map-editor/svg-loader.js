@@ -1,7 +1,14 @@
 const CLOUDFRONT_URL = 'https://d3h8i7y9p8lyw7.cloudfront.net';
 
 export async function loadFloorSvg(floorNumber, container) {
-  const resp = await fetch(`${CLOUDFRONT_URL}/maps/floor_${floorNumber}.svg`);
+  // cache: 'no-cache' forces the browser to revalidate with the origin
+  // (sends If-None-Match / If-Modified-Since). When the SVG hasn't changed,
+  // the server returns 304 and the cached body is reused — no extra bandwidth.
+  // When it has changed (e.g. after a CL-label fix), the new body is fetched.
+  // Plain fetch() would let the browser serve a stale cached body across
+  // sessions, which surfaced as a recurring "floor 2 shelves unclickable +
+  // '210 unassigned' badge" bug whenever someone re-uploaded a floor SVG.
+  const resp = await fetch(`${CLOUDFRONT_URL}/maps/floor_${floorNumber}.svg`, { cache: 'no-cache' });
   if (!resp.ok) {
     container.innerHTML = `<p class="text-red-600 p-4">Could not load floor map.</p>`;
     throw new Error(`SVG load failed: floor ${floorNumber} (${resp.status})`);
