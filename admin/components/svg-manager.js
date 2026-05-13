@@ -11,6 +11,11 @@ const FALLBACKS = {
   'svg.delete': { en: 'Delete', he: 'מחק' },
   'svg.preview': { en: 'Preview', he: 'תצוגה מקדימה' },
   'svg.confirmDelete': { en: 'Are you sure you want to delete this file?', he: 'האם אתה בטוח שברצונך למחוק קובץ זה?' },
+  'svg.download': { en: 'Download', he: 'הורד' },
+  'svg.replace': { en: 'Replace', he: 'החלף' },
+  'svg.confirmReplace': { en: 'Replace {filename} with the new file? The current version will be archived in Version History.', he: 'להחליף את {filename} בקובץ החדש? הגרסה הקודמת תיארכב בהיסטוריית הגרסאות.' },
+  'svg.replaceSuccess': { en: 'Replaced {filename}. Previous version archived.', he: 'הקובץ {filename} הוחלף. הגרסה הקודמת נשמרה.' },
+  'svg.replaceError': { en: 'Failed to replace file.', he: 'נכשל בהחלפת הקובץ.' },
   'common.error': { en: 'An error occurred', he: 'אירעה שגיאה' },
   'common.loading': { en: 'Loading...', he: 'טוען...' }
 };
@@ -347,6 +352,54 @@ async function uploadFile(file) {
 }
 
 /**
+ * Replace an existing SVG file with a new body, preserving the original filename.
+ *
+ * Backend (`lambda/uploadSvg.mjs`) writes the prior body to
+ * `versions/maps/${basename}_${timestamp}_${username}.svg` before overwriting,
+ * so a failed replace leaves the old file untouched.
+ *
+ * @param {string} targetFilename — the filename to keep on S3 (e.g. 'floor_2.svg')
+ * @param {File} file — the user-picked file; its `name` is intentionally ignored
+ */
+async function replaceFile(targetFilename, file) {
+  if (!file.name.toLowerCase().endsWith('.svg')) {
+    showToast(i18n.t('svg.invalidFile') || 'Only SVG files are allowed', 'error');
+    return;
+  }
+
+  try {
+    const content = await file.text();
+    const response = await fetch(`${API_ENDPOINT}/api/svg`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders(),
+      },
+      body: JSON.stringify({
+        filename: targetFilename,
+        content,
+        username: getCurrentUsername(),
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    if (!result.success) {
+      throw new Error(result.message || 'Replace failed');
+    }
+
+    showToast(t('svg.replaceSuccess').replace('{filename}', targetFilename), 'success');
+    await loadFiles();
+  } catch (err) {
+    console.error('Failed to replace SVG:', err);
+    showToast(t('svg.replaceError') || 'Failed to replace file', 'error');
+  }
+}
+
+/**
  * Delete an SVG file
  */
 async function deleteFile(filename) {
@@ -436,3 +489,11 @@ function escapeHtml(str) {
   div.textContent = String(str);
   return div.innerHTML;
 }
+
+// Test-only surface — exposes internal helpers to Jest without leaking them into
+// the public module API. Keep this block at the very bottom of the file.
+export const __test = {
+  replaceFile,
+  renderGrid,
+  setSvgFiles(files) { svgFiles = files; },
+};
