@@ -135,4 +135,37 @@ describe('CSV Editor — Broken refs filter', () => {
     const dropdown = document.querySelector('tr[data-row-index="0"] select[data-action="rename-svgcode"]');
     expect(dropdown).not.toBeNull();
   });
+
+  test('each broken row has a "Delete row" button that prompts before deleting', async () => {
+    initCSVEditor();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    // Override broken refs to a known shape
+    const mock = await import('../services/data-model.js');
+    mock.getBrokenRefs.mockReturnValue([
+      { rowIndex: 0, svgCode: 'MISSING', floor: 0, type: 'shelf-not-found' },
+    ]);
+    // Re-inject #csv-table same as the prior tests (initCSVEditor rewrites the container)
+    let csvTable = document.getElementById('csv-table');
+    if (!csvTable) {
+      csvTable = document.createElement('table');
+      csvTable.id = 'csv-table';
+      (document.getElementById('table-container') || document.body).appendChild(csvTable);
+    }
+    csvTable.innerHTML = `
+      <tr data-row-index="0"><td class="svg-code-cell">MISSING</td></tr>
+    `;
+    const toggle = document.querySelector('[data-action="toggle-broken-refs"]');
+    toggle.click();
+
+    const deleteBtn = document.querySelector('tr[data-row-index="0"] button[data-action="delete-broken-row"]');
+    expect(deleteBtn).not.toBeNull();
+
+    // Mock window.confirm to return true
+    const confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(true);
+    deleteBtn.click();
+    expect(confirmSpy).toHaveBeenCalled();
+    // The row should be marked for deletion (or removed from csvData)
+    confirmSpy.mockRestore();
+  });
 });

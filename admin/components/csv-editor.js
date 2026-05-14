@@ -22,6 +22,9 @@ const FALLBACKS = {
   'csv.contactAdmin': { en: 'Please contact an administrator to configure your access permissions.', he: 'נא לפנות למנהל כדי להגדיר את הרשאות הגישה שלך.' },
   'csv.brokenRefs': { en: 'Show only broken refs', he: 'הצג רק רפרנסים שבורים' },
   'csv.brokenRefsCount': { en: '({count})', he: '({count})' },
+  'csv.deleteRow':           { en: 'Delete row',                                he: 'מחק שורה' },
+  'csv.deleteRowConfirm':    { en: 'Delete row {idx} (svgCode "{code}")? This cannot be undone here — recover via S3 version history if needed.',
+                               he: 'מחק שורה {idx} (svgCode "{code}")? לא ניתן לבטל; שחזור דרך היסטוריית גרסאות S3.' },
   'common.error': { en: 'An error occurred', he: 'אירעה שגיאה' },
   'common.loading': { en: 'Loading...', he: 'טוען...' }
 };
@@ -251,6 +254,9 @@ function applyBrokenRefsFilter() {
         <option value="">-- Rename to --</option>
         ${unclaimed.map(id => `<option value="${id}">${id}</option>`).join('')}
       </select>
+      <button data-action="delete-broken-row" class="ml-2 px-2 py-1 text-sm bg-red-100 text-red-800 rounded hover:bg-red-200">
+        ${t('csv.deleteRow')}
+      </button>
     `;
     actions.querySelector('select').addEventListener('change', (e) => {
       const newId = e.target.value;
@@ -258,6 +264,16 @@ function applyBrokenRefsFilter() {
       csvData[Number(idx)].svgCode = newId;
       hasChanges = true;  // signal to the existing save flow
       renderRows();
+    });
+    actions.querySelector('button[data-action="delete-broken-row"]').addEventListener('click', () => {
+      const code = row ? row.svgCode : (brokenInfo?.svgCode ?? '');
+      const confirmMsg = t('csv.deleteRowConfirm')
+        .replace('{idx}', idx)
+        .replace('{code}', code);
+      if (!window.confirm(confirmMsg)) return;
+      csvData.splice(Number(idx), 1);
+      hasChanges = true;
+      renderTable();
     });
     tr.appendChild(actions);
   });
