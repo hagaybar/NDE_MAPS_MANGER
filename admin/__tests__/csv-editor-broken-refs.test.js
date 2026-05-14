@@ -79,4 +79,34 @@ describe('CSV Editor — Broken refs filter', () => {
     const toggle = document.querySelector('[data-action="toggle-broken-refs"]');
     expect(toggle.textContent).toMatch(/\(1\)/);
   });
+
+  test('clicking the toggle filters the table to only broken-ref rows', async () => {
+    initCSVEditor();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    // initCSVEditor() rewrites the #csv-editor container, replacing the test
+    // setup's <table id="csv-table"> with a <div id="table-container"> that,
+    // in the empty-CSV / no-access mock paths used here, never contains a
+    // table. Re-inject a #csv-table so the filter has rows to act on.
+    let csvTable = document.getElementById('csv-table');
+    if (!csvTable) {
+      csvTable = document.createElement('table');
+      csvTable.id = 'csv-table';
+      (document.getElementById('table-container') || document.body).appendChild(csvTable);
+    }
+    // Pretend we have 4 rows, only row 2 is broken
+    csvTable.innerHTML = `
+      <tr data-row-index="0"><td>OK</td></tr>
+      <tr data-row-index="1"><td>OK</td></tr>
+      <tr data-row-index="2"><td>BROKEN</td></tr>
+      <tr data-row-index="3"><td>OK</td></tr>
+    `;
+    const toggle = document.querySelector('[data-action="toggle-broken-refs"]');
+    toggle.click();
+    // After click, only the broken row should be visible
+    const visibleRows = Array.from(document.querySelectorAll('#csv-table tr'))
+      .filter(tr => tr.style.display !== 'none');
+    expect(visibleRows).toHaveLength(1);
+    expect(visibleRows[0].dataset.rowIndex).toBe('2');
+  });
 });

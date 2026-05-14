@@ -159,11 +159,10 @@ function renderEditor() {
  *
  * The label includes a live count of broken-ref errors, computed via
  * getBrokenRefs() against the current CSV rows and the parsed shelf IDs of
- * each floor SVG. Clicking the toggle flips the module-level filter flag and
- * re-renders the toolbar + table.
- *
- * Filtering behaviour itself is added in a follow-up task — this function
- * intentionally only renders the toggle with its count.
+ * each floor SVG. Clicking the toggle flips the module-level filter flag,
+ * re-renders the toolbar button, and re-applies the row-level filter via
+ * applyBrokenRefsFilter() so non-broken rows are hidden/shown immediately
+ * without re-rendering the whole table.
  */
 function renderBrokenRefsToggle() {
   const toolbar = document.getElementById('csv-toolbar');
@@ -181,7 +180,7 @@ function renderBrokenRefsToggle() {
     toggle.addEventListener('click', () => {
       brokenRefsFilterActive = !brokenRefsFilterActive;
       renderBrokenRefsToggle();
-      renderTable();
+      applyBrokenRefsFilter();
     });
     toolbar.appendChild(toggle);
   } else {
@@ -200,6 +199,31 @@ function getCsvRowsForValidation() {
     svgCode: String(row.svgCode || ''),
     floor: Number(row.floor),
   }));
+}
+
+/**
+ * Apply (or clear) the broken-refs row filter against the currently-rendered
+ * table. When the filter is active, only rows whose rowIndex appears in the
+ * result of getBrokenRefs() remain visible (display:''); all other rows are
+ * hidden via display:'none'. When inactive, every row is restored.
+ *
+ * Called from renderTable() so the filter re-applies after every re-render,
+ * and from the toggle's click handler so the user sees an immediate effect
+ * without paying for a full table re-render.
+ */
+function applyBrokenRefsFilter() {
+  if (!brokenRefsFilterActive) {
+    // Show all rows
+    document.querySelectorAll('#csv-table tr[data-row-index]').forEach(tr => {
+      tr.style.display = '';
+    });
+    return;
+  }
+  const broken = getBrokenRefs(getCsvRowsForValidation(), svgShelfIdsByFloor);
+  const brokenIdxs = new Set(broken.map(b => String(b.rowIndex)));
+  document.querySelectorAll('#csv-table tr[data-row-index]').forEach(tr => {
+    tr.style.display = brokenIdxs.has(tr.dataset.rowIndex) ? '' : 'none';
+  });
 }
 
 /**
@@ -509,6 +533,9 @@ function renderTable() {
       </tbody>
     </table>
   `;
+  // Re-apply the broken-refs filter after every re-render so the visible
+  // row set stays consistent with the toggle state.
+  applyBrokenRefsFilter();
 }
 
 /**
