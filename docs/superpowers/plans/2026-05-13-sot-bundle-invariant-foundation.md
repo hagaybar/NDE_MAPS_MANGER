@@ -711,9 +711,7 @@ git commit -m "feat(lambda): add validateBundle rule-checker with parity fixture
 
 Write `admin/__tests__/bundle-validator.test.js`:
 ```javascript
-/**
- * @jest-environment node
- */
+// Pure-JS rule; jsdom default is fine (admin setup.js requires jsdom)
 import { readFileSync, readdirSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
