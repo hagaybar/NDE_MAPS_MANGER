@@ -259,3 +259,39 @@ aws cloudfront list-response-headers-policies --type managed
 # View S3 bucket policy
 aws s3api get-bucket-policy --bucket tau-cenlib-primo-assets-hagay-3602
 ```
+
+## Bundle Invariant Feature Flag
+
+The `putCsv` Lambda enforces a CSV-vs-SVG consistency invariant — every row's
+`svgCode` must resolve to a shelf in the corresponding floor's SVG.
+
+### Env var: `BUNDLE_INVARIANT_ENABLED`
+
+- **Default:** `false` (log violations to CloudWatch; do not reject the write)
+- **Production target:** `true` (reject violating writes with HTTP 422) after
+  Stage 3 (migration cleanup) of the rollout documented in
+  `docs/superpowers/specs/2026-05-13-sot-bundle-invariant-design.md`.
+
+### To flip the flag
+
+```bash
+aws lambda update-function-configuration \
+  --function-name putCsv \
+  --environment "Variables={BUNDLE_INVARIANT_ENABLED=true,COGNITO_USER_POOL_ID=us-east-1_g9q5cPhVg}"
+```
+
+### CloudWatch metrics
+
+The Lambda logs structured JSON when validation fires. Filter by
+`metric: "bundle.violations.csv_write"` in CloudWatch Logs Insights:
+
+```
+fields @timestamp, errorCount, enforced
+| filter metric = "bundle.violations.csv_write"
+| stats count() by enforced
+```
+
+### Rollback
+
+Set `BUNDLE_INVARIANT_ENABLED=false` (re-run the `update-function-configuration`
+command above). System reverts to log-only mode; no other changes needed.
