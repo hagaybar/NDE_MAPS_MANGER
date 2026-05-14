@@ -264,6 +264,7 @@ function applyBrokenRefsFilter() {
       csvData[Number(idx)].svgCode = newId;
       hasChanges = true;  // signal to the existing save flow
       renderTable();
+      renderBrokenRefsToggle();  // recompute count after the row's svgCode changed
     });
     actions.querySelector('button[data-action="delete-broken-row"]').addEventListener('click', () => {
       const code = row ? row.svgCode : (brokenInfo?.svgCode ?? '');
@@ -274,6 +275,7 @@ function applyBrokenRefsFilter() {
       csvData.splice(Number(idx), 1);
       hasChanges = true;
       renderTable();
+      renderBrokenRefsToggle();  // recompute count after row removed
     });
     tr.appendChild(actions);
   });
