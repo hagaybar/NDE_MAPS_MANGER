@@ -686,3 +686,17 @@ export default {
   getBilingualFieldPairs,
   validateRow
 };
+
+/**
+ * Returns the subset of rows whose svgCode does not resolve to a shelf on the
+ * row's declared floor. Thin wrapper around bundle-validator's validateBundle
+ * that returns only the errors list (drops the {ok} envelope).
+ *
+ * Used by the CSV Editor "Broken refs" filter mode.
+ */
+import { validateBundle } from './bundle-validator.js';
+
+export function getBrokenRefs(rows, svgShelfIdsByFloor) {
+  const { errors } = validateBundle(rows, svgShelfIdsByFloor);
+  return errors;
+}

@@ -430,3 +430,32 @@ describe('validateRow — E006 svgCode resolution', () => {
     expect(mockIsValidSvgCode).toHaveBeenCalledWith('cl1_106_a', '1');
   });
 });
+
+import { getBrokenRefs } from '../services/data-model.js';
+
+describe('getBrokenRefs', () => {
+  test('returns rows whose svgCode is not in the floor SVG', () => {
+    const rows = [
+      { rowIndex: 0, svgCode: 'CB_0',    floor: 0 },
+      { rowIndex: 1, svgCode: 'MISSING', floor: 0 },
+      { rowIndex: 2, svgCode: 'CC_X',    floor: 1 },
+      { rowIndex: 3, svgCode: 'CC_Y',    floor: 1 },
+    ];
+    const byFloor = {
+      0: new Set(['CB_0']),
+      1: new Set(['CC_X']),
+      2: new Set(),
+    };
+    const broken = getBrokenRefs(rows, byFloor);
+    expect(broken).toEqual([
+      { rowIndex: 1, svgCode: 'MISSING', floor: 0, type: 'shelf-not-found' },
+      { rowIndex: 3, svgCode: 'CC_Y',    floor: 1, type: 'shelf-not-found' },
+    ]);
+  });
+
+  test('returns empty array when all refs resolve', () => {
+    const rows = [{ rowIndex: 0, svgCode: 'CB_0', floor: 0 }];
+    const byFloor = { 0: new Set(['CB_0']), 1: new Set(), 2: new Set() };
+    expect(getBrokenRefs(rows, byFloor)).toEqual([]);
+  });
+});
