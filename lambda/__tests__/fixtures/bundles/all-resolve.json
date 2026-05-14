@@ -1,0 +1,13 @@
+{
+  "name": "all-resolve",
+  "csvRows": [
+    { "rowIndex": 0, "svgCode": "CB_0", "floor": 0 },
+    { "rowIndex": 1, "svgCode": "CC_1-4", "floor": 1 }
+  ],
+  "svgShelfIdsByFloor": {
+    "0": ["CB_0"],
+    "1": ["CC_1-4", "CC_5-12"],
+    "2": []
+  },
+  "expected": { "ok": true, "errors": [] }
+}
