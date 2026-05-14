@@ -213,16 +213,53 @@ function getCsvRowsForValidation() {
  */
 function applyBrokenRefsFilter() {
   if (!brokenRefsFilterActive) {
-    // Show all rows
     document.querySelectorAll('#csv-table tr[data-row-index]').forEach(tr => {
       tr.style.display = '';
+      const inline = tr.querySelector('[data-broken-row-actions]');
+      if (inline) inline.remove();
     });
     return;
   }
   const broken = getBrokenRefs(getCsvRowsForValidation(), svgShelfIdsByFloor);
   const brokenIdxs = new Set(broken.map(b => String(b.rowIndex)));
+
   document.querySelectorAll('#csv-table tr[data-row-index]').forEach(tr => {
-    tr.style.display = brokenIdxs.has(tr.dataset.rowIndex) ? '' : 'none';
+    const idx = tr.dataset.rowIndex;
+    if (!brokenIdxs.has(idx)) {
+      tr.style.display = 'none';
+      return;
+    }
+    tr.style.display = '';
+    if (tr.querySelector('[data-broken-row-actions]')) return;  // already injected
+
+    const row = csvData[Number(idx)];
+    // Fall back to the broken-ref's floor info if csvData[idx] is missing — happens
+    // in test fixtures where DOM rows are injected without a corresponding csvData entry.
+    const brokenInfo = broken.find(b => String(b.rowIndex) === idx);
+    const floor = row ? Number(row.floor) : Number(brokenInfo?.floor ?? 0);
+    const claimedOnFloor = new Set(
+      csvData
+        .filter((_, i) => Number(csvData[i].floor) === floor && i !== Number(idx))
+        .map(r => String(r.svgCode))
+    );
+    const unclaimed = Array.from(svgShelfIdsByFloor[floor] || []).filter(id => !claimedOnFloor.has(id));
+
+    const actions = document.createElement('td');
+    actions.setAttribute('data-broken-row-actions', '');
+    actions.innerHTML = `
+      <select data-action="rename-svgcode" class="border rounded px-2 py-1 text-sm">
+        <option value="">-- Rename to --</option>
+        ${unclaimed.map(id => `<option value="${id}">${id}</option>`).join('')}
+      </select>
+    `;
+    actions.querySelector('select').addEventListener('change', (e) => {
+      const newId = e.target.value;
+      if (!newId) return;
+      csvData[Number(idx)].svgCode = newId;
+      hasChanges = true;  // signal to the existing save flow
+      renderRows();
+    });
+    tr.appendChild(actions);
   });
 }
 

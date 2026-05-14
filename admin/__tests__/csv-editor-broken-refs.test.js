@@ -109,4 +109,30 @@ describe('CSV Editor — Broken refs filter', () => {
     expect(visibleRows).toHaveLength(1);
     expect(visibleRows[0].dataset.rowIndex).toBe('2');
   });
+
+  test('each broken row gets an inline "Rename to" dropdown listing unclaimed shelves on its floor', async () => {
+    initCSVEditor();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    // Override broken refs to a known shape
+    const mock = await import('../services/data-model.js');
+    mock.getBrokenRefs.mockReturnValue([
+      { rowIndex: 0, svgCode: 'MISSING', floor: 0, type: 'shelf-not-found' },
+    ]);
+    // Re-inject #csv-table same as the prior test (initCSVEditor rewrites the container)
+    let csvTable = document.getElementById('csv-table');
+    if (!csvTable) {
+      csvTable = document.createElement('table');
+      csvTable.id = 'csv-table';
+      (document.getElementById('table-container') || document.body).appendChild(csvTable);
+    }
+    csvTable.innerHTML = `
+      <tr data-row-index="0"><td class="svg-code-cell">MISSING</td></tr>
+    `;
+    const toggle = document.querySelector('[data-action="toggle-broken-refs"]');
+    toggle.click();
+
+    const dropdown = document.querySelector('tr[data-row-index="0"] select[data-action="rename-svgcode"]');
+    expect(dropdown).not.toBeNull();
+  });
 });
