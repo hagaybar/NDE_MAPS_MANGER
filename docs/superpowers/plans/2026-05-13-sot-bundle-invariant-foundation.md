@@ -10,6 +10,74 @@
 
 ---
 
+## Status (2026-05-14) — Implementation complete
+
+> **All 16 planned tasks executed + 3 follow-up commits.** Branch `feature/sot-bundle-invariant-foundation` is **19 commits ahead** of the pre-feature tag `pre-sot-foundation`. Not pushed.
+
+| Layer | Coverage | Result |
+|---|---|---|
+| Lambda tests | 338/338 | All pass — includes new `validateBundle`, `svg-shelves`, `fetch-floor-svgs`, `putCsv` bundle-invariant cases |
+| Admin jsdom unit tests | 5/5 broken-refs + 8/8 svg-shelves parity + 5/5 bundle-validator parity | All pass. 14 pre-existing failures (issue #9) verified as not regressions. |
+| E2E (mocked broken refs) | 4/4 project variants (en/he × admin/editor) | All pass |
+| E2E (seed-data placeholder) | all variants | All skip cleanly via `test.skip(...)` guards |
+| `BUNDLE_INVARIANT_ENABLED` | unset (default false) | Log-only mode; ready for Stage 2 telemetry observation |
+| Pushed | No | Awaits explicit operator approval per the original constraint |
+
+### Commits in order (oldest → newest)
+
+| # | SHA | Subject |
+|---|-----|---------|
+| Task 1 | `9e5a79b` | test(fixtures): add svg-shelves parity fixtures (8 cases) |
+| Task 2 | `d1474c3` | feat(lambda): add svg-shelves parser with parity fixtures |
+| Task 3 | `4d04474` | feat(admin): add svg-shelves client mirror with parity tests |
+| —      | `fb5ede4` | docs(plans): drop `@jest-environment node` directive (plan fix surfaced during Task 3) |
+| Task 4 | `163aa15` | test(fixtures): add validateBundle parity fixtures (5 cases) |
+| Task 5 | `b78a5eb` | feat(lambda): add validateBundle rule-checker with parity fixtures |
+| Task 6 | `9b57b64` | feat(admin): add bundle-validator client mirror with parity tests |
+| Task 7 | `b3f9700` | feat(data-model): add getBrokenRefs helper |
+| Task 8 | `6b3c71f` | feat(lambda): add fetch-floor-svgs with warm-container cache |
+| Task 9 | `3e66f37` | feat(lambda): enforce bundle invariant in putCsv (flag-gated) |
+| Task 10 | `6a7acdc` | feat(csv-editor): add Broken refs filter toggle (count only) |
+| Task 11 | `37e9644` | feat(csv-editor): filter table to broken refs when toggle active |
+| Task 12 | `a7af379` | feat(csv-editor): inline rename dropdown per broken row |
+| Task 13 | `258c7e6` | feat(csv-editor): add Delete row action with confirm dialog |
+| Task 14 | `962152c` | test(e2e): broken-refs filter migration cleanup happy path (placeholder, skips on empty seed) |
+| Task 15 | `80b4d53` | docs: document bundle invariant flag + parity test convention |
+| Task 16 | — | (no commit — final integration check only) |
+| Follow-up | `4b8ed32` | **fix(csv-editor): rename action called `renderRows()` — does not exist; should be `renderTable()`** |
+| Follow-up | `59f62e5` | **fix(csv-editor): refresh Broken refs count after rename/delete** |
+| Follow-up | `9e6886b` | **test(e2e): mocked-data Broken refs filter end-to-end coverage** |
+
+### Plan deviations (documented in commits)
+
+- **Task 3 / Task 6**: Removed the `@jest-environment node` directive from the client parity tests. The admin Jest `setup.js` references `document.body` and requires `jsdom` (the project default). Plan updated in commit `fb5ede4`.
+- **Task 10**: New module imports use bare URLs (no `?v=5` cache-bust suffix). Issue #24's regression-guard test (`no-duplicate-module-imports.test.js`) forbids the `?v=N` pattern for newly-added imports.
+- **Task 12**: Added a defensive fallback in `applyBrokenRefsFilter()` for the case where `csvData[idx]` is undefined (happens when DOM rows are injected by tests without populating `csvData`). The fallback uses the broken-ref entry's `floor` info. Switched test mock from `mockReturnValueOnce` to `mockReturnValue` so re-renders see consistent broken-ref data.
+
+### Bugs found during E2E that the unit tests missed
+
+Two bugs surfaced when running the new mocked Playwright spec (`csv-editor-broken-refs-mocked.spec.ts`). The unit tests passed because they never actually fired the change handler or asserted on the toggle count after a mutation.
+
+1. **`renderRows()` doesn't exist** (`4b8ed32`). Task 12's plan code block called `renderRows()` from the dropdown's change handler. The actual table-render function is `renderTable()`. Selecting any rename option threw `ReferenceError`. **The plan above still shows the original `renderRows()` text — leave as historical record; the fix lives in the commit.**
+2. **Toggle count stale after rename/delete** (`59f62e5`). `renderTable()` does not call `renderBrokenRefsToggle()`, so after a rename/delete the `(N)` count chip kept showing the pre-mutation value. Both handlers now explicitly call `renderBrokenRefsToggle()` after the data change.
+
+### Follow-up issues to file (out of scope for this plan)
+
+- The 2 new `getBrokenRefs` tests added in Task 7 live inside `admin/__tests__/data-model.test.js`, which has a pre-existing ESM parse error (issue #9). The suite cannot execute. Once issue #9 is fixed the new tests will run as-is.
+- Cleanup of `.a5c/processes/feat-sot-foundation*` artifacts (untracked) — pattern is to archive into a chore commit once the run is verified, similar to commit `6f07357`.
+
+### Suggested next steps
+
+1. Review the 19 commits (`git log --oneline pre-sot-foundation..HEAD`).
+2. If approved: push the branch and open a PR.
+3. After merge: Stage 2 telemetry — watch `bundle.violations.csv_write` CloudWatch metric for ~1 week.
+4. Stage 3 cleanup — operator uses the new "Broken refs" filter to fix any flagged rows.
+5. Plan B (staging flow + Stage 4 cutover, `docs/superpowers/plans/2026-05-13-sot-staging-flow.md`).
+
+Rollback path: `git checkout main && git reset --hard pre-sot-foundation`.
+
+---
+
 ## File Structure
 
 ### New files
