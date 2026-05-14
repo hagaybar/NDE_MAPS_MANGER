@@ -5,6 +5,8 @@ import { getAuthHeaders, getCurrentUsername } from '../app.js?v=5';
 import { applyRoleBasedUI, isAdmin } from '../auth-guard.js?v=5';
 import authService from '../auth-service.js?v=5';
 import { filterRowsByRange, getMatchingRowIndices } from '../utils/range-filter.js?v=5';
+import { getBrokenRefs } from '../services/data-model.js';
+import { parseSvg } from '../services/svg-shelves.js?v=5';
 
 // Fallback translations if i18n hasn't loaded yet
 const FALLBACKS = {
@@ -18,6 +20,8 @@ const FALLBACKS = {
   'csv.noAccess': { en: 'No Access to Data', he: 'אין גישה לנתונים' },
   'csv.noAccessDescription': { en: 'Your account does not have permission to edit any locations.', he: 'לחשבון שלך אין הרשאה לערוך מיקומים.' },
   'csv.contactAdmin': { en: 'Please contact an administrator to configure your access permissions.', he: 'נא לפנות למנהל כדי להגדיר את הרשאות הגישה שלך.' },
+  'csv.brokenRefs': { en: 'Show only broken refs', he: 'הצג רק רפרנסים שבורים' },
+  'csv.brokenRefsCount': { en: '({count})', he: '({count})' },
   'common.error': { en: 'An error occurred', he: 'אירעה שגיאה' },
   'common.loading': { en: 'Loading...', he: 'טוען...' }
 };
@@ -41,13 +45,15 @@ let hasChanges = false;
 let isFiltered = false;     // Whether data is filtered by range restrictions
 let hasNoAccess = false;    // Whether editor has no access (disabled ranges or no filter groups)
 let _hashListenerAttached = false;  // Module-singleton guard for the deep-link hashchange listener
+let brokenRefsFilterActive = false;
+let svgShelfIdsByFloor = { 0: new Set(), 1: new Set(), 2: new Set() };
 const API_ENDPOINT = 'https://tt3xt4tr09.execute-api.us-east-1.amazonaws.com/prod';
 const CLOUDFRONT_URL = 'https://d3h8i7y9p8lyw7.cloudfront.net';
 
 /**
  * Initialize the CSV Editor component
  */
-export function initCSVEditor() {
+export async function initCSVEditor() {
   const container = document.getElementById('csv-editor');
   if (!container) {
     console.error('CSV Editor container not found');
@@ -56,7 +62,23 @@ export function initCSVEditor() {
 
   container.innerHTML = renderEditor();
   setupEditorEvents();
-  loadCSV();
+  await loadCSV();
+
+  // Fetch floor SVGs for the bundle-invariant "Broken refs" filter.
+  // Errors here are non-fatal — the filter just shows a count of 0 for that
+  // floor if the SVG can't be loaded.
+  await Promise.all([0, 1, 2].map(async (floor) => {
+    try {
+      const resp = await fetch(`${CLOUDFRONT_URL}/maps/floor_${floor}.svg`, { cache: 'no-cache' });
+      const text = await resp.text();
+      const { shelves } = parseSvg(text);
+      svgShelfIdsByFloor[floor] = new Set(shelves);
+    } catch (err) {
+      console.warn(`Failed to load floor_${floor}.svg for Broken refs filter:`, err);
+      svgShelfIdsByFloor[floor] = new Set();
+    }
+  }));
+  renderBrokenRefsToggle();
 
   // Deep-link consumer: when navigated via #csv-editor?orphans=floor=N, filter
   // visible rows to that floor's orphan ranges (rows whose svgCode is empty
@@ -75,6 +97,7 @@ export function initCSVEditor() {
     setupEditorEvents();
     renderFilterBanner();
     renderTable();
+    renderBrokenRefsToggle();
     applyRoleBasedUI();
     if (searchValue) {
       document.getElementById('csv-search').value = searchValue;
@@ -92,7 +115,7 @@ function renderEditor() {
     <div class="card bg-white rounded-lg shadow p-6">
       <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
         <h2 class="text-xl font-semibold text-gray-800">${escapeHtml(t('csv.title'))}</h2>
-        <div class="flex flex-wrap items-center gap-3">
+        <div id="csv-toolbar" class="flex flex-wrap items-center gap-3">
           <input
             type="text"
             id="csv-search"
@@ -129,6 +152,54 @@ function renderEditor() {
       </div>
     </div>
   `;
+}
+
+/**
+ * Render or update the "Show only broken refs" toggle in the toolbar.
+ *
+ * The label includes a live count of broken-ref errors, computed via
+ * getBrokenRefs() against the current CSV rows and the parsed shelf IDs of
+ * each floor SVG. Clicking the toggle flips the module-level filter flag and
+ * re-renders the toolbar + table.
+ *
+ * Filtering behaviour itself is added in a follow-up task — this function
+ * intentionally only renders the toggle with its count.
+ */
+function renderBrokenRefsToggle() {
+  const toolbar = document.getElementById('csv-toolbar');
+  if (!toolbar) return;
+  let toggle = toolbar.querySelector('[data-action="toggle-broken-refs"]');
+  const broken = getBrokenRefs(getCsvRowsForValidation(), svgShelfIdsByFloor);
+  const countLabel = t('csv.brokenRefsCount').replace('{count}', broken.length);
+  const label = `${t('csv.brokenRefs')} ${countLabel}`;
+  const className = 'px-3 py-1.5 text-sm rounded ' + (brokenRefsFilterActive
+    ? 'bg-amber-500 text-white' : 'bg-amber-100 text-amber-800 hover:bg-amber-200');
+  if (!toggle) {
+    toggle = document.createElement('button');
+    toggle.setAttribute('data-action', 'toggle-broken-refs');
+    toggle.className = className;
+    toggle.addEventListener('click', () => {
+      brokenRefsFilterActive = !brokenRefsFilterActive;
+      renderBrokenRefsToggle();
+      renderTable();
+    });
+    toolbar.appendChild(toggle);
+  } else {
+    toggle.className = className;
+  }
+  toggle.textContent = label;
+}
+
+/**
+ * Build the row shape expected by getBrokenRefs() from the current csvData.
+ * Maps the editor's row objects to { rowIndex, svgCode, floor } records.
+ */
+function getCsvRowsForValidation() {
+  return csvData.map((row, idx) => ({
+    rowIndex: idx,
+    svgCode: String(row.svgCode || ''),
+    floor: Number(row.floor),
+  }));
 }
 
 /**
