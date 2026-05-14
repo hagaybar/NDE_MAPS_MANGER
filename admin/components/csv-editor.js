@@ -263,7 +263,7 @@ function applyBrokenRefsFilter() {
       if (!newId) return;
       csvData[Number(idx)].svgCode = newId;
       hasChanges = true;  // signal to the existing save flow
-      renderRows();
+      renderTable();
     });
     actions.querySelector('button[data-action="delete-broken-row"]').addEventListener('click', () => {
       const code = row ? row.svgCode : (brokenInfo?.svgCode ?? '');
