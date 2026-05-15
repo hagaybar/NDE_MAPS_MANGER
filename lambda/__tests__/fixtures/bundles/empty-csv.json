@@ -1,0 +1,10 @@
+{
+  "name": "empty-csv",
+  "csvRows": [],
+  "svgShelfIdsByFloor": {
+    "0": ["CB_0"],
+    "1": [],
+    "2": []
+  },
+  "expected": { "ok": true, "errors": [] }
+}

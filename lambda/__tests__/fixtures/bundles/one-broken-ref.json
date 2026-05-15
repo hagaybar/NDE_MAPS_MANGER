@@ -1,0 +1,18 @@
+{
+  "name": "one-broken-ref",
+  "csvRows": [
+    { "rowIndex": 0, "svgCode": "CB_0", "floor": 0 },
+    { "rowIndex": 1, "svgCode": "MISSING", "floor": 1 }
+  ],
+  "svgShelfIdsByFloor": {
+    "0": ["CB_0"],
+    "1": ["CC_1-4"],
+    "2": []
+  },
+  "expected": {
+    "ok": false,
+    "errors": [
+      { "rowIndex": 1, "svgCode": "MISSING", "floor": 1, "type": "shelf-not-found" }
+    ]
+  }
+}

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <g id="layer1">
+    <g id="library-section">
+      <rect id="CB_0" data-map-object="shelf" x="10" y="10" width="20" height="20"/>
+      <g>
+        <rect id="CB_1" data-map-object="shelf" x="40" y="10" width="20" height="20"/>
+      </g>
+    </g>
+  </g>
+</svg>

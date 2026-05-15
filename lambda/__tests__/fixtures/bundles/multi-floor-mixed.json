@@ -1,0 +1,22 @@
+{
+  "name": "multi-floor-mixed",
+  "csvRows": [
+    { "rowIndex": 0, "svgCode": "CB_0",  "floor": 0 },
+    { "rowIndex": 1, "svgCode": "BAD",   "floor": 0 },
+    { "rowIndex": 2, "svgCode": "CC_X",  "floor": 1 },
+    { "rowIndex": 3, "svgCode": "CC_Y",  "floor": 1 },
+    { "rowIndex": 4, "svgCode": "GONE",  "floor": 2 }
+  ],
+  "svgShelfIdsByFloor": {
+    "0": ["CB_0", "CB_1"],
+    "1": ["CC_X", "CC_Y"],
+    "2": []
+  },
+  "expected": {
+    "ok": false,
+    "errors": [
+      { "rowIndex": 1, "svgCode": "BAD",  "floor": 0, "type": "shelf-not-found" },
+      { "rowIndex": 4, "svgCode": "GONE", "floor": 2, "type": "shelf-not-found" }
+    ]
+  }
+}

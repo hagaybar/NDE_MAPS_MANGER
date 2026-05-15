@@ -1,0 +1,17 @@
+{
+  "name": "wrong-floor",
+  "csvRows": [
+    { "rowIndex": 0, "svgCode": "CB_0", "floor": 1 }
+  ],
+  "svgShelfIdsByFloor": {
+    "0": ["CB_0"],
+    "1": ["CC_X"],
+    "2": []
+  },
+  "expected": {
+    "ok": false,
+    "errors": [
+      { "rowIndex": 0, "svgCode": "CB_0", "floor": 1, "type": "shelf-not-found" }
+    ]
+  }
+}

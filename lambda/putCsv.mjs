@@ -3,6 +3,8 @@ import { CloudFrontClient, CreateInvalidationCommand } from '@aws-sdk/client-clo
 import { validateToken, createAuthResponse } from './auth-middleware.mjs';
 import { checkPermission } from './role-auth.mjs';
 import { parseCsvContent, validateEditsAgainstRange } from './range-validation.mjs';
+import { fetchFloorSvgs } from './shared/fetch-floor-svgs.mjs';
+import { validateBundle } from './shared/validateBundle.mjs';
 
 const s3 = new S3Client({ region: 'us-east-1' });
 const cloudfront = new CloudFrontClient({ region: 'us-east-1' });
@@ -117,6 +119,39 @@ export const handler = async (event) => {
         };
       }
     }
+
+    // --- Bundle invariant check ---
+    // Fetch the current SVG shelf sets and verify the new CSV is consistent.
+    // Gate enforcement behind BUNDLE_INVARIANT_ENABLED so we can run in
+    // log-only mode during the telemetry/cleanup migration stages.
+    const svgShelfIdsByFloor = await fetchFloorSvgs(BUCKET);
+    const parsedRows = parseCsvContent(csvContent).rows;
+    const csvRowsForValidation = parsedRows.map((row, idx) => ({
+      rowIndex: idx,
+      svgCode: String(row.svgCode || ''),
+      floor: Number(row.floor),
+    }));
+    const validation = validateBundle(csvRowsForValidation, svgShelfIdsByFloor);
+
+    if (!validation.ok) {
+      const enforced = process.env.BUNDLE_INVARIANT_ENABLED === 'true';
+      console.log(JSON.stringify({
+        level: enforced ? 'ERROR' : 'WARN',
+        metric: 'bundle.violations.csv_write',
+        enforced,
+        errorCount: validation.errors.length,
+        errors: validation.errors.slice(0, 20),  // truncate for log size
+      }));
+
+      if (enforced) {
+        return createAuthResponse(422, {
+          error: 'Bundle invariant violation',
+          errors: validation.errors,
+        }, CORS_HEADERS);
+      }
+      // Flag off: proceed with the write despite violations.
+    }
+    // --- End bundle invariant check ---
 
     // Step 2: Write new content to data/mapping.csv
     const putCommand = new PutObjectCommand({
