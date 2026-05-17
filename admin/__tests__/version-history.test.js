@@ -513,5 +513,55 @@ describe('VersionHistory Component', () => {
         expect.any(Object)
       );
     });
+
+    test('derives versionId from key when the server response omits versionId', async () => {
+      // Older listVersionsCsv responses only returned `key`. The frontend
+      // must derive `versionId` (the basename) so the Restore button's
+      // `data-version-id` isn't empty — otherwise clicking it is a silent
+      // no-op (the bug fixed alongside this test).
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          versions: [
+            {
+              key: 'versions/data/mapping_2026-05-17T08-12-45-678Z_admin.csv',
+              timestamp: '2026-05-17T08:12:45.678Z',
+              username: 'admin',
+              size: 1024,
+            },
+          ],
+        }),
+      });
+
+      await initVersionHistory();
+
+      const row = document.querySelector('[data-testid="restore-button"]');
+      expect(row).not.toBeNull();
+      expect(row.getAttribute('data-version-id')).toBe(
+        'mapping_2026-05-17T08-12-45-678Z_admin.csv'
+      );
+    });
+
+    test('prefers versionId from the server when both versionId and key are present', async () => {
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          versions: [
+            {
+              versionId: 'authoritative.csv',
+              key: 'versions/data/derived-would-have-been.csv',
+              timestamp: '2026-05-17T08:12:45.678Z',
+              username: 'admin',
+              size: 1024,
+            },
+          ],
+        }),
+      });
+
+      await initVersionHistory();
+
+      const row = document.querySelector('[data-testid="restore-button"]');
+      expect(row.getAttribute('data-version-id')).toBe('authoritative.csv');
+    });
   });
 });

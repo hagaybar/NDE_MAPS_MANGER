@@ -107,6 +107,7 @@ export const handler = async (event) => {
         }
 
         const version = {
+          versionId: obj.Key.slice(PREFIX.length),
           key: obj.Key,
           timestamp: parsed.timestamp,
           username: parsed.username,

@@ -135,7 +135,8 @@ describe('listVersionsCsv Lambda', () => {
       const body = JSON.parse(result.body);
       const version = body.versions[0];
 
-      // Each version should include: key, timestamp, username, size, etag
+      // Each version should include: versionId, key, timestamp, username, size, etag
+      expect(version).toHaveProperty('versionId');
       expect(version).toHaveProperty('key');
       expect(version).toHaveProperty('timestamp');
       expect(version).toHaveProperty('username');
@@ -143,6 +144,7 @@ describe('listVersionsCsv Lambda', () => {
       expect(version).toHaveProperty('etag');
 
       // Verify parsed values
+      expect(version.versionId).toBe('mapping_2024-01-15T10-30-00Z_admin.csv');
       expect(version.key).toBe('versions/data/mapping_2024-01-15T10-30-00Z_admin.csv');
       expect(version.timestamp).toBe('2024-01-15T10:30:00Z');
       expect(version.username).toBe('admin');

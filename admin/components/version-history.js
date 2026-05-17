@@ -282,7 +282,15 @@ async function fetchVersions(fileType) {
   }
 
   const data = await response.json();
-  return data.versions || [];
+  // Defensive: derive `versionId` from `key` (the S3 path basename) if the
+  // server didn't supply it. Old Lambda versions returned only `key`, which
+  // made the rendered `data-version-id` empty and the Restore button a
+  // silent no-op. Both Lambdas now include `versionId`; this guard makes the
+  // SPA tolerant of older deployments.
+  return (data.versions || []).map((v) => ({
+    ...v,
+    versionId: v.versionId || (v.key ? v.key.split('/').pop() : ''),
+  }));
 }
 
 /**
