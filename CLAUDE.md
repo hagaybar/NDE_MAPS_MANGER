@@ -133,6 +133,11 @@ Every CSV row's `svgCode` must resolve to a shelf in the corresponding floor's
 SVG. Enforced by `putCsv` Lambda when `BUNDLE_INVARIANT_ENABLED=true`. Logs to
 CloudWatch metric `bundle.violations.csv_write` regardless of flag state.
 
+**Current state (as of 2026-05-17): `BUNDLE_INVARIANT_ENABLED=true` is LIVE in
+production.** Saves that introduce a `svgCode` not resolving on its floor are
+rejected with HTTP 422. Check `aws lambda get-function-configuration
+--function-name primo-maps-putCsv | jq '.Environment.Variables'` to confirm.
+
 Migration cleanup tooling lives in CSV Editor as a "Broken refs" filter
 toggle. See spec: `docs/superpowers/specs/2026-05-13-sot-bundle-invariant-design.md`.
 
@@ -143,3 +148,15 @@ using shared fixtures at `lambda/__tests__/fixtures/bundles/`.
 Shared SVG-shelf parser: `lambda/shared/svg-shelves.mjs` (server) and
 `admin/services/svg-shelves.js` (client). Drift caught by parity tests using
 shared fixtures at `lambda/__tests__/fixtures/svg-shelves/`.
+
+### CSV parser parity rule
+
+`parseCSVLine` in `admin/components/csv-editor.js` and `parseCsvLine` in
+`lambda/range-validation.mjs` MUST stay behaviorally equivalent — both handle
+double-quoted fields (with internal commas and `""` escapes). The Lambda
+previously used a naive `split(',')` which mis-aligned columns on any row
+containing a quoted comma (PR #48); with bundle enforcement active this
+manifested as silent column-shift that fabricated hundreds of phantom
+`shelf-not-found` errors. Server-side regression test:
+`lambda/__tests__/range-validation-parser.test.mjs`. If you change either
+parser, run both files' tests against the same fixtures.
