@@ -201,12 +201,14 @@ describe('listVersionsSvg Lambda', () => {
       const body = JSON.parse(result.body);
       const version = body.versions['floor_0.svg'][0];
 
+      expect(version).toHaveProperty('versionId');
       expect(version).toHaveProperty('key');
       expect(version).toHaveProperty('timestamp');
       expect(version).toHaveProperty('username');
       expect(version).toHaveProperty('size');
 
       // Verify parsed values
+      expect(version.versionId).toBe('floor_0_2026-03-01T12-00-00-000Z_admin.svg');
       expect(version.key).toBe('versions/maps/floor_0_2026-03-01T12-00-00-000Z_admin.svg');
       expect(version.timestamp).toBe('2026-03-01T12:00:00.000Z');
       expect(version.username).toBe('admin');

@@ -88,12 +88,15 @@ export const handler = async (event) => {
 
     const response = await s3Client.send(command);
 
-    // Filter and map CSV files to version objects
+    // Filter and map CSV files to version objects.
+    // `versionId` is the filename (no prefix) — what `restoreVersion`'s path
+    // parameter expects and what the frontend stores in `data-version-id`.
     const versions = (response.Contents || [])
       .filter((obj) => obj.Key.endsWith('.csv'))
       .map((obj) => {
         const parsed = parseVersionFilename(obj.Key);
         return {
+          versionId: obj.Key.slice(PREFIX.length),
           key: obj.Key,
           timestamp: parsed.timestamp,
           username: parsed.username,
