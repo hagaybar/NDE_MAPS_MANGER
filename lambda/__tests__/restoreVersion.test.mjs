@@ -519,6 +519,50 @@ describe('restoreVersion Lambda', () => {
       expect(body.error).toContain('Invalid versionId format');
     });
 
+    test('should accept versionId with email-style username (dots and @)', async () => {
+      // Cognito usernames are often email addresses; the versionId regex
+      // must allow `.` and `@` in the username portion.
+      const versionId = 'mapping_2026-05-13T11-28-32-995Z_idoah@tauex.tau.ac.il.csv';
+      const currentCsvContent = 'current,data';
+      const versionCsvContent = 'version,data';
+
+      s3Mock.on(GetObjectCommand, { Key: 'data/mapping.csv' }).resolves({
+        Body: createMockStream(currentCsvContent)
+      });
+      s3Mock.on(GetObjectCommand, { Key: `versions/data/${versionId}` }).resolves({
+        Body: createMockStream(versionCsvContent)
+      });
+      s3Mock.on(PutObjectCommand).resolves({});
+      s3Mock.on(ListObjectsV2Command).resolves({ Contents: [] });
+      cloudfrontMock.on(CreateInvalidationCommand).resolves({});
+
+      const event = {
+        pathParameters: { versionId },
+        body: JSON.stringify({}),
+        headers: { Authorization: 'Bearer valid-token' }
+      };
+
+      const result = await handler(event);
+
+      expect(result.statusCode).not.toBe(400);
+    });
+
+    test('should still reject path-traversal even when the regex would otherwise allow chars', async () => {
+      // The separate `..` / `/` guard catches path-traversal attempts before
+      // the regex runs.
+      const event = {
+        pathParameters: { versionId: 'mapping_2026-02-28T10-00-00-000Z_..user.csv' },
+        body: JSON.stringify({}),
+        headers: { Authorization: 'Bearer valid-token' }
+      };
+
+      const result = await handler(event);
+
+      expect(result.statusCode).toBe(400);
+      const body = JSON.parse(result.body);
+      expect(body.error).toContain('Invalid versionId format');
+    });
+
     test('should use default username when not provided and auth has no username', async () => {
       // Arrange
       const currentCsvContent = 'current,data';
