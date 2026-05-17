@@ -169,6 +169,8 @@ function renderVersionRow(version, locale) {
         <button
           data-testid="restore-button"
           data-version-id="${escapeHtml(version.versionId)}"
+          data-version-timestamp="${escapeHtml(version.timestamp || '')}"
+          data-version-username="${escapeHtml(version.username || '')}"
           class="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
           aria-label="${escapeHtml(t('versions.restore'))} ${escapeHtml(formattedTime)}"
         >
@@ -239,7 +241,13 @@ function setupEventListeners() {
       e.stopPropagation();
       const versionId = restoreButton.getAttribute('data-version-id');
       if (onRestoreCallback && versionId) {
-        onRestoreCallback(versionId);
+        // Pass the full version object so the confirm dialog can show
+        // its timestamp and user; falls back gracefully if attrs missing.
+        onRestoreCallback({
+          versionId,
+          timestamp: restoreButton.dataset.versionTimestamp || '',
+          username: restoreButton.dataset.versionUsername || '',
+        });
       }
     } else if (row) {
       // Handle row click for preview
