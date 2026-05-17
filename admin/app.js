@@ -279,14 +279,21 @@ function handleVersionPreview(versionId) {
 
 /**
  * Handle version restore - called when user clicks restore button
- * @param {string} versionId - The version ID to restore
+ * @param {string|Object} versionOrId - Either the version ID (legacy callers)
+ *   or a full version object `{ versionId, timestamp, username }` (preferred —
+ *   lets the confirm dialog display the version's date and user).
  */
-async function handleVersionRestore(versionId) {
+async function handleVersionRestore(versionOrId) {
     const API_ENDPOINT = 'https://tt3xt4tr09.execute-api.us-east-1.amazonaws.com/prod';
+
+    const version = typeof versionOrId === 'string'
+        ? { versionId: versionOrId }
+        : versionOrId;
+    const versionId = version.versionId;
 
     // Show confirmation dialog
     const result = await showRestoreDialog({
-        version: { versionId },
+        version,
         closeOnOverlayClick: true
     });
 
@@ -296,7 +303,7 @@ async function handleVersionRestore(versionId) {
 
     // Show loading state
     showRestoreDialog({
-        version: { versionId },
+        version,
         showLoading: true
     });
 

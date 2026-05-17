@@ -362,7 +362,7 @@ describe('VersionHistory Component', () => {
       expect(onPreviewMock).toHaveBeenCalledWith('v3');
     });
 
-    test('should call onRestore callback when restore button is clicked', async () => {
+    test('should call onRestore callback with full version object when restore button is clicked', async () => {
       const onRestoreMock = jest.fn();
 
       global.fetch.mockResolvedValueOnce({
@@ -375,7 +375,14 @@ describe('VersionHistory Component', () => {
       const firstRestoreButton = document.querySelector('[data-testid="restore-button"]');
       firstRestoreButton.click();
 
-      expect(onRestoreMock).toHaveBeenCalledWith('v3');
+      // The callback receives the full version object so the confirm dialog
+      // can show date + user; matches the row that was rendered first
+      // (newest by timestamp — mockVersions are pre-sorted with v3 newest).
+      expect(onRestoreMock).toHaveBeenCalledWith(expect.objectContaining({
+        versionId: 'v3',
+        timestamp: '2024-02-15T14:30:00Z',
+        username: 'admin',
+      }));
     });
   });
 
