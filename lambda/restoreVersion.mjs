@@ -33,7 +33,10 @@ const corsHeaders = {
 };
 
 // Version filename pattern: mapping_{timestamp}_{username}.csv
-const VERSION_PATTERN = /^mapping_\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z_[a-zA-Z0-9_-]+\.csv$/;
+// Username portion allows letters/digits plus the chars Cognito usernames
+// commonly contain: dot, at-sign, plus, underscore, dash. Path-traversal
+// chars ('/', '..') are blocked by a separate guard in isValidVersionId.
+const VERSION_PATTERN = /^mapping_\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z_[a-zA-Z0-9._@+-]+\.csv$/;
 
 /**
  * Validate versionId format
