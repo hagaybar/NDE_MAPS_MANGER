@@ -168,4 +168,46 @@ describe('CSV Editor — Broken refs filter', () => {
     // The row should be marked for deletion (or removed from csvData)
     confirmSpy.mockRestore();
   });
+
+  // Regression test for the broken-row handlers going through markChanged()
+  // (which refreshes the Save button's disabled state) instead of setting
+  // hasChanges = true directly (which leaves Save permanently disabled).
+  // The delete handler exercises the same code path as the rename handler;
+  // testing one is sufficient since the fix is symmetric.
+  test('confirming a delete on a broken row enables the Save button', async () => {
+    initCSVEditor();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    const mock = await import('../services/data-model.js');
+    mock.getBrokenRefs.mockReturnValue([
+      { rowIndex: 0, svgCode: 'MISSING', floor: 0, type: 'shelf-not-found' },
+    ]);
+
+    let csvTable = document.getElementById('csv-table');
+    if (!csvTable) {
+      csvTable = document.createElement('table');
+      csvTable.id = 'csv-table';
+      (document.getElementById('table-container') || document.body).appendChild(csvTable);
+    }
+    csvTable.innerHTML = `
+      <tr data-row-index="0"><td class="svg-code-cell">MISSING</td></tr>
+    `;
+
+    // initCSVEditor renders its own #btn-save inside the container; resolve it
+    // by id rather than relying on a separately-appended node, otherwise we'd
+    // assert against a stale duplicate.
+    const saveBtn = document.getElementById('btn-save');
+    expect(saveBtn).not.toBeNull();
+    expect(saveBtn.disabled).toBe(true);
+
+    document.querySelector('[data-action="toggle-broken-refs"]').click();
+
+    const deleteBtn = document.querySelector('tr[data-row-index="0"] button[data-action="delete-broken-row"]');
+    const confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(true);
+    deleteBtn.click();
+
+    expect(saveBtn.disabled).toBe(false);
+    confirmSpy.mockRestore();
+  });
 });

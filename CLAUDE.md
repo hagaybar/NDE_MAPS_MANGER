@@ -124,8 +124,8 @@ When rendering dynamic content (tables, grids), call `applyRoleBasedUI()` after 
 ### Lambda CORS headers
 All Lambda functions must return CORS headers in responses, including error responses. Use `createAuthResponse()` from `auth-middleware.mjs` for consistent headers.
 
-### Floor SVG fetches must use `cache: 'no-cache'`
-`loadFloorSvg` (`admin/components/map-editor/svg-loader.js`) and `fetchAndParseSvg` (`admin/services/svg-parser.js`) both pass `{ cache: 'no-cache' }` to `fetch()`. This is a sticky fix for a recurring bug: after any re-upload of `maps/floor_N.svg`, browsers held the previous body in cache and the Map Editor showed a wrong "N unassigned" badge with no clickable shelves. Conditional fetches let CloudFront return 304 when unchanged (no extra bandwidth) and the new body when changed. Full investigation: `docs/audits/2026-05-13-floor-svg-stale-cache.md`. Regression-guarded by `admin/__tests__/svg-loader.test.js` and `admin/__tests__/svg-parser.test.js`.
+### Floor SVG and `mapping.csv` fetches must use `cache: 'no-cache'`
+`loadFloorSvg` (`admin/components/map-editor/svg-loader.js`), `fetchAndParseSvg` (`admin/services/svg-parser.js`), and `loadCSV` (`admin/components/csv-editor.js`) all pass `{ cache: 'no-cache' }` to `fetch()`. This is a sticky fix for a recurring stale-cache bug: after any re-upload of `maps/floor_N.svg` or `data/mapping.csv`, browsers held the previous body in cache and the UI showed wrong state — Map Editor showed a wrong "N unassigned" badge with no clickable shelves; CSV Editor showed pre-save data after reload, making users think their save didn't take. Conditional fetches let CloudFront return 304 when unchanged (no extra bandwidth) and the new body when changed. Full investigation: `docs/audits/2026-05-13-floor-svg-stale-cache.md`. Regression-guarded by `admin/__tests__/svg-loader.test.js`, `admin/__tests__/svg-parser.test.js`, and `admin/__tests__/csv-editor-cache.test.js`.
 
 ### Bundle invariant (CSV ↔ SVG consistency)
 

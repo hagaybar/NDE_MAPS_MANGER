@@ -262,7 +262,7 @@ function applyBrokenRefsFilter() {
       const newId = e.target.value;
       if (!newId) return;
       csvData[Number(idx)].svgCode = newId;
-      hasChanges = true;  // signal to the existing save flow
+      markChanged();  // flips hasChanges AND refreshes the Save button's disabled state
       renderTable();
       renderBrokenRefsToggle();  // recompute count after the row's svgCode changed
     });
@@ -273,7 +273,7 @@ function applyBrokenRefsFilter() {
         .replace('{code}', code);
       if (!window.confirm(confirmMsg)) return;
       csvData.splice(Number(idx), 1);
-      hasChanges = true;
+      markChanged();
       renderTable();
       renderBrokenRefsToggle();  // recompute count after row removed
     });
@@ -343,7 +343,9 @@ async function loadCSV() {
   const tableContainer = document.getElementById('table-container');
 
   try {
-    const response = await fetch(`${CLOUDFRONT_URL}/data/mapping.csv`);
+    // Same no-cache rule as floor SVGs (see CLAUDE.md): without it, a fresh save
+    // followed by reload returns the stale cached body.
+    const response = await fetch(`${CLOUDFRONT_URL}/data/mapping.csv`, { cache: 'no-cache' });
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }

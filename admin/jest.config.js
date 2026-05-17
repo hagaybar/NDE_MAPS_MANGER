@@ -17,6 +17,7 @@ export default {
   injectGlobals: true,
   moduleNameMapper: {
     '^../i18n\\.js\\?v=\\d+$': '<rootDir>/__tests__/mocks/i18n.js',
+    '^../auth-guard\\.js\\?v=\\d+$': '<rootDir>/__tests__/mocks/auth-guard.js',
     '^../services/data-model\\.js$': '<rootDir>/services/data-model.js',
     '^./data-model\\.js$': '<rootDir>/services/data-model.js'
   }
