@@ -4,7 +4,7 @@
  * @module components/validation
  */
 
-import i18n from '../i18n.js?v=3';
+import i18n from '../i18n.js?v=5';
 import {
   REQUIRED_FIELDS,
   FLOOR_VALUES,

@@ -1,5 +1,5 @@
 // Restore Confirm Dialog Component - Modal confirmation for restore operations
-import i18n from '../i18n.js?v=3';
+import i18n from '../i18n.js?v=5';
 
 // Store references for cleanup
 let currentDialog = null;

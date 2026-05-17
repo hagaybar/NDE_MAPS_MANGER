@@ -1,5 +1,5 @@
 // Version Diff Component - Side-by-side diff view comparing current data vs selected version
-import i18n from '../i18n.js?v=3';
+import i18n from '../i18n.js?v=5';
 
 // Module-level variables
 let currentOnClose = null;

@@ -1,5 +1,5 @@
 // Version Preview Component - Side panel/modal showing read-only preview of CSV version content
-import i18n from '../i18n.js?v=3';
+import i18n from '../i18n.js?v=5';
 
 const API_ENDPOINT = 'https://tt3xt4tr09.execute-api.us-east-1.amazonaws.com/prod';
 
