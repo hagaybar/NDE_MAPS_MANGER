@@ -358,7 +358,49 @@ export function rowMatchesRange(row, rangeConfig) {
 }
 
 /**
- * Parses CSV content into an array of row objects
+ * Parse a single CSV line, honoring double-quoted fields (which may contain
+ * commas or escaped `""` inner quotes). Mirrors `parseCSVLine` in the admin
+ * SPA's csv-editor.js — the two MUST stay equivalent so bundle validation
+ * sees the same rows server-side as the user sees client-side.
+ */
+function parseCsvLine(line) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    const nextChar = line[i + 1];
+    if (inQuotes) {
+      if (char === '"' && nextChar === '"') {
+        current += '"';
+        i++;
+      } else if (char === '"') {
+        inQuotes = false;
+      } else {
+        current += char;
+      }
+    } else if (char === '"') {
+      inQuotes = true;
+    } else if (char === ',') {
+      result.push(current);
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  result.push(current);
+  return result;
+}
+
+/**
+ * Parses CSV content into an array of row objects.
+ *
+ * Handles double-quoted fields containing commas (e.g. a collection name like
+ * `"Reference Department, entrance floor"`). The previous implementation used
+ * a naive `split(',')` which mis-aligned every column after a quoted comma,
+ * causing the bundle invariant validator to see phantom `shelf-not-found`
+ * errors on rows whose data was actually fine.
+ *
  * @param {string} csvContent - The CSV content string
  * @returns {{ headers: string[], rows: Object[] }} Parsed CSV data
  */
@@ -368,14 +410,14 @@ export function parseCsvContent(csvContent) {
     return { headers: [], rows: [] };
   }
 
-  const headers = lines[0].split(',').map(h => h.trim());
+  const headers = parseCsvLine(lines[0]).map(h => h.trim());
   const rows = [];
 
   for (let i = 1; i < lines.length; i++) {
-    const values = lines[i].split(',');
+    const values = parseCsvLine(lines[i]);
     const row = {};
     headers.forEach((header, index) => {
-      row[header] = values[index] ? values[index].trim() : '';
+      row[header] = values[index] !== undefined ? values[index].trim() : '';
     });
     rows.push(row);
   }
