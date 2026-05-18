@@ -40,7 +40,7 @@ function t(key) {
 // Constants
 const API_ENDPOINT = 'https://tt3xt4tr09.execute-api.us-east-1.amazonaws.com/prod';
 const CLOUDFRONT_URL = 'https://d3h8i7y9p8lyw7.cloudfront.net';
-const STAGING_API_BASE = `${API_ENDPOINT}/staging`;
+const STAGING_API_BASE = `${API_ENDPOINT}/api/staging`;
 // Feature flag: read from window for ease of A/B testing. Defaults to false.
 // Once Task 16 cutover runs, this constant flips to true.
 const USE_STAGING_FLOW = window.__USE_STAGING_FLOW__ === true;
