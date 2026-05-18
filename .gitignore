@@ -5,6 +5,8 @@ node_modules/
 # Build outputs
 *.zip
 !lambda/*.zip
+lambda/dist/
+lambda/staging-build/
 
 # IDE
 .vscode/
