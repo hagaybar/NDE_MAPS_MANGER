@@ -295,3 +295,22 @@ fields @timestamp, errorCount, enforced
 
 Set `BUNDLE_INVARIANT_ENABLED=false` (re-run the `update-function-configuration`
 command above). System reverts to log-only mode; no other changes needed.
+
+## Staging Lifecycle Policy
+
+Objects under the `staging/` prefix are auto-deleted 7 days after creation.
+Implemented as an S3 lifecycle rule:
+
+```json
+{
+  "ID": "expire-staging-after-7-days",
+  "Status": "Enabled",
+  "Filter": { "Prefix": "staging/" },
+  "Expiration": { "Days": 7 }
+}
+```
+
+Rationale: an operator who abandons an SVG-replace flow shouldn't leave
+artifacts in S3 forever. 7 days gives a full week to resume an in-progress
+session before cleanup takes over.
+
