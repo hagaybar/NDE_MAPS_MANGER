@@ -118,6 +118,11 @@
         <!-- Toast notifications will be inserted here -->
     </div>
 
+    <!-- Plan B cutover (Task 16): make staging flow the default replace path. -->
+    <!-- Must be set BEFORE app.js loads so svg-manager.js sees it at module init. -->
+    <!-- To roll back to legacy direct-PUT, delete this script tag. -->
+    <script>window.__USE_STAGING_FLOW__ = true;</script>
+
     <!-- App Script -->
     <script type="module" src="app.js?v=5"></script>
 </body>

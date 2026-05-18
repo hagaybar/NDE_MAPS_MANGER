@@ -295,3 +295,47 @@ fields @timestamp, errorCount, enforced
 
 Set `BUNDLE_INVARIANT_ENABLED=false` (re-run the `update-function-configuration`
 command above). System reverts to log-only mode; no other changes needed.
+
+## Staging Lifecycle Policy
+
+Objects under the `staging/` prefix are auto-deleted 7 days after creation.
+Implemented as an S3 lifecycle rule:
+
+```json
+{
+  "ID": "expire-staging-after-7-days",
+  "Status": "Enabled",
+  "Filter": { "Prefix": "staging/" },
+  "Expiration": { "Days": 7 }
+}
+```
+
+Rationale: an operator who abandons an SVG-replace flow shouldn't leave
+artifacts in S3 forever. 7 days gives a full week to resume an in-progress
+session before cleanup takes over.
+
+
+## Staging API routes
+
+Six new POST/GET endpoints under `/api/staging` on API Gateway `tt3xt4tr09`:
+
+| Path | Method | Lambda | Purpose |
+|---|---|---|---|
+| `/api/staging/upload` | POST | primo-maps-uploadStagingSvg | Upload a new SVG to staging |
+| `/api/staging/validate` | POST | primo-maps-validateStaging | Run bundle-consistency check |
+| `/api/staging/reconcile` | POST | primo-maps-applyReconcileToStaging | Apply a rename/delete map to staging CSV |
+| `/api/staging/promote` | POST | primo-maps-promoteStaging | Copy staging → production |
+| `/api/staging/clear` | POST | primo-maps-clearStaging | Discard staging area |
+| `/api/staging/status` | GET | primo-maps-getStagingStatus | Read current staging state |
+
+All require admin role (enforced by `role-auth.mjs` inside each Lambda). All
+share the existing `primo-maps-lambda-role` IAM role (AmazonS3FullAccess +
+CloudFrontFullAccess + AWSLambdaBasicExecutionRole + Cognito inline).
+
+Frontend gating: routes are unused until `window.__USE_STAGING_FLOW__ === true`
+(see `admin/components/svg-manager.js`, `USE_STAGING_FLOW` constant). Task 16
+of Plan B flips the flag to default-on.
+
+Reproducible redeploy: `deploy-staging-lambdas.sh` at the repo root is
+idempotent — it skip-with-logs any resource that already exists and creates
+only what's missing.

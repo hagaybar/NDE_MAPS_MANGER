@@ -3,6 +3,8 @@ import i18n from '../i18n.js?v=5';
 import { showToast } from './toast.js?v=5';
 import { getAuthHeaders, getCurrentUsername } from '../app.js?v=5';
 import { applyRoleBasedUI } from '../auth-guard.js?v=5';
+import { renderStagingPanel } from './svg-manager/staging-panel.js?v=5';
+import { renderReconcileWizard } from './svg-manager/reconcile-wizard.js?v=5';
 
 // Fallback translations if i18n hasn't loaded yet
 const FALLBACKS = {
@@ -16,6 +18,12 @@ const FALLBACKS = {
   'svg.confirmReplace': { en: 'Replace {filename} with the new file? The current version will be archived in Version History.', he: 'להחליף את {filename} בקובץ החדש? הגרסה הקודמת תיארכב בהיסטוריית הגרסאות.' },
   'svg.replaceSuccess': { en: 'Replaced {filename}. Previous version archived.', he: 'הקובץ {filename} הוחלף. הגרסה הקודמת נשמרה.' },
   'svg.replaceError': { en: 'Failed to replace file.', he: 'נכשל בהחלפת הקובץ.' },
+  'svg.staging.validateFailed':  { en: 'Validation request failed',                he: 'בקשת ולידציה נכשלה' },
+  'svg.staging.promoteFailed':   { en: 'Promote failed',                           he: 'קידום נכשל' },
+  'svg.staging.promoted':        { en: 'Staging promoted to production',           he: 'הסביבה קודמה לייצור' },
+  'svg.staging.uploadFailed':    { en: 'Upload to staging failed',                 he: 'העלאה לסביבת בדיקה נכשלה' },
+  'svg.staging.reconcileFailed': { en: 'Reconcile failed',                         he: 'יישוב נכשל' },
+  'svg.staging.confirmDiscard':  { en: 'Discard the staged changes?',              he: 'להשליך את השינויים בסביבת הבדיקה?' },
   'common.error': { en: 'An error occurred', he: 'אירעה שגיאה' },
   'common.loading': { en: 'Loading...', he: 'טוען...' }
 };
@@ -32,6 +40,10 @@ function t(key) {
 // Constants
 const API_ENDPOINT = 'https://tt3xt4tr09.execute-api.us-east-1.amazonaws.com/prod';
 const CLOUDFRONT_URL = 'https://d3h8i7y9p8lyw7.cloudfront.net';
+const STAGING_API_BASE = `${API_ENDPOINT}/api/staging`;
+// Feature flag: read from window for ease of A/B testing. Defaults to false.
+// Once Task 16 cutover runs, this constant flips to true.
+const USE_STAGING_FLOW = window.__USE_STAGING_FLOW__ === true;
 
 // Module variables
 let svgFiles = [];
@@ -56,6 +68,16 @@ export function initSVGManager() {
     setupManagerEvents();
     renderGrid();
     applyRoleBasedUI();
+    if (USE_STAGING_FLOW) {
+      refreshStagingPanel().catch(err => console.error('Failed to refresh staging panel:', err));
+    }
+  });
+
+  // External code can request a staging panel refresh (e.g. after an upload).
+  document.addEventListener('staging:refresh', () => {
+    if (USE_STAGING_FLOW) {
+      refreshStagingPanel().catch(err => console.error('Failed to refresh staging panel:', err));
+    }
   });
 }
 
@@ -93,6 +115,9 @@ function renderManager() {
           class="hidden"
         >
       </div>
+
+      <!-- Staging Panel (gated by USE_STAGING_FLOW) -->
+      <div id="staging-panel-host" class="mb-4"></div>
 
       <!-- File Grid -->
       <div id="svg-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -141,6 +166,10 @@ async function loadFiles() {
     renderGrid();
     // Re-apply role-based UI visibility for dynamically added delete buttons
     applyRoleBasedUI();
+    // Refresh the staging panel after the file grid renders (feature-gated).
+    if (USE_STAGING_FLOW) {
+      refreshStagingPanel().catch(err => console.error('Failed to refresh staging panel:', err));
+    }
   } catch (error) {
     console.error('Failed to load SVG files:', error);
     gridContainer.innerHTML = `
@@ -149,6 +178,123 @@ async function loadFiles() {
       </div>
     `;
   }
+}
+
+/**
+ * Fetch staging status and render the staging panel. No-op when the staging
+ * flow is disabled or the mount point is absent.
+ */
+async function refreshStagingPanel() {
+  const host = document.getElementById('staging-panel-host');
+  if (!host) return;
+  const resp = await fetch(`${STAGING_API_BASE}/status`, {
+    headers: getAuthHeaders(),
+  });
+  if (!resp.ok) return;
+  const status = await resp.json();
+  renderStagingPanel(host, status, {
+    currentUser: getCurrentUsername(),
+  });
+  wireStagingActions();
+}
+
+/**
+ * Wire click handlers for the staging panel action buttons. Re-attached on
+ * every render because the panel is fully re-rendered each refresh.
+ */
+function wireStagingActions() {
+  const host = document.getElementById('staging-panel-host');
+  if (!host) return;
+  host.querySelector('[data-action="validate-staging"]')?.addEventListener('click', async () => {
+    const resp = await fetch(`${STAGING_API_BASE}/validate`, {
+      method: 'POST',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: '{}',
+    });
+    if (!resp.ok) {
+      showToast(t('svg.staging.validateFailed'));
+      return;
+    }
+    await refreshStagingPanel();
+  });
+
+  host.querySelector('[data-action="promote-staging"]')?.addEventListener('click', async () => {
+    const resp = await fetch(`${STAGING_API_BASE}/promote`, {
+      method: 'POST',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: '{}',
+    });
+    if (!resp.ok) {
+      const err = await resp.json();
+      showToast(`${t('svg.staging.promoteFailed')}: ${err.error}`);
+      return;
+    }
+    showToast(t('svg.staging.promoted'));
+    await refreshStagingPanel();
+    await loadFiles();  // existing function that re-fetches the production file grid
+  });
+
+  host.querySelector('[data-action="discard-staging"]')?.addEventListener('click', async () => {
+    if (!window.confirm(t('svg.staging.confirmDiscard'))) return;
+    await fetch(`${STAGING_API_BASE}/clear`, {
+      method: 'POST',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: '{}',
+    });
+    await refreshStagingPanel();
+  });
+
+  host.querySelector('[data-action="open-reconcile-wizard"]')?.addEventListener('click', async () => {
+    const statusResp = await fetch(`${STAGING_API_BASE}/status`, { headers: getAuthHeaders() });
+    const status = await statusResp.json();
+    const validated = status.lastValidated;
+    if (!validated || validated.ok) return;
+    // For v1, assume reconcile is for a single floor; pick the floor with the most removedRefs
+    const byFloor = {};
+    for (const r of validated.summary.removedRefs) {
+      byFloor[r.floor] = byFloor[r.floor] || { floor: r.floor, removedRefs: [], addedShelves: [] };
+      byFloor[r.floor].removedRefs.push(r);
+    }
+    for (const a of validated.summary.addedShelves) {
+      byFloor[a.floor] = byFloor[a.floor] || { floor: a.floor, removedRefs: [], addedShelves: [] };
+      byFloor[a.floor].addedShelves.push(a);
+    }
+    const firstFloor = Object.values(byFloor)[0];
+    renderReconcileWizard(
+      document.getElementById('staging-panel-host'),
+      firstFloor,
+      async (floor, reconcileMap) => {
+        const resp = await fetch(`${STAGING_API_BASE}/reconcile`, {
+          method: 'POST',
+          headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ floor, reconcileMap }),
+        });
+        if (!resp.ok) {
+          showToast(t('svg.staging.reconcileFailed'));
+          return;
+        }
+        // Re-validate immediately after applying
+        await fetch(`${STAGING_API_BASE}/validate`, {
+          method: 'POST',
+          headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+          body: '{}',
+        });
+        await refreshStagingPanel();
+      }
+    );
+  });
+}
+
+/**
+ * Encode a File as a base64 string suitable for JSON transport to the
+ * staging-upload Lambda.
+ */
+async function fileToBase64(file) {
+  const buffer = await file.arrayBuffer();
+  let binary = '';
+  const bytes = new Uint8Array(buffer);
+  for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary);
 }
 
 /**
@@ -407,6 +553,37 @@ async function uploadFile(file) {
 async function replaceFile(targetFilename, file) {
   if (!file.name.toLowerCase().endsWith('.svg')) {
     showToast(i18n.t('svg.invalidFile') || 'Only SVG files are allowed', 'error');
+    return;
+  }
+
+  // Staged-replace branch: upload to /staging/upload, then trigger validation.
+  // Feature-flagged so the existing direct-PUT flow remains the default until
+  // Task 16 flips USE_STAGING_FLOW to true.
+  if (USE_STAGING_FLOW) {
+    try {
+      const base64 = await fileToBase64(file);
+      const floor = Number(targetFilename.match(/floor_(\d+)\.svg/)?.[1]);
+      const resp = await fetch(`${STAGING_API_BASE}/upload`, {
+        method: 'POST',
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ floor, svgBase64: base64 }),
+      });
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        showToast(`${t('svg.staging.uploadFailed')}: ${err.error || resp.status}`);
+        return;
+      }
+      // Trigger validation immediately
+      await fetch(`${STAGING_API_BASE}/validate`, {
+        method: 'POST',
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: '{}',
+      });
+      await refreshStagingPanel();
+    } catch (err) {
+      console.error('Failed to upload SVG to staging:', err);
+      showToast(t('svg.staging.uploadFailed'));
+    }
     return;
   }
 
