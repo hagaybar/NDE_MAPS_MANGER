@@ -277,7 +277,7 @@ import { Readable } from 'stream';
 
 const s3Mock = mockClient(S3Client);
 
-function streamFromString(s) { return { Body: Readable.from([Buffer.from(s)]) }; }
+function streamFromString(s) { return { get Body() { return Readable.from([Buffer.from(s)]); } }; }
 function event({ floor = 1, svgBase64, user = 'alice' } = {}) {
   return {
     httpMethod: 'POST',
@@ -487,7 +487,7 @@ import { Readable } from 'stream';
 
 const s3Mock = mockClient(S3Client);
 
-function streamFromString(s) { return { Body: Readable.from([Buffer.from(s)]) }; }
+function streamFromString(s) { return { get Body() { return Readable.from([Buffer.from(s)]); } }; }
 function event() {
   return {
     httpMethod: 'POST',
@@ -518,6 +518,13 @@ describe('validateStaging', () => {
     s3Mock.on(GetObjectCommand, { Key: 'staging/maps/floor_1.svg' }).resolves(
       streamFromString('<svg><rect id="CC_X" data-map-object="shelf"/></svg>')
     );
+    // floors 0 and 2 have no staged SVG — fall back to prod (aws-sdk-client-mock v4 returns undefined for unmocked calls, not NoSuchKey, so we must reject explicitly to exercise fetchObjectOrFallback)
+    s3Mock.on(GetObjectCommand, { Key: 'staging/maps/floor_0.svg' }).rejects(
+      Object.assign(new Error('NoSuchKey'), { name: 'NoSuchKey' })
+    );
+    s3Mock.on(GetObjectCommand, { Key: 'staging/maps/floor_2.svg' }).rejects(
+      Object.assign(new Error('NoSuchKey'), { name: 'NoSuchKey' })
+    );
     // unchanged prod files
     s3Mock.on(GetObjectCommand, { Key: 'maps/floor_0.svg' }).resolves(streamFromString('<svg><rect id="CB_0" data-map-object="shelf"/></svg>'));
     s3Mock.on(GetObjectCommand, { Key: 'maps/floor_2.svg' }).resolves(streamFromString('<svg/>'));
@@ -546,6 +553,13 @@ Lib,LibHe,Coll,CollHe,000,999,CC_X,,,1,,,,
     s3Mock.on(GetObjectCommand, { Key: 'staging/maps/floor_1.svg' }).resolves(
       streamFromString('<svg><rect id="CC_NEW" data-map-object="shelf"/></svg>')
     );
+    // floors 0 and 2 have no staged SVG — fall back to prod (aws-sdk-client-mock v4 returns undefined for unmocked calls, not NoSuchKey, so we must reject explicitly to exercise fetchObjectOrFallback)
+    s3Mock.on(GetObjectCommand, { Key: 'staging/maps/floor_0.svg' }).rejects(
+      Object.assign(new Error('NoSuchKey'), { name: 'NoSuchKey' })
+    );
+    s3Mock.on(GetObjectCommand, { Key: 'staging/maps/floor_2.svg' }).rejects(
+      Object.assign(new Error('NoSuchKey'), { name: 'NoSuchKey' })
+    );
     s3Mock.on(GetObjectCommand, { Key: 'maps/floor_0.svg' }).resolves(streamFromString('<svg><rect id="CB_0" data-map-object="shelf"/></svg>'));
     s3Mock.on(GetObjectCommand, { Key: 'maps/floor_2.svg' }).resolves(streamFromString('<svg/>'));
     s3Mock.on(GetObjectCommand, { Key: 'data/mapping.csv' }).resolves(
@@ -566,7 +580,7 @@ Lib,LibHe,Coll,CollHe,000,999,CC_X,,,1,,,,
     const body = JSON.parse(resp.body);
     expect(body.ok).toBe(false);
     expect(body.errors[0]).toMatchObject({ svgCode: 'CC_X', floor: 1, type: 'shelf-not-found' });
-    expect(body.summary.removedRefs).toEqual([{ svgCode: 'CC_X', affectedRowCount: 1 }]);
+    expect(body.summary.removedRefs).toEqual([{ svgCode: 'CC_X', floor: 1, affectedRowCount: 1 }]);
   });
 });
 ```
@@ -624,7 +638,7 @@ export const handler = async (event) => {
 
   // Fetch CSV: staged if present, otherwise production
   const csvString = await fetchObjectOrFallback('staging/data/mapping.csv', 'data/mapping.csv');
-  const rows = parseCsvContent(csvString);
+  const { rows } = parseCsvContent(csvString);
 
   const csvRowsForValidation = rows.map((row, idx) => ({
     rowIndex: idx,
@@ -634,7 +648,7 @@ export const handler = async (event) => {
   const result = validateBundle(csvRowsForValidation, svgShelfIdsByFloor);
 
   // Compute summary diff vs production (informational)
-  const prodCsvRows = parseCsvContent(await fetchObject('data/mapping.csv'));
+  const { rows: prodCsvRows } = parseCsvContent(await fetchObject('data/mapping.csv'));
   const prodRefsByFloor = {};
   for (const r of prodCsvRows) {
     const f = Number(r.floor);
@@ -723,7 +737,7 @@ import { Readable } from 'stream';
 
 const s3Mock = mockClient(S3Client);
 
-function streamFromString(s) { return { Body: Readable.from([Buffer.from(s)]) }; }
+function streamFromString(s) { return { get Body() { return Readable.from([Buffer.from(s)]); } }; }
 function event(body) {
   return {
     httpMethod: 'POST',
@@ -889,8 +903,8 @@ export const handler = async (event) => {
     }
   }
 
-  // Apply the reconcileMap
-  const rows = parseCsvContent(csvString);
+  // Apply the reconcileMap (parseCsvContent returns { headers, rows } — destructure)
+  const { rows } = parseCsvContent(csvString);
   let affected = 0;
   const newRows = [];
   for (const row of rows) {
@@ -998,7 +1012,7 @@ import { Readable } from 'stream';
 const s3Mock = mockClient(S3Client);
 const cfMock = mockClient(CloudFrontClient);
 
-function streamFromString(s) { return { Body: Readable.from([Buffer.from(s)]) }; }
+function streamFromString(s) { return { get Body() { return Readable.from([Buffer.from(s)]); } }; }
 function event() {
   return { httpMethod: 'POST', headers: { authorization: 'Bearer admin-token' }, body: '{}' };
 }
@@ -1035,6 +1049,13 @@ describe('promoteStaging', () => {
     // Fixtures for the final re-validation
     s3Mock.on(GetObjectCommand, { Key: 'staging/maps/floor_1.svg' }).resolves(
       streamFromString('<svg><rect id="CC_NEW" data-map-object="shelf"/></svg>')
+    );
+    // Floors 0 and 2 have no staged SVG — fall back to prod (must explicitly reject so fetchObjectOrFallback catches NoSuchKey)
+    s3Mock.on(GetObjectCommand, { Key: 'staging/maps/floor_0.svg' }).rejects(
+      Object.assign(new Error('NoSuchKey'), { name: 'NoSuchKey' })
+    );
+    s3Mock.on(GetObjectCommand, { Key: 'staging/maps/floor_2.svg' }).rejects(
+      Object.assign(new Error('NoSuchKey'), { name: 'NoSuchKey' })
     );
     s3Mock.on(GetObjectCommand, { Key: 'maps/floor_0.svg' }).resolves(streamFromString('<svg><rect id="CB_0" data-map-object="shelf"/></svg>'));
     s3Mock.on(GetObjectCommand, { Key: 'maps/floor_2.svg' }).resolves(streamFromString('<svg/>'));
@@ -1076,6 +1097,13 @@ Lib,LibHe,Coll,CollHe,000,999,CC_NEW,,,1,,,,
     // Staged: floor_1 SVG no longer has CC_X
     s3Mock.on(GetObjectCommand, { Key: 'staging/maps/floor_1.svg' }).resolves(
       streamFromString('<svg><rect id="CC_NEW" data-map-object="shelf"/></svg>')
+    );
+    // Floors 0 and 2 have no staged SVG — fall back to prod (must explicitly reject so fetchObjectOrFallback catches NoSuchKey)
+    s3Mock.on(GetObjectCommand, { Key: 'staging/maps/floor_0.svg' }).rejects(
+      Object.assign(new Error('NoSuchKey'), { name: 'NoSuchKey' })
+    );
+    s3Mock.on(GetObjectCommand, { Key: 'staging/maps/floor_2.svg' }).rejects(
+      Object.assign(new Error('NoSuchKey'), { name: 'NoSuchKey' })
     );
     s3Mock.on(GetObjectCommand, { Key: 'maps/floor_0.svg' }).resolves(streamFromString('<svg/>'));
     s3Mock.on(GetObjectCommand, { Key: 'maps/floor_2.svg' }).resolves(streamFromString('<svg/>'));
@@ -1153,7 +1181,7 @@ export const handler = async (event) => {
     svgShelfIdsByFloor[floor] = new Set(shelves);
   }
   const csvString = await fetchObjectOrFallback('staging/data/mapping.csv', 'data/mapping.csv');
-  const rows = parseCsvContent(csvString);
+  const { rows } = parseCsvContent(csvString);
   const csvRowsForValidation = rows.map((row, idx) => ({
     rowIndex: idx,
     svgCode: String(row.svgCode || ''),
@@ -1268,7 +1296,7 @@ import { Readable } from 'stream';
 
 const s3Mock = mockClient(S3Client);
 
-function streamFromString(s) { return { Body: Readable.from([Buffer.from(s)]) }; }
+function streamFromString(s) { return { get Body() { return Readable.from([Buffer.from(s)]); } }; }
 function event() { return { httpMethod: 'POST', headers: { authorization: 'Bearer admin-token' }, body: '{}' }; }
 
 describe('clearStaging', () => {
@@ -1403,7 +1431,7 @@ import { Readable } from 'stream';
 
 const s3Mock = mockClient(S3Client);
 
-function streamFromString(s) { return { Body: Readable.from([Buffer.from(s)]) }; }
+function streamFromString(s) { return { get Body() { return Readable.from([Buffer.from(s)]); } }; }
 function event() { return { httpMethod: 'GET', headers: { authorization: 'Bearer admin-token' } }; }
 
 describe('getStagingStatus', () => {
