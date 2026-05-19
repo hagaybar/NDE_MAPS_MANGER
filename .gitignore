@@ -16,6 +16,10 @@ lambda/staging-build/
 .DS_Store
 Thumbs.db
 
+# Python compile cache (used by docs/manual-qa scripts)
+__pycache__/
+*.pyc
+
 # Test coverage
 coverage/
 
