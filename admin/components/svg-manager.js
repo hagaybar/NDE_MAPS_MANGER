@@ -24,6 +24,10 @@ const FALLBACKS = {
   'svg.staging.uploadFailed':    { en: 'Upload to staging failed',                 he: 'העלאה לסביבת בדיקה נכשלה' },
   'svg.staging.reconcileFailed': { en: 'Reconcile failed',                         he: 'יישוב נכשל' },
   'svg.staging.confirmDiscard':  { en: 'Discard the staged changes?',              he: 'להשליך את השינויים בסביבת הבדיקה?' },
+  'svg.staging.progress.uploading':    { en: 'Uploading {filename}…',                        he: 'מעלה את {filename}…' },
+  'svg.staging.progress.validating':   { en: 'Validating staging…',                          he: 'בודק את סביבת הבדיקה…' },
+  'svg.staging.progress.refreshing':   { en: 'Updating staging panel…',                      he: 'מעדכן את לוח סביבת הבדיקה…' },
+  'svg.staging.progress.leaveWarning': { en: 'An upload is in progress. Leaving may leave staging in an inconsistent state.', he: 'העלאה מתבצעת. עזיבה כעת עלולה להשאיר את סביבת הבדיקה במצב לא עקבי.' },
   'common.error': { en: 'An error occurred', he: 'אירעה שגיאה' },
   'common.loading': { en: 'Loading...', he: 'טוען...' }
 };
@@ -541,6 +545,100 @@ async function uploadFile(file) {
 }
 
 /**
+ * Selectors for file-grid action buttons that should be locked while a
+ * staging sequence is in flight. Keeps the user from triggering concurrent
+ * destructive operations (replace/delete) or starting a second upload.
+ */
+const STAGING_BUSY_SELECTORS = [
+  '#svg-grid .btn-replace',
+  '#svg-grid .btn-delete',
+  '#svg-grid .btn-download',
+  '#btn-upload-toggle',
+];
+
+/**
+ * Find (or create) the progress text element used by the staged-replace
+ * sequence. Inserted above the staging panel so it sits in the visual flow
+ * of the SVG Manager card. Returns null if the SVG Manager DOM isn't
+ * mounted (e.g., tests that don't seed the container).
+ */
+function ensureStagingProgressElement() {
+  let el = document.querySelector('[data-testid="staging-progress"]');
+  if (el) return el;
+  el = document.createElement('div');
+  el.setAttribute('data-testid', 'staging-progress');
+  el.setAttribute('role', 'status');
+  el.setAttribute('aria-live', 'polite');
+  el.className = 'mb-3 text-sm text-blue-700 font-medium';
+  const stagingHost = document.getElementById('staging-panel-host');
+  if (stagingHost && stagingHost.parentNode) {
+    stagingHost.parentNode.insertBefore(el, stagingHost);
+    return el;
+  }
+  const manager = document.getElementById('svg-manager');
+  if (manager) {
+    manager.appendChild(el);
+    return el;
+  }
+  return null;
+}
+
+/**
+ * Begin the staged-replace UI sequence: disables the file-grid action
+ * buttons, marks them aria-busy, mounts a progress text element, and
+ * attaches a beforeunload guard. Returns a small controller with
+ * `setStep(name)` and `end()` so the caller can update progress between
+ * network calls and tear down the UI state in a finally block.
+ *
+ * The beforeunload listener is stored on the controller as a single bound
+ * function reference so add/remove pair correctly — attaching one anonymous
+ * function and removing a different one would silently leak the listener.
+ *
+ * @param {string} filename — used in the "Uploading <filename>…" message.
+ */
+function beginStagingSequence(filename) {
+  const buttons = Array.from(document.querySelectorAll(STAGING_BUSY_SELECTORS.join(',')));
+  for (const btn of buttons) {
+    btn.disabled = true;
+    btn.setAttribute('aria-busy', 'true');
+  }
+  const progressEl = ensureStagingProgressElement();
+  const beforeUnloadHandler = (event) => {
+    const msg = t('svg.staging.progress.leaveWarning');
+    event.returnValue = msg;
+    return msg;
+  };
+  window.addEventListener('beforeunload', beforeUnloadHandler);
+
+  const writeProgress = (text) => {
+    if (progressEl) progressEl.textContent = text;
+  };
+
+  let finished = false;
+  return {
+    setStep(name) {
+      if (name === 'uploading') {
+        writeProgress(t('svg.staging.progress.uploading').replace('{filename}', filename));
+      } else if (name === 'validating') {
+        writeProgress(t('svg.staging.progress.validating'));
+      } else if (name === 'refreshing') {
+        writeProgress(t('svg.staging.progress.refreshing'));
+      }
+    },
+    end() {
+      if (finished) return;
+      finished = true;
+      window.removeEventListener('beforeunload', beforeUnloadHandler);
+      for (const btn of buttons) {
+        btn.disabled = false;
+        btn.removeAttribute('aria-busy');
+      }
+      writeProgress('');
+    },
+  };
+}
+
+/**
  * Replace an existing SVG file with a new body, preserving the original filename.
  *
  * Backend (`lambda/uploadSvg.mjs`) writes the prior body to
@@ -560,9 +658,14 @@ async function replaceFile(targetFilename, file) {
   // Feature-flagged so the existing direct-PUT flow remains the default until
   // Task 16 flips USE_STAGING_FLOW to true.
   if (USE_STAGING_FLOW) {
+    // Issue #58: provide per-step UI feedback during the upload → validate →
+    // refresh sequence. Without this, librarians sit through 3-15s of silent
+    // UI and frequently double-click Replace or close the tab mid-flight.
+    const sequence = beginStagingSequence(targetFilename);
     try {
       const base64 = await fileToBase64(file);
       const floor = Number(targetFilename.match(/floor_(\d+)\.svg/)?.[1]);
+      sequence.setStep('uploading');
       const resp = await fetch(`${STAGING_API_BASE}/upload`, {
         method: 'POST',
         headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
@@ -574,15 +677,19 @@ async function replaceFile(targetFilename, file) {
         return;
       }
       // Trigger validation immediately
+      sequence.setStep('validating');
       await fetch(`${STAGING_API_BASE}/validate`, {
         method: 'POST',
         headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
         body: '{}',
       });
+      sequence.setStep('refreshing');
       await refreshStagingPanel();
     } catch (err) {
       console.error('Failed to upload SVG to staging:', err);
       showToast(t('svg.staging.uploadFailed'));
+    } finally {
+      sequence.end();
     }
     return;
   }
