@@ -21,8 +21,8 @@ export const handler = async (event) => {
   }
 
   const authResult = await validateToken(event);
-  if (!authResult.valid) return createAuthResponse(401, { error: 'Invalid token' }, CORS_HEADERS);
-  const perm = checkPermission(authResult.claims, 'admin');
+  if (!authResult.isValid) return createAuthResponse(401, { error: 'Invalid token' }, CORS_HEADERS);
+  const perm = checkPermission(authResult.user, 'delete');
   if (!perm.allowed) return createAuthResponse(403, { error: 'Admin role required' }, CORS_HEADERS);
 
   const meta = await readMeta(BUCKET);
