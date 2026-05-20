@@ -5,6 +5,7 @@ import { getAuthHeaders, getCurrentUsername } from '../app.js?v=5';
 import { applyRoleBasedUI } from '../auth-guard.js?v=5';
 import { renderStagingPanel } from './svg-manager/staging-panel.js?v=5';
 import { renderReconcileWizard } from './svg-manager/reconcile-wizard.js?v=5';
+import { showStagingProgressModal } from './staging-progress-modal.js?v=5';
 
 // Fallback translations if i18n hasn't loaded yet
 const FALLBACKS = {
@@ -223,37 +224,52 @@ function wireStagingActions() {
   });
 
   host.querySelector('[data-action="promote-staging"]')?.addEventListener('click', async () => {
-    const resp = await fetch(`${STAGING_API_BASE}/promote`, {
-      method: 'POST',
-      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
-      body: '{}',
-    });
-    if (!resp.ok) {
-      const err = await resp.json();
-      showToast(`${t('svg.staging.promoteFailed')}: ${err.error}`);
-      return;
-    }
-    // Capture promotedVersions BEFORE the panel refresh — it's the only signal
-    // a consumer (map-editor/svg-loader.js, issue #50) has to know which floors
-    // just changed. The Lambda returns { ok: true, promotedVersions: { 'floor_N.svg': '<versionId>', ... } }.
-    let promotedVersions = {};
+    // Issue #62: promote runs the same multi-fetch chain (promote → refresh
+    // status → reload file grid) and was previously silent for 5–15s. Use
+    // the same blocking modal as the staged-replace sequence so the user
+    // can't dismiss or trigger duplicate actions while it's in flight.
+    const sequence = beginStagingSequence('promote');
+    sequence.setStep('uploading');
     try {
-      const body = await resp.json();
-      promotedVersions = body?.promotedVersions || {};
-    } catch (_) {
-      // Tolerate missing/non-JSON body — the dispatch still goes out with an
-      // empty payload so consumers can fall back to a blanket refresh.
+      const resp = await fetch(`${STAGING_API_BASE}/promote`, {
+        method: 'POST',
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: '{}',
+      });
+      if (!resp.ok) {
+        const err = await resp.json();
+        showToast(`${t('svg.staging.promoteFailed')}: ${err.error}`);
+        return;
+      }
+      // Capture promotedVersions BEFORE the panel refresh — it's the only signal
+      // a consumer (map-editor/svg-loader.js, issue #50) has to know which floors
+      // just changed. The Lambda returns { ok: true, promotedVersions: { 'floor_N.svg': '<versionId>', ... } }.
+      let promotedVersions = {};
+      try {
+        const body = await resp.json();
+        promotedVersions = body?.promotedVersions || {};
+      } catch (_) {
+        // Tolerate missing/non-JSON body — the dispatch still goes out with an
+        // empty payload so consumers can fall back to a blanket refresh.
+      }
+      sequence.setStep('validating');
+      await refreshStagingPanel();
+      sequence.setStep('refreshing');
+      await loadFiles();  // existing function that re-fetches the production file grid
+      showToast(t('svg.staging.promoted'));
+      // Issue #50: notify other views (currently Map Editor) that production SVG
+      // bytes have changed so they can re-fetch. Dispatched AFTER the local
+      // panel/grid refresh so the SVG Manager view is already settled; consumers
+      // see a single coherent event. Not fired on non-2xx promote (early return).
+      document.dispatchEvent(new CustomEvent('svg-promoted', {
+        detail: { promotedVersions, ts: Date.now() },
+      }));
+    } catch (err) {
+      console.error('Failed to promote staging:', err);
+      showToast(t('svg.staging.promoteFailed'));
+    } finally {
+      sequence.end();
     }
-    showToast(t('svg.staging.promoted'));
-    await refreshStagingPanel();
-    await loadFiles();  // existing function that re-fetches the production file grid
-    // Issue #50: notify other views (currently Map Editor) that production SVG
-    // bytes have changed so they can re-fetch. Dispatched AFTER the local
-    // panel/grid refresh so the SVG Manager view is already settled; consumers
-    // see a single coherent event. Not fired on non-2xx promote (early return).
-    document.dispatchEvent(new CustomEvent('svg-promoted', {
-      detail: { promotedVersions, ts: Date.now() },
-    }));
   });
 
   host.querySelector('[data-action="discard-staging"]')?.addEventListener('click', async () => {
@@ -575,35 +591,8 @@ const STAGING_BUSY_SELECTORS = [
 ];
 
 /**
- * Find (or create) the progress text element used by the staged-replace
- * sequence. Inserted above the staging panel so it sits in the visual flow
- * of the SVG Manager card. Returns null if the SVG Manager DOM isn't
- * mounted (e.g., tests that don't seed the container).
- */
-function ensureStagingProgressElement() {
-  let el = document.querySelector('[data-testid="staging-progress"]');
-  if (el) return el;
-  el = document.createElement('div');
-  el.setAttribute('data-testid', 'staging-progress');
-  el.setAttribute('role', 'status');
-  el.setAttribute('aria-live', 'polite');
-  el.className = 'mb-3 text-sm text-blue-700 font-medium';
-  const stagingHost = document.getElementById('staging-panel-host');
-  if (stagingHost && stagingHost.parentNode) {
-    stagingHost.parentNode.insertBefore(el, stagingHost);
-    return el;
-  }
-  const manager = document.getElementById('svg-manager');
-  if (manager) {
-    manager.appendChild(el);
-    return el;
-  }
-  return null;
-}
-
-/**
  * Begin the staged-replace UI sequence: disables the file-grid action
- * buttons, marks them aria-busy, mounts a progress text element, and
+ * buttons, marks them aria-busy, mounts the blocking progress modal, and
  * attaches a beforeunload guard. Returns a small controller with
  * `setStep(name)` and `end()` so the caller can update progress between
  * network calls and tear down the UI state in a finally block.
@@ -612,15 +601,27 @@ function ensureStagingProgressElement() {
  * function reference so add/remove pair correctly — attaching one anonymous
  * function and removing a different one would silently leak the listener.
  *
- * @param {string} filename — used in the "Uploading <filename>…" message.
+ * The button-disable and beforeunload guard remain even though the modal
+ * already blocks every viewport interaction — they're complementary defense
+ * in depth: the modal stops user clicks, the disable stops programmatic
+ * triggers, and beforeunload catches tab-close attempts (which the modal
+ * cannot intercept).
+ *
+ * Issue #62: the modal is the primary visual; the inline status-text element
+ * from #58 has been removed in favor of the modal's own step indicator.
+ *
+ * @param {string} filename — currently unused (modal copy is generic) but
+ *   kept in the signature for future per-file telemetry.
  */
-function beginStagingSequence(filename) {
+function beginStagingSequence(filename) { // eslint-disable-line no-unused-vars
   const buttons = Array.from(document.querySelectorAll(STAGING_BUSY_SELECTORS.join(',')));
   for (const btn of buttons) {
     btn.disabled = true;
     btn.setAttribute('aria-busy', 'true');
   }
-  const progressEl = ensureStagingProgressElement();
+
+  const modal = showStagingProgressModal();
+
   const beforeUnloadHandler = (event) => {
     const msg = t('svg.staging.progress.leaveWarning');
     event.returnValue = msg;
@@ -628,20 +629,10 @@ function beginStagingSequence(filename) {
   };
   window.addEventListener('beforeunload', beforeUnloadHandler);
 
-  const writeProgress = (text) => {
-    if (progressEl) progressEl.textContent = text;
-  };
-
   let finished = false;
   return {
     setStep(name) {
-      if (name === 'uploading') {
-        writeProgress(t('svg.staging.progress.uploading').replace('{filename}', filename));
-      } else if (name === 'validating') {
-        writeProgress(t('svg.staging.progress.validating'));
-      } else if (name === 'refreshing') {
-        writeProgress(t('svg.staging.progress.refreshing'));
-      }
+      modal.updateStep(name);
     },
     end() {
       if (finished) return;
@@ -651,7 +642,7 @@ function beginStagingSequence(filename) {
         btn.disabled = false;
         btn.removeAttribute('aria-busy');
       }
-      writeProgress('');
+      modal.close();
     },
   };
 }

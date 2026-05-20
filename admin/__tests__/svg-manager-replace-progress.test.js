@@ -158,7 +158,7 @@ describe('svg-manager staged-replace UX feedback (issue #58)', () => {
     expect(replaceBtn.getAttribute('aria-busy')).toBeNull();
   });
 
-  test('shows per-step progress text that transitions across upload → validate → refresh and clears on success', async () => {
+  test('shows per-step progress in the blocking modal across upload → validate → refresh and unmounts on success', async () => {
     const uploadDef = deferred();
     const validateDef = deferred();
     const statusDef = deferred();
@@ -175,39 +175,37 @@ describe('svg-manager staged-replace UX feedback (issue #58)', () => {
     const file = makeFile('floor_2.svg');
     const callPromise = mod.__test.replaceFile('floor_2.svg', file);
 
-    // Step 1: Uploading <filename>…
+    // Step 1: Uploading… — modal is mounted and shows the uploading copy.
     await flush();
-    let progress = document.querySelector('[data-testid="staging-progress"]');
-    expect(progress).not.toBeNull();
-    expect(progress.textContent).toMatch(/Uploading/i);
-    expect(progress.textContent).toContain('floor_2.svg');
+    let modal = document.querySelector('[data-testid="staging-progress-modal"]');
+    expect(modal).not.toBeNull();
+    let stepEl = modal.querySelector('[data-testid="staging-progress-modal-step"]');
+    expect(stepEl.textContent).toMatch(/Uploading/i);
 
-    // Step 2: Validating staging…
+    // Step 2: Validating…
     uploadDef.resolve({ ok: true, json: async () => ({}) });
     await flush();
-    progress = document.querySelector('[data-testid="staging-progress"]');
-    expect(progress).not.toBeNull();
-    expect(progress.textContent).toMatch(/Validating/i);
-    expect(progress.textContent).not.toMatch(/Uploading/i);
+    modal = document.querySelector('[data-testid="staging-progress-modal"]');
+    expect(modal).not.toBeNull();
+    stepEl = modal.querySelector('[data-testid="staging-progress-modal-step"]');
+    expect(stepEl.textContent).toMatch(/Validating/i);
+    expect(stepEl.textContent).not.toMatch(/Uploading/i);
 
     // Step 3: Updating staging panel…
     validateDef.resolve({ ok: true, json: async () => ({}) });
     await flush();
-    progress = document.querySelector('[data-testid="staging-progress"]');
-    expect(progress).not.toBeNull();
-    expect(progress.textContent).toMatch(/Updating staging panel/i);
+    modal = document.querySelector('[data-testid="staging-progress-modal"]');
+    expect(modal).not.toBeNull();
+    stepEl = modal.querySelector('[data-testid="staging-progress-modal-step"]');
+    expect(stepEl.textContent).toMatch(/Updating staging panel/i);
 
-    // Resolve → text cleared.
+    // Resolve → modal removed.
     statusDef.resolve({
       ok: true,
       json: async () => ({ locked: false, owner: null, files: [], lastValidated: null }),
     });
     await callPromise;
-    progress = document.querySelector('[data-testid="staging-progress"]');
-    // Either the element is removed or its content is emptied.
-    if (progress) {
-      expect(progress.textContent.trim()).toBe('');
-    }
+    expect(document.querySelector('[data-testid="staging-progress-modal"]')).toBeNull();
   });
 
   test('attaches a beforeunload listener while in flight and removes the SAME reference on success', async () => {
@@ -265,10 +263,8 @@ describe('svg-manager staged-replace UX feedback (issue #58)', () => {
     expect(replaceBtn.disabled).toBe(false);
     expect(replaceBtn.getAttribute('aria-busy')).toBeNull();
 
-    const progress = document.querySelector('[data-testid="staging-progress"]');
-    if (progress) {
-      expect(progress.textContent.trim()).toBe('');
-    }
+    // Modal must be unmounted on error so the user sees the error toast.
+    expect(document.querySelector('[data-testid="staging-progress-modal"]')).toBeNull();
 
     const addedBeforeUnload = addListenerSpy.mock.calls.filter(([type]) => type === 'beforeunload');
     const removedBeforeUnload = removeListenerSpy.mock.calls.filter(([type]) => type === 'beforeunload');

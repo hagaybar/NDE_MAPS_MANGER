@@ -52,7 +52,11 @@
         "uploading": "Uploading {filename}…",
         "validating": "Validating staging…",
         "refreshing": "Updating staging panel…",
-        "leaveWarning": "An upload is in progress. Leaving may leave staging in an inconsistent state."
+        "leaveWarning": "An upload is in progress. Leaving may leave staging in an inconsistent state.",
+        "heading": "Updating staged map",
+        "doNotClose": "Do not close this tab. The operation is in progress.",
+        "stuckWarning": "Taking longer than expected. The upload may have failed silently.",
+        "forceClose": "Force close"
       }
     }
   },
