@@ -1,0 +1,1471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plan B — SoT Staging Flow Manual QA</title>
+  <style>
+    :root {
+      --bg: #0b1220;
+      --bg-grad: radial-gradient(ellipse at top, #1a2540 0%, #0b1220 70%);
+      --surface: #131c33;
+      --surface-elev: #1c2742;
+      --surface-hover: #243254;
+      --border: #2a3858;
+      --border-strong: #3d4f7a;
+      --text: #e8edf7;
+      --text-dim: #9aa6c2;
+      --text-muted: #6b7898;
+      --accent: #7aa2f7;
+      --accent-strong: #4a7fde;
+      --success: #6cc395;
+      --success-bg: rgba(108, 195, 149, 0.12);
+      --warn: #e0af68;
+      --warn-bg: rgba(224, 175, 104, 0.12);
+      --danger: #e06c75;
+      --danger-bg: rgba(224, 108, 117, 0.12);
+      --neutral: #545c75;
+      --neutral-bg: rgba(84, 92, 117, 0.18);
+      --info-bg: rgba(122, 162, 247, 0.10);
+      --code-bg: #0a101d;
+      --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+      --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+      --radius: 10px;
+      --radius-sm: 6px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 15px; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      background-image: var(--bg-grad);
+      background-attachment: fixed;
+      color: var(--text);
+      line-height: 1.55;
+      min-height: 100vh;
+      padding: 2rem 1rem 4rem;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    header {
+      margin-bottom: 1.5rem;
+    }
+    .eyebrow {
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 0.5rem;
+    }
+    h1 {
+      font-size: 1.875rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.5rem;
+    }
+    .lede {
+      color: var(--text-dim);
+      font-size: 0.95rem;
+      margin-bottom: 1rem;
+    }
+    .lede a { color: var(--accent); text-decoration: none; border-bottom: 1px dotted var(--accent); }
+    .lede a:hover { color: var(--accent-strong); }
+
+    /* Progress bar */
+    .progress {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.875rem 1.125rem;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .progress-text {
+      font-size: 0.875rem;
+      color: var(--text-dim);
+      white-space: nowrap;
+    }
+    .progress-text strong { color: var(--text); font-variant-numeric: tabular-nums; }
+    .progress-bar {
+      flex: 1;
+      height: 8px;
+      background: var(--code-bg);
+      border-radius: 999px;
+      overflow: hidden;
+      position: relative;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent) 0%, var(--success) 100%);
+      width: 0%;
+      transition: width 0.3s ease;
+      border-radius: 999px;
+    }
+    .timer {
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    /* Rollback card — always visible, prominent */
+    .rollback {
+      background: var(--danger-bg);
+      border: 1px solid rgba(224, 108, 117, 0.3);
+      border-left: 4px solid var(--danger);
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+    .rollback-title {
+      font-size: 0.8125rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--danger);
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .rollback p { font-size: 0.875rem; color: var(--text); margin-bottom: 0.5rem; }
+    .rollback code {
+      background: var(--code-bg);
+      padding: 0.125rem 0.4rem;
+      border-radius: 4px;
+      font-family: 'SF Mono', 'Monaco', 'Cascadia Code', monospace;
+      font-size: 0.8125rem;
+      color: var(--warn);
+    }
+
+    /* Quick reference grid */
+    .ref-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 0.5rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+      margin-bottom: 2rem;
+      font-size: 0.8125rem;
+    }
+    .ref-grid dt {
+      color: var(--text-muted);
+      font-size: 0.6875rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 0.125rem;
+    }
+    .ref-grid dd {
+      color: var(--text);
+      font-family: 'SF Mono', 'Monaco', monospace;
+      font-size: 0.8125rem;
+      word-break: break-all;
+    }
+    .ref-grid dd a { color: var(--accent); text-decoration: none; }
+    .ref-grid dd a:hover { text-decoration: underline; }
+
+    /* Section header */
+    h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    h2 .count {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      background: var(--surface);
+      padding: 0.125rem 0.5rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+    }
+
+    /* Test cards */
+    .test {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 0.875rem;
+      transition: border-color 0.2s, background 0.2s;
+      overflow: hidden;
+    }
+    .test[data-status="pass"]    { border-color: rgba(108, 195, 149, 0.4); background: linear-gradient(180deg, var(--success-bg) 0%, var(--surface) 80%); }
+    .test[data-status="fail"]    { border-color: rgba(224, 108, 117, 0.4); background: linear-gradient(180deg, var(--danger-bg) 0%, var(--surface) 80%); }
+    .test[data-status="blocked"] { border-color: rgba(224, 175, 104, 0.4); background: linear-gradient(180deg, var(--warn-bg) 0%, var(--surface) 80%); }
+    .test[data-status="skip"]    { border-color: var(--border); opacity: 0.55; }
+
+    .test-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.875rem;
+      padding: 1rem 1.25rem;
+      cursor: pointer;
+      user-select: none;
+    }
+    .test-header:hover { background: rgba(255, 255, 255, 0.02); }
+    .test-num {
+      flex-shrink: 0;
+      width: 28px;
+      height: 28px;
+      background: var(--surface-elev);
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--text-dim);
+    }
+    .test[data-status="pass"]    .test-num { background: var(--success); border-color: var(--success); color: white; }
+    .test[data-status="fail"]    .test-num { background: var(--danger); border-color: var(--danger); color: white; }
+    .test[data-status="blocked"] .test-num { background: var(--warn); border-color: var(--warn); color: var(--code-bg); }
+
+    .test-title-block { flex: 1; min-width: 0; }
+    .test-title {
+      font-size: 0.9375rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 0.125rem;
+    }
+    .test-meta {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      display: flex;
+      gap: 0.875rem;
+      flex-wrap: wrap;
+    }
+    .test-meta .priority {
+      font-weight: 500;
+    }
+    .test-meta .priority-must  { color: var(--danger); }
+    .test-meta .priority-high  { color: var(--warn); }
+    .test-meta .priority-nice  { color: var(--text-muted); }
+
+    .test-chevron {
+      flex-shrink: 0;
+      width: 18px;
+      height: 18px;
+      align-self: center;
+      color: var(--text-muted);
+      transition: transform 0.2s;
+    }
+    .test[data-expanded="true"] .test-chevron { transform: rotate(180deg); }
+
+    .test-body {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+    .test[data-expanded="true"] .test-body { max-height: 3000px; }
+
+    .test-body-inner {
+      padding: 0 1.25rem 1.25rem;
+      border-top: 1px solid var(--border);
+      padding-top: 1.25rem;
+    }
+
+    .steps { margin-bottom: 1rem; }
+    .steps-label {
+      font-size: 0.6875rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+    .steps ol {
+      padding-left: 1.25rem;
+      font-size: 0.875rem;
+      color: var(--text);
+    }
+    .steps li { margin-bottom: 0.4rem; }
+    .steps li::marker { color: var(--accent); font-weight: 600; }
+    .steps code, .expected code {
+      background: var(--code-bg);
+      padding: 0.0625rem 0.375rem;
+      border-radius: 4px;
+      font-family: 'SF Mono', 'Monaco', monospace;
+      font-size: 0.8125rem;
+      color: var(--warn);
+    }
+    .expected {
+      background: var(--info-bg);
+      border-left: 3px solid var(--accent);
+      padding: 0.625rem 0.875rem;
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      margin-bottom: 1rem;
+      font-size: 0.875rem;
+    }
+    .expected strong { color: var(--accent); font-weight: 600; }
+
+    .why {
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+      font-style: italic;
+    }
+
+    .controls {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+    .status-btn {
+      background: var(--surface-elev);
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      padding: 0.4rem 0.875rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.8125rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+      font-family: inherit;
+    }
+    .status-btn:hover { background: var(--surface-hover); color: var(--text); }
+    .status-btn.active {
+      color: var(--text);
+      border-color: currentColor;
+    }
+    .status-btn.active[data-status="pass"]    { background: var(--success-bg); color: var(--success); border-color: var(--success); }
+    .status-btn.active[data-status="fail"]    { background: var(--danger-bg); color: var(--danger); border-color: var(--danger); }
+    .status-btn.active[data-status="blocked"] { background: var(--warn-bg); color: var(--warn); border-color: var(--warn); }
+    .status-btn.active[data-status="skip"]    { background: var(--neutral-bg); color: var(--text-dim); border-color: var(--neutral); }
+
+    .notes-label {
+      font-size: 0.6875rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 0.375rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .notes-label .char-count { color: var(--text-muted); font-weight: 400; letter-spacing: 0; text-transform: none; font-size: 0.6875rem; }
+    .notes {
+      width: 100%;
+      min-height: 70px;
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 0.625rem 0.75rem;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.875rem;
+      line-height: 1.5;
+      resize: vertical;
+      transition: border-color 0.15s;
+    }
+    .notes:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(122, 162, 247, 0.15);
+    }
+
+    /* Bottom action bar */
+    .actions {
+      position: sticky;
+      bottom: 1rem;
+      background: var(--surface-elev);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius);
+      padding: 0.875rem 1.125rem;
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+      flex-wrap: wrap;
+      box-shadow: var(--shadow-lg);
+      margin-top: 2rem;
+      backdrop-filter: blur(8px);
+    }
+    .actions .spacer { flex: 1; }
+    .action-btn {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.15s, transform 0.05s;
+    }
+    .action-btn:hover { background: var(--accent-strong); }
+    .action-btn:active { transform: translateY(1px); }
+    .action-btn.ghost {
+      background: transparent;
+      color: var(--text-dim);
+      border: 1px solid var(--border);
+    }
+    .action-btn.ghost:hover { background: var(--surface-hover); color: var(--text); }
+    .action-btn.danger { background: var(--danger); }
+    .action-btn.danger:hover { background: #cc5d68; }
+
+    .toast {
+      position: fixed;
+      bottom: 5rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--surface-elev);
+      color: var(--text);
+      border: 1px solid var(--success);
+      padding: 0.625rem 1rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.875rem;
+      box-shadow: var(--shadow-lg);
+      opacity: 0;
+      transition: opacity 0.2s, transform 0.2s;
+      pointer-events: none;
+      z-index: 100;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    @media (max-width: 600px) {
+      body { padding: 1rem 0.5rem 4rem; }
+      h1 { font-size: 1.5rem; }
+      .test-header { padding: 0.875rem 1rem; }
+      .test-body-inner { padding: 0 1rem 1rem; padding-top: 1rem; }
+      .ref-grid { padding: 0.875rem 1rem; }
+    }
+
+    /* ── Collaboration layer (server sync + Claude replies) ───────────── */
+    .conn-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+      font-size: 0.75rem;
+      padding: 0.25rem 0.625rem;
+      border-radius: 999px;
+      background: var(--surface-elev);
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+    .conn-status .dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--neutral);
+      transition: background 0.2s;
+    }
+    .conn-status.online  .dot { background: var(--success); box-shadow: 0 0 6px var(--success); }
+    .conn-status.offline .dot { background: var(--danger); }
+    .conn-status.syncing .dot { background: var(--accent); animation: pulse 1s infinite; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+    /* Ping button — sits on the right side of .controls */
+    .ping-btn {
+      margin-left: auto;
+      background: var(--accent);
+      color: white;
+      border: 1px solid var(--accent);
+      padding: 0.4rem 0.875rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.8125rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+      font-family: inherit;
+      transition: background 0.15s, opacity 0.15s;
+    }
+    .ping-btn:hover:not(:disabled) { background: var(--accent-strong); }
+    .ping-btn:disabled { cursor: wait; opacity: 0.75; }
+    .ping-btn.pinged {
+      background: var(--surface-elev);
+      color: var(--text-dim);
+      border-color: var(--border);
+    }
+
+    /* Replies — rendered inline at the top of each test body, also globally docked at the top */
+    .replies, #global-replies {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .replies { margin-bottom: 1rem; }
+    .replies:empty { display: none; }
+    #global-replies { margin-bottom: 1.5rem; }
+    #global-replies:empty { display: none; }
+
+    .reply {
+      background: var(--info-bg);
+      border-left: 3px solid var(--accent);
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      padding: 0.625rem 0.875rem;
+      font-size: 0.875rem;
+      animation: slide-in 0.25s ease-out;
+    }
+    .reply[data-level="success"]  { background: var(--success-bg); border-color: var(--success); }
+    .reply[data-level="warn"]     { background: var(--warn-bg);    border-color: var(--warn); }
+    .reply[data-level="error"]    { background: var(--danger-bg);  border-color: var(--danger); }
+    .reply[data-level="question"] { background: var(--info-bg);    border-color: var(--accent); }
+    .reply-meta {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.6875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 700;
+      margin-bottom: 0.375rem;
+      color: var(--accent);
+    }
+    .reply[data-level="success"] .reply-meta { color: var(--success); }
+    .reply[data-level="warn"]    .reply-meta { color: var(--warn); }
+    .reply[data-level="error"]   .reply-meta { color: var(--danger); }
+    .reply-time {
+      color: var(--text-muted);
+      font-weight: 400;
+      letter-spacing: 0;
+      text-transform: none;
+    }
+    .reply-text { color: var(--text); line-height: 1.55; }
+    .reply-text code {
+      background: var(--code-bg);
+      padding: 0.0625rem 0.375rem;
+      border-radius: 4px;
+      font-family: 'SF Mono', 'Monaco', monospace;
+      font-size: 0.8125rem;
+      color: var(--warn);
+    }
+    @keyframes slide-in {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Unread-reply badge on test header */
+    .test-badge {
+      display: none;
+      flex-shrink: 0;
+      min-width: 22px;
+      height: 22px;
+      padding: 0 0.4rem;
+      background: var(--accent);
+      color: white;
+      border-radius: 999px;
+      font-size: 0.6875rem;
+      font-weight: 700;
+      align-items: center;
+      justify-content: center;
+      align-self: center;
+      margin-right: 0.5rem;
+    }
+    .test-badge.show { display: inline-flex; }
+
+    /* Setup banner shown when server isn't running */
+    #setup-banner {
+      display: none;
+      background: var(--warn-bg);
+      border: 1px solid rgba(224, 175, 104, 0.4);
+      border-left: 4px solid var(--warn);
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.5rem;
+      font-size: 0.875rem;
+    }
+    #setup-banner.show { display: block; }
+    #setup-banner code {
+      background: var(--code-bg);
+      padding: 0.0625rem 0.4rem;
+      border-radius: 4px;
+      font-family: 'SF Mono', 'Monaco', monospace;
+      font-size: 0.8125rem;
+      color: var(--warn);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <header>
+      <div class="eyebrow">Manual QA · Plan B</div>
+      <h1>SoT Staging Flow — Production Cutover</h1>
+      <p class="lede">
+        Live admin SPA: <a href="https://d3h8i7y9p8lyw7.cloudfront.net/admin/" target="_blank" rel="noopener">d3h8i7y9p8lyw7.cloudfront.net/admin/</a>.
+        Sign in as an admin, hard-refresh (Ctrl/Cmd+Shift+R) to bypass cached SPA, then work through the checks below.
+        State and notes persist locally in this browser — close and reopen freely.
+      </p>
+    </header>
+
+    <div class="progress">
+      <div class="progress-text"><strong id="progress-done">0</strong> / <strong id="progress-total">0</strong> complete</div>
+      <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+      <div class="timer" id="timer">—</div>
+      <div class="conn-status" id="conn-status" title="Live link to Claude Code"><span class="dot"></span><span class="conn-text">connecting</span></div>
+    </div>
+
+    <div id="setup-banner">
+      <strong>Server not running.</strong> This page only mirrors to <code>localStorage</code> without it. To enable the live link to Claude Code, run from the project root:
+      <p style="margin-top:0.5rem;"><code>python3 docs/manual-qa/qa-server.py</code></p>
+      <p style="margin-top:0.25rem;font-size:0.8125rem;color:var(--text-dim);">Then open <code>http://localhost:8765/</code> instead of this file:// URL.</p>
+    </div>
+
+    <div id="global-replies"></div>
+
+    <aside class="rollback">
+      <div class="rollback-title">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z"/></svg>
+        Emergency rollback (30 seconds)
+      </div>
+      <p>If anything breaks the Replace button:</p>
+      <p>1. Edit <code>admin/index.html</code>, remove the <code>&lt;script&gt;window.__USE_STAGING_FLOW__ = true;&lt;/script&gt;</code> line.</p>
+      <p>2. Run <code>bash redeploy.sh</code>.</p>
+      <p>3. CloudFront invalidation runs automatically; wait ~30s. Lambdas stay deployed but idle.</p>
+    </aside>
+
+    <dl class="ref-grid">
+      <div><dt>CloudFront SPA</dt><dd><a href="https://d3h8i7y9p8lyw7.cloudfront.net/admin/" target="_blank">…/admin/</a></dd></div>
+      <div><dt>API Gateway</dt><dd>tt3xt4tr09 (prod)</dd></div>
+      <div><dt>Last deployment</dt><dd>m2cwf6</dd></div>
+      <div><dt>S3 bucket</dt><dd>tau-cenlib-primo-assets-hagay-3602</dd></div>
+      <div><dt>CSV</dt><dd><a href="https://d3h8i7y9p8lyw7.cloudfront.net/data/mapping.csv" target="_blank">…/data/mapping.csv</a></dd></div>
+      <div><dt>Maps</dt><dd>/maps/floor_{0,1,2}.svg</dd></div>
+      <div><dt>Rollback tag</dt><dd>pre-plan-b-2026-05-18</dd></div>
+      <div><dt>CloudWatch metric</dt><dd>bundle.violations.csv_write</dd></div>
+    </dl>
+
+    <h2>Pre-flight <span class="count">2 checks</span></h2>
+
+    <article class="test" data-test-id="preflight-1" data-status="pending" data-expanded="true">
+      <div class="test-header" onclick="toggleTest(this)">
+        <div class="test-num">0</div>
+        <div class="test-title-block">
+          <div class="test-title">SPA actually loaded the new bundle</div>
+          <div class="test-meta">
+            <span class="priority priority-must">Required first</span>
+            <span>Verifies cutover propagated</span>
+          </div>
+        </div>
+        <span class="test-badge">0</span>
+        <svg class="test-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="test-body"><div class="test-body-inner">
+        <div class="replies"></div>
+        <p class="why">If the browser is serving a stale bundle, every other test below is invalidated. Always do this first.</p>
+        <div class="steps">
+          <div class="steps-label">Steps</div>
+          <ol>
+            <li>Open the admin SPA. Hard-refresh: <code>Ctrl+Shift+R</code> (Win/Linux) or <code>Cmd+Shift+R</code> (Mac).</li>
+            <li>Open DevTools → Console. Run: <code>window.__USE_STAGING_FLOW__</code></li>
+            <li>Navigate to the SVG Manager tab.</li>
+          </ol>
+        </div>
+        <div class="expected">
+          <strong>Expected:</strong> Console returns <code>true</code>. A new "Staging" panel appears above the file grid (empty / "No active staging" state). The existing 3 floor maps still render normally.
+        </div>
+        <div class="controls">
+          <button class="status-btn" data-status="pass"    onclick="setStatus(this)">✓ Pass</button>
+          <button class="status-btn" data-status="fail"    onclick="setStatus(this)">✗ Fail</button>
+          <button class="status-btn" data-status="blocked" onclick="setStatus(this)">⚠ Blocked</button>
+          <button class="status-btn" data-status="skip"    onclick="setStatus(this)">— Skip</button>
+          <button class="ping-btn" onclick="pingClaude(this)" title="Ping Claude to look at this test now">💬 Ping Claude</button>
+        </div>
+        <div class="notes-label">Notes <span class="char-count" data-counter></span></div>
+        <textarea class="notes" placeholder="Browser, build commit, anything odd…"></textarea>
+      </div></div>
+    </article>
+
+    <article class="test" data-test-id="preflight-2" data-status="pending">
+      <div class="test-header" onclick="toggleTest(this)">
+        <div class="test-num">0</div>
+        <div class="test-title-block">
+          <div class="test-title">No console errors on first render</div>
+          <div class="test-meta">
+            <span class="priority priority-high">Recommended</span>
+            <span>~30 seconds</span>
+          </div>
+        </div>
+        <span class="test-badge">0</span>
+        <svg class="test-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="test-body"><div class="test-body-inner">
+        <div class="replies"></div>
+        <p class="why">A failing import or wrong API path will surface as a network/console error immediately, before any user interaction.</p>
+        <div class="steps">
+          <div class="steps-label">Steps</div>
+          <ol>
+            <li>Keep DevTools open. Clear console.</li>
+            <li>Reload the admin page. Watch Network and Console.</li>
+            <li>Confirm <code>GET /api/staging/status</code> returns <code>200</code> with shape <code>{ locked: false, … }</code>.</li>
+          </ol>
+        </div>
+        <div class="expected">
+          <strong>Expected:</strong> Zero red console errors. The staging panel renders an empty/idle state ("No active staging session").
+        </div>
+        <div class="controls">
+          <button class="status-btn" data-status="pass"    onclick="setStatus(this)">✓ Pass</button>
+          <button class="status-btn" data-status="fail"    onclick="setStatus(this)">✗ Fail</button>
+          <button class="status-btn" data-status="blocked" onclick="setStatus(this)">⚠ Blocked</button>
+          <button class="status-btn" data-status="skip"    onclick="setStatus(this)">— Skip</button>
+          <button class="ping-btn" onclick="pingClaude(this)" title="Ping Claude to look at this test now">💬 Ping Claude</button>
+        </div>
+        <div class="notes-label">Notes <span class="char-count" data-counter></span></div>
+        <textarea class="notes" placeholder="Network status codes, error messages…"></textarea>
+      </div></div>
+    </article>
+
+    <h2>Core scenarios <span class="count">6 checks</span></h2>
+
+    <article class="test" data-test-id="core-1" data-status="pending">
+      <div class="test-header" onclick="toggleTest(this)">
+        <div class="test-num">1</div>
+        <div class="test-title-block">
+          <div class="test-title">Bundle invariant still enforced (regression check)</div>
+          <div class="test-meta">
+            <span class="priority priority-must">Critical</span>
+            <span>~2 minutes</span>
+          </div>
+        </div>
+        <span class="test-badge">0</span>
+        <svg class="test-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="test-body"><div class="test-body-inner">
+        <div class="replies"></div>
+        <p class="why">Plan A's enforcement (HTTP 422 on broken refs) must still work after Plan B's deploy. Same backing module, but worth confirming.</p>
+        <div class="steps">
+          <div class="steps-label">Steps</div>
+          <ol>
+            <li>Open CSV Editor. Pick any row, copy its current <code>svgCode</code>.</li>
+            <li>Edit a row's <code>svgCode</code> to something obviously fake, e.g. <code>ZZZ_999_z</code>.</li>
+            <li>Click Save.</li>
+            <li>Restore the original <code>svgCode</code> immediately so production data isn't left mid-edit.</li>
+          </ol>
+        </div>
+        <div class="expected">
+          <strong>Expected:</strong> Save is rejected with <code>HTTP 422</code>. Error toast surfaces the shelf-not-found message. No CSV write hits S3.
+        </div>
+        <div class="controls">
+          <button class="status-btn" data-status="pass"    onclick="setStatus(this)">✓ Pass</button>
+          <button class="status-btn" data-status="fail"    onclick="setStatus(this)">✗ Fail</button>
+          <button class="status-btn" data-status="blocked" onclick="setStatus(this)">⚠ Blocked</button>
+          <button class="status-btn" data-status="skip"    onclick="setStatus(this)">— Skip</button>
+          <button class="ping-btn" onclick="pingClaude(this)" title="Ping Claude to look at this test now">💬 Ping Claude</button>
+        </div>
+        <div class="notes-label">Notes <span class="char-count" data-counter></span></div>
+        <textarea class="notes" placeholder="Actual error text, response code, anything weird…"></textarea>
+      </div></div>
+    </article>
+
+    <article class="test" data-test-id="core-2" data-status="pending">
+      <div class="test-header" onclick="toggleTest(this)">
+        <div class="test-num">2</div>
+        <div class="test-title-block">
+          <div class="test-title">Happy path: upload → validate → promote</div>
+          <div class="test-meta">
+            <span class="priority priority-must">Critical</span>
+            <span>~3-5 minutes</span>
+          </div>
+        </div>
+        <span class="test-badge">0</span>
+        <svg class="test-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="test-body"><div class="test-body-inner">
+        <div class="replies"></div>
+        <p class="why">The primary new flow. Confirms upload → S3 staging → validate → CSV/SVG comparison → promote to prod → CloudFront invalidation all work end-to-end.</p>
+        <div class="steps">
+          <div class="steps-label">Steps</div>
+          <ol>
+            <li>Download the current <code>floor_1.svg</code> from CloudFront to your machine. Open it in a text editor.</li>
+            <li>Add one new <code>&lt;rect&gt;</code> with <code>id="TEST_QA_001"</code> and <code>data-map-object="shelf"</code> alongside the existing shelves. Save as a new file.</li>
+            <li>In the admin SPA's SVG Manager, click "Replace" on <code>floor_1.svg</code> and pick the modified file.</li>
+            <li>Watch the staging panel: file should appear in "Staged files", validation should auto-run, status should show "ok".</li>
+            <li>Click "Promote". Confirm.</li>
+            <li>Hard-refresh and verify the new shelf is visible in the map.</li>
+          </ol>
+        </div>
+        <div class="expected">
+          <strong>Expected:</strong> Upload succeeds. Validate returns <code>ok: true</code>, <code>summary.addedShelves</code> shows the new <code>TEST_QA_001</code>. Promote copies the file to prod, invalidates CloudFront, and clears the staging area. Subsequent reload of the floor map shows the new shelf. No CSV row needed (it just won't reference TEST_QA_001).
+        </div>
+        <div class="controls">
+          <button class="status-btn" data-status="pass"    onclick="setStatus(this)">✓ Pass</button>
+          <button class="status-btn" data-status="fail"    onclick="setStatus(this)">✗ Fail</button>
+          <button class="status-btn" data-status="blocked" onclick="setStatus(this)">⚠ Blocked</button>
+          <button class="status-btn" data-status="skip"    onclick="setStatus(this)">— Skip</button>
+          <button class="ping-btn" onclick="pingClaude(this)" title="Ping Claude to look at this test now">💬 Ping Claude</button>
+        </div>
+        <div class="notes-label">Notes <span class="char-count" data-counter></span></div>
+        <textarea class="notes" placeholder="Time to validate, time to promote, any UI quirks…"></textarea>
+      </div></div>
+    </article>
+
+    <article class="test" data-test-id="core-3" data-status="pending">
+      <div class="test-header" onclick="toggleTest(this)">
+        <div class="test-num">3</div>
+        <div class="test-title-block">
+          <div class="test-title">Reconcile path: upload SVG that removes a referenced shelf</div>
+          <div class="test-meta">
+            <span class="priority priority-must">Critical</span>
+            <span>~5-7 minutes</span>
+          </div>
+        </div>
+        <span class="test-badge">0</span>
+        <svg class="test-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="test-body"><div class="test-body-inner">
+        <div class="replies"></div>
+        <p class="why">The whole point of the staging flow is to catch CSV ↔ SVG drift before it goes live. This test exercises the reconcile wizard, which is the user's escape hatch.</p>
+        <div class="steps">
+          <div class="steps-label">Steps</div>
+          <ol>
+            <li>Pick a real <code>svgCode</code> currently referenced by the CSV (CSV Editor → copy one from a row on floor 1, e.g. <code>CC_X</code>).</li>
+            <li>Edit the local <code>floor_1.svg</code> from the previous test — remove or rename the <code>&lt;rect id="CC_X"&gt;</code> element. Save.</li>
+            <li>In the admin SPA, Replace <code>floor_1.svg</code> with this broken version.</li>
+            <li>Validate should fail. The reconcile wizard should open showing <code>CC_X</code> as a removed ref.</li>
+            <li>Choose "Rename" → pick a still-existing shelf (e.g. <code>CC_Y</code>), OR "Delete" → confirm.</li>
+            <li>Apply reconcile. Validate should now pass.</li>
+            <li>Promote.</li>
+            <li>Open CSV Editor, find the row that was originally <code>CC_X</code> — confirm the rename took (or the row is gone if you chose delete).</li>
+          </ol>
+        </div>
+        <div class="expected">
+          <strong>Expected:</strong> Wizard surfaces the conflict clearly. Reconcile mutates the staging CSV (not prod). Re-validation passes. Promote copies the new SVG + the patched CSV to prod atomically.
+        </div>
+        <div class="controls">
+          <button class="status-btn" data-status="pass"    onclick="setStatus(this)">✓ Pass</button>
+          <button class="status-btn" data-status="fail"    onclick="setStatus(this)">✗ Fail</button>
+          <button class="status-btn" data-status="blocked" onclick="setStatus(this)">⚠ Blocked</button>
+          <button class="status-btn" data-status="skip"    onclick="setStatus(this)">— Skip</button>
+          <button class="ping-btn" onclick="pingClaude(this)" title="Ping Claude to look at this test now">💬 Ping Claude</button>
+        </div>
+        <div class="notes-label">Notes <span class="char-count" data-counter></span></div>
+        <textarea class="notes" placeholder="Which shelf was reconciled, rename target, etc…"></textarea>
+      </div></div>
+    </article>
+
+    <article class="test" data-test-id="core-4" data-status="pending">
+      <div class="test-header" onclick="toggleTest(this)">
+        <div class="test-num">4</div>
+        <div class="test-title-block">
+          <div class="test-title">Discard path: cancel an in-progress staging session</div>
+          <div class="test-meta">
+            <span class="priority priority-high">Important</span>
+            <span>~2 minutes</span>
+          </div>
+        </div>
+        <span class="test-badge">0</span>
+        <svg class="test-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="test-body"><div class="test-body-inner">
+        <div class="replies"></div>
+        <p class="why">Operators need a clean abort. After Discard, the lock must release and S3 staging must be empty so the next Replace starts fresh.</p>
+        <div class="steps">
+          <div class="steps-label">Steps</div>
+          <ol>
+            <li>Replace any floor SVG with the modified file from Test 2 (or any other valid SVG).</li>
+            <li>Before promoting, click "Discard".</li>
+            <li>Confirm the dialog.</li>
+            <li>Verify the staging panel returns to the empty state.</li>
+            <li>(Optional, in shell): <code>aws s3 ls s3://tau-cenlib-primo-assets-hagay-3602/staging/ --recursive</code> — should be empty.</li>
+            <li>Start a fresh Replace and confirm no leftover state.</li>
+          </ol>
+        </div>
+        <div class="expected">
+          <strong>Expected:</strong> Staging panel returns to idle. S3 <code>staging/*</code> is empty (or only contains <code>.meta.json</code> with <code>locked: false</code>). Next Replace can proceed without errors.
+        </div>
+        <div class="controls">
+          <button class="status-btn" data-status="pass"    onclick="setStatus(this)">✓ Pass</button>
+          <button class="status-btn" data-status="fail"    onclick="setStatus(this)">✗ Fail</button>
+          <button class="status-btn" data-status="blocked" onclick="setStatus(this)">⚠ Blocked</button>
+          <button class="status-btn" data-status="skip"    onclick="setStatus(this)">— Skip</button>
+          <button class="ping-btn" onclick="pingClaude(this)" title="Ping Claude to look at this test now">💬 Ping Claude</button>
+        </div>
+        <div class="notes-label">Notes <span class="char-count" data-counter></span></div>
+        <textarea class="notes" placeholder="S3 ls output, panel state, any orphan files…"></textarea>
+      </div></div>
+    </article>
+
+    <article class="test" data-test-id="core-5" data-status="pending">
+      <div class="test-header" onclick="toggleTest(this)">
+        <div class="test-num">5</div>
+        <div class="test-title-block">
+          <div class="test-title">Lock contention: second admin blocked by 423</div>
+          <div class="test-meta">
+            <span class="priority priority-high">Important</span>
+            <span>Needs 2 sessions · ~3 minutes</span>
+          </div>
+        </div>
+        <span class="test-badge">0</span>
+        <svg class="test-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="test-body"><div class="test-body-inner">
+        <div class="replies"></div>
+        <p class="why">Only one admin can stage at a time. Without this guarantee, two concurrent uploads would race and corrupt staging state.</p>
+        <div class="steps">
+          <div class="steps-label">Steps</div>
+          <ol>
+            <li>In Session A (your normal admin), start a Replace. Don't promote — leave it staged.</li>
+            <li>Open a private/incognito window. Sign in as a <em>different</em> admin user (or the same user in a different browser profile so the lock owner identity differs).</li>
+            <li>In Session B, navigate to SVG Manager. Try to Replace any file.</li>
+            <li>Capture B's error response (network tab → upload call) and the UI message.</li>
+            <li>Back in Session A: Promote OR Discard to release the lock.</li>
+            <li>Retry B's upload — should now succeed.</li>
+          </ol>
+        </div>
+        <div class="expected">
+          <strong>Expected:</strong> Session B's upload returns <code>HTTP 423</code>. UI shows "staging owned by &lt;sessionA-user&gt;" or similar clear message. After A releases, B can proceed.
+        </div>
+        <div class="controls">
+          <button class="status-btn" data-status="pass"    onclick="setStatus(this)">✓ Pass</button>
+          <button class="status-btn" data-status="fail"    onclick="setStatus(this)">✗ Fail</button>
+          <button class="status-btn" data-status="blocked" onclick="setStatus(this)">⚠ Blocked</button>
+          <button class="status-btn" data-status="skip"    onclick="setStatus(this)">— Skip</button>
+          <button class="ping-btn" onclick="pingClaude(this)" title="Ping Claude to look at this test now">💬 Ping Claude</button>
+        </div>
+        <div class="notes-label">Notes <span class="char-count" data-counter></span></div>
+        <textarea class="notes" placeholder="Two usernames used, exact error message, any UI confusion…"></textarea>
+      </div></div>
+    </article>
+
+    <article class="test" data-test-id="core-6" data-status="pending">
+      <div class="test-header" onclick="toggleTest(this)">
+        <div class="test-num">6</div>
+        <div class="test-title-block">
+          <div class="test-title">Legacy editor role still works (regression check)</div>
+          <div class="test-meta">
+            <span class="priority priority-high">Important</span>
+            <span>~1 minute</span>
+          </div>
+        </div>
+        <span class="test-badge">0</span>
+        <svg class="test-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="test-body"><div class="test-body-inner">
+        <div class="replies"></div>
+        <p class="why">Staging endpoints all require admin role. Editor accounts should NOT see staging UI and should not be able to call any staging endpoint.</p>
+        <div class="steps">
+          <div class="steps-label">Steps</div>
+          <ol>
+            <li>Sign in as an editor-role user (not admin).</li>
+            <li>Navigate to SVG Manager — confirm the staging panel does NOT appear (or appears in a read-only/role-disabled state).</li>
+            <li>Confirm no Replace button is shown (editors don't have it anyway, but verify).</li>
+            <li>Open DevTools → Network. Hand-fire a request: <code>fetch('https://tt3xt4tr09.execute-api.us-east-1.amazonaws.com/prod/api/staging/status', { headers: { Authorization: 'Bearer ' + (your-token-here) } })</code></li>
+            <li>Expected: 403 Forbidden.</li>
+          </ol>
+        </div>
+        <div class="expected">
+          <strong>Expected:</strong> Editor sees no staging UI. Direct API call returns <code>403</code> (admin-only) with the error payload from <code>checkPermission()</code>.
+        </div>
+        <div class="controls">
+          <button class="status-btn" data-status="pass"    onclick="setStatus(this)">✓ Pass</button>
+          <button class="status-btn" data-status="fail"    onclick="setStatus(this)">✗ Fail</button>
+          <button class="status-btn" data-status="blocked" onclick="setStatus(this)">⚠ Blocked</button>
+          <button class="status-btn" data-status="skip"    onclick="setStatus(this)">— Skip</button>
+          <button class="ping-btn" onclick="pingClaude(this)" title="Ping Claude to look at this test now">💬 Ping Claude</button>
+        </div>
+        <div class="notes-label">Notes <span class="char-count" data-counter></span></div>
+        <textarea class="notes" placeholder="Editor user, response code, any role-leak…"></textarea>
+      </div></div>
+    </article>
+
+    <h2>Follow-up (no rush) <span class="count">1 check</span></h2>
+
+    <article class="test" data-test-id="followup-1" data-status="pending">
+      <div class="test-header" onclick="toggleTest(this)">
+        <div class="test-num">7</div>
+        <div class="test-title-block">
+          <div class="test-title">24h CloudWatch monitoring</div>
+          <div class="test-meta">
+            <span class="priority priority-nice">Watch over time</span>
+            <span>Check tomorrow</span>
+          </div>
+        </div>
+        <span class="test-badge">0</span>
+        <svg class="test-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="test-body"><div class="test-body-inner">
+        <div class="replies"></div>
+        <p class="why">If the new staging flow has any silent failure mode, the bundle-violation metric is where it will show up first.</p>
+        <div class="steps">
+          <div class="steps-label">Steps</div>
+          <ol>
+            <li>Open CloudWatch → Metrics → All metrics → search "bundle.violations.csv_write".</li>
+            <li>Set window: Last 24h. Statistic: Sum.</li>
+            <li>Expect a small spike during your QA (Test 1's deliberate violation).</li>
+            <li>Outside of that — flat zero. Any unexpected non-zero data points need investigation.</li>
+          </ol>
+        </div>
+        <div class="expected">
+          <strong>Expected:</strong> Sum over the next 24h should match the count of deliberate Test-1 violations. No surprise increments from real user activity.
+        </div>
+        <div class="controls">
+          <button class="status-btn" data-status="pass"    onclick="setStatus(this)">✓ Pass</button>
+          <button class="status-btn" data-status="fail"    onclick="setStatus(this)">✗ Fail</button>
+          <button class="status-btn" data-status="blocked" onclick="setStatus(this)">⚠ Blocked</button>
+          <button class="status-btn" data-status="skip"    onclick="setStatus(this)">— Skip</button>
+          <button class="ping-btn" onclick="pingClaude(this)" title="Ping Claude to look at this test now">💬 Ping Claude</button>
+        </div>
+        <div class="notes-label">Notes <span class="char-count" data-counter></span></div>
+        <textarea class="notes" placeholder="Metric count, any anomalies…"></textarea>
+      </div></div>
+    </article>
+
+    <div class="actions">
+      <button class="action-btn" onclick="copyReport()">📋 Copy report to clipboard</button>
+      <button class="action-btn ghost" onclick="exportJSON()">⬇ Download JSON</button>
+      <div class="spacer"></div>
+      <button class="action-btn ghost danger" onclick="resetAll()">Reset all</button>
+    </div>
+
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const STORAGE_KEY = 'plan-b-qa-state-v1';
+    const TIMER_KEY = 'plan-b-qa-started-at';
+
+    function load() {
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
+      catch { return {}; }
+    }
+    function save(state) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      scheduleStateSync();
+    }
+    function markStarted() {
+      if (!localStorage.getItem(TIMER_KEY)) {
+        localStorage.setItem(TIMER_KEY, Date.now().toString());
+      }
+    }
+    function getStarted() {
+      const v = localStorage.getItem(TIMER_KEY);
+      return v ? parseInt(v, 10) : null;
+    }
+
+    function setStatus(btn) {
+      markStarted();
+      const test = btn.closest('.test');
+      const status = btn.dataset.status;
+      const id = test.dataset.testId;
+      const current = test.dataset.status;
+      const next = current === status ? 'pending' : status;
+      test.dataset.status = next;
+
+      const state = load();
+      state[id] = state[id] || {};
+      state[id].status = next;
+      save(state);
+
+      refreshStatusButtons(test);
+      refreshProgress();
+    }
+
+    function refreshStatusButtons(test) {
+      const status = test.dataset.status;
+      test.querySelectorAll('.status-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.status === status);
+      });
+    }
+
+    function toggleTest(header) {
+      const test = header.closest('.test');
+      const expanded = test.dataset.expanded === 'true';
+      test.dataset.expanded = expanded ? 'false' : 'true';
+    }
+
+    function refreshProgress() {
+      const tests = document.querySelectorAll('.test');
+      const total = tests.length;
+      let done = 0;
+      tests.forEach(t => {
+        const s = t.dataset.status;
+        if (s === 'pass' || s === 'fail' || s === 'skip') done++;
+      });
+      document.getElementById('progress-done').textContent = done;
+      document.getElementById('progress-total').textContent = total;
+      document.getElementById('progress-fill').style.width = (done / total * 100) + '%';
+    }
+
+    function updateTimer() {
+      const started = getStarted();
+      const el = document.getElementById('timer');
+      if (!started) { el.textContent = 'not started'; return; }
+      const elapsed = Math.floor((Date.now() - started) / 1000);
+      const m = Math.floor(elapsed / 60);
+      const s = elapsed % 60;
+      el.textContent = `elapsed ${m}m ${s.toString().padStart(2, '0')}s`;
+    }
+
+    function showToast(msg, isError) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.style.borderColor = isError ? 'var(--danger)' : 'var(--success)';
+      t.classList.add('show');
+      clearTimeout(t._timer);
+      t._timer = setTimeout(() => t.classList.remove('show'), 2400);
+    }
+
+    function buildReport() {
+      const state = load();
+      const tests = Array.from(document.querySelectorAll('.test'));
+      const started = getStarted();
+      const elapsed = started ? Math.floor((Date.now() - started) / 60000) : 0;
+
+      const counts = { pass: 0, fail: 0, blocked: 0, skip: 0, pending: 0 };
+      tests.forEach(t => { counts[t.dataset.status]++; });
+
+      const lines = [];
+      lines.push('# Plan B Staging Flow — Manual QA Report');
+      lines.push('');
+      lines.push(`**Date:** ${new Date().toISOString().split('T')[0]}`);
+      lines.push(`**Elapsed:** ${elapsed} min`);
+      lines.push('');
+      lines.push(`**Summary:** ${counts.pass} pass, ${counts.fail} fail, ${counts.blocked} blocked, ${counts.skip} skipped, ${counts.pending} pending (of ${tests.length} total)`);
+      lines.push('');
+      lines.push('## Live environment');
+      lines.push('- SPA: https://d3h8i7y9p8lyw7.cloudfront.net/admin/');
+      lines.push('- API Gateway: tt3xt4tr09 (prod)');
+      lines.push('- Last deployment: m2cwf6');
+      lines.push('- Rollback tag: pre-plan-b-2026-05-18');
+      lines.push('');
+      lines.push('## Results');
+      lines.push('');
+
+      tests.forEach(t => {
+        const id = t.dataset.testId;
+        const title = t.querySelector('.test-title').textContent.trim();
+        const status = t.dataset.status;
+        const notes = (t.querySelector('.notes')?.value || '').trim();
+        const icon = ({ pass: '✅', fail: '❌', blocked: '⚠️', skip: '➖', pending: '⏳' })[status] || '⏳';
+        lines.push(`### ${icon} ${title}`);
+        lines.push(`**Status:** ${status}`);
+        if (notes) {
+          lines.push('**Notes:**');
+          notes.split('\n').forEach(line => lines.push('> ' + line));
+        }
+        lines.push('');
+      });
+
+      if (counts.fail > 0) {
+        lines.push('## Action required');
+        lines.push('One or more checks failed. Consider rolling back per the emergency rollback procedure documented at the top of the QA page, then investigate.');
+      } else if (counts.pending > 0) {
+        lines.push('## Incomplete');
+        lines.push(`${counts.pending} test(s) still pending. Re-open the QA page to continue.`);
+      } else {
+        lines.push('## All clear');
+        lines.push('All required tests passed. Staging flow is verified live in production.');
+      }
+
+      return lines.join('\n');
+    }
+
+    async function copyReport() {
+      const report = buildReport();
+      try {
+        await navigator.clipboard.writeText(report);
+        showToast('Report copied to clipboard.');
+      } catch (err) {
+        // Fallback for older browsers
+        const ta = document.createElement('textarea');
+        ta.value = report;
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); showToast('Report copied (fallback).'); }
+        catch { showToast('Copy failed — see console.', true); console.log(report); }
+        document.body.removeChild(ta);
+      }
+    }
+
+    function exportJSON() {
+      const state = load();
+      const started = getStarted();
+      const payload = { startedAt: started, exportedAt: Date.now(), tests: state };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `plan-b-qa-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('JSON downloaded.');
+    }
+
+    function resetAll() {
+      if (!confirm('Reset all QA state? This clears every checkbox and note.')) return;
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(TIMER_KEY);
+      document.querySelectorAll('.test').forEach(t => {
+        t.dataset.status = 'pending';
+        const n = t.querySelector('.notes');
+        if (n) n.value = '';
+        refreshStatusButtons(t);
+        const c = t.querySelector('[data-counter]');
+        if (c) c.textContent = '';
+      });
+      refreshProgress();
+      updateTimer();
+      showToast('QA state reset.');
+    }
+
+    // Hydrate from localStorage on load
+    function hydrate() {
+      const state = load();
+      document.querySelectorAll('.test').forEach(t => {
+        const id = t.dataset.testId;
+        const data = state[id];
+        if (data) {
+          if (data.status) t.dataset.status = data.status;
+          if (data.notes) {
+            const ta = t.querySelector('.notes');
+            if (ta) ta.value = data.notes;
+          }
+        }
+        refreshStatusButtons(t);
+        // wire notes
+        const ta = t.querySelector('.notes');
+        if (ta) {
+          const counter = t.querySelector('[data-counter]');
+          const updateCount = () => { if (counter) counter.textContent = ta.value.length ? `${ta.value.length} chars` : ''; };
+          updateCount();
+          ta.addEventListener('input', () => {
+            markStarted();
+            const s = load();
+            s[id] = s[id] || {};
+            s[id].notes = ta.value;
+            save(s);
+            updateCount();
+          });
+        }
+      });
+      refreshProgress();
+      updateTimer();
+      setInterval(updateTimer, 1000);
+    }
+
+    hydrate();
+
+    // Keyboard shortcut: Alt+C to copy report
+    document.addEventListener('keydown', (e) => {
+      if (e.altKey && e.key.toLowerCase() === 'c') {
+        e.preventDefault();
+        copyReport();
+      }
+    });
+
+    /* ── Collaboration layer ───────────────────────────────────────────
+       Only active when the page is served from qa-server.py (not file://).
+       Detects this by checking if location.protocol is http.
+    ─────────────────────────────────────────────────────────────────── */
+
+    const SERVER_ACTIVE = location.protocol.startsWith('http');
+    const POLL_INTERVAL_MS = 2000;
+    const SYNC_DEBOUNCE_MS = 500;
+    let lastReplyId = '0';
+    let _syncTimer = null;
+    let _syncInFlight = false;
+    let _connKnown = null;
+
+    function setConn(status, text) {
+      const el = document.getElementById('conn-status');
+      if (!el) return;
+      el.className = 'conn-status ' + status;
+      el.querySelector('.conn-text').textContent = text || status;
+      _connKnown = status;
+    }
+
+    async function postState() {
+      if (!SERVER_ACTIVE) return;
+      if (_syncInFlight) return;
+      _syncInFlight = true;
+      setConn('syncing', 'syncing');
+      const state = load();
+      try {
+        const r = await fetch('/state', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(state),
+        });
+        if (!r.ok) throw new Error('http ' + r.status);
+        setConn('online', 'in sync');
+      } catch (e) {
+        setConn('offline', 'offline');
+      } finally {
+        _syncInFlight = false;
+      }
+    }
+
+    function scheduleStateSync() {
+      if (!SERVER_ACTIVE) return;
+      clearTimeout(_syncTimer);
+      _syncTimer = setTimeout(postState, SYNC_DEBOUNCE_MS);
+    }
+
+    async function pollReplies() {
+      if (!SERVER_ACTIVE) return;
+      try {
+        const r = await fetch('/replies/since/' + encodeURIComponent(lastReplyId));
+        if (!r.ok) throw new Error('http ' + r.status);
+        const replies = await r.json();
+        replies.forEach(reply => {
+          renderReply(reply);
+          if (String(reply.id) > lastReplyId) lastReplyId = String(reply.id);
+        });
+        if (_connKnown === 'offline') setConn('online', 'online');
+      } catch (e) {
+        setConn('offline', 'offline');
+      }
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+      })[c]);
+    }
+
+    function renderMarkdownLite(s) {
+      let html = escapeHtml(s);
+      // Inline code first (so we don't double-process inside)
+      html = html.replace(/`([^`]+)`/g, (_, code) => '<code>' + code + '</code>');
+      // Bold
+      html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+      // Newlines to <br>
+      html = html.replace(/\n/g, '<br>');
+      return html;
+    }
+
+    function renderReply(reply) {
+      const id = String(reply.id || Date.now());
+      const testId = reply.testId;
+      let host = null;
+      let testEl = null;
+
+      if (testId) {
+        testEl = document.querySelector(`.test[data-test-id="${testId}"]`);
+        if (testEl) host = testEl.querySelector('.replies');
+      }
+      if (!host) host = document.getElementById('global-replies');
+      if (!host) return;
+
+      if (host.querySelector(`[data-reply-id="${id}"]`)) return; // dedupe
+
+      const div = document.createElement('div');
+      div.className = 'reply';
+      div.dataset.replyId = id;
+      div.dataset.level = reply.level || 'info';
+
+      const tsMs = (reply.ts || Date.now() / 1000) * 1000;
+      const timeStr = new Date(tsMs).toLocaleTimeString([], {
+        hour: '2-digit', minute: '2-digit',
+      });
+
+      const labelMap = { info: 'Claude', success: 'Looks good', warn: 'Heads up', error: 'Blocker', question: 'Need input' };
+      const label = labelMap[reply.level] || 'Claude';
+
+      div.innerHTML = `
+        <div class="reply-meta">
+          <span>${escapeHtml(label)}</span>
+          <span class="reply-time">${escapeHtml(timeStr)}</span>
+        </div>
+        <div class="reply-text">${renderMarkdownLite(reply.text || '')}</div>
+      `;
+      host.appendChild(div);
+
+      // Auto-expand the target test so the user sees it
+      if (testEl) {
+        testEl.dataset.expanded = 'true';
+        // Reset ping button on this card
+        const btn = testEl.querySelector('.ping-btn');
+        if (btn) {
+          btn.classList.remove('pinged');
+          btn.disabled = false;
+          btn.innerHTML = '💬 Ping Claude';
+        }
+        // Bump the badge briefly so user notices even when card was already open
+        const badge = testEl.querySelector('.test-badge');
+        if (badge) {
+          badge.textContent = '!';
+          badge.classList.add('show');
+          setTimeout(() => badge.classList.remove('show'), 6000);
+        }
+        // Scroll into view if it's not visible
+        const rect = div.getBoundingClientRect();
+        if (rect.top < 0 || rect.bottom > window.innerHeight) {
+          div.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }
+    }
+
+    async function pingClaude(btn) {
+      if (!SERVER_ACTIVE) {
+        showToast('Ping needs the local server. See the yellow banner above.', true);
+        return;
+      }
+      const test = btn.closest('.test');
+      const id = test.dataset.testId;
+      const title = test.querySelector('.test-title').textContent.trim();
+      const status = test.dataset.status;
+      const notes = (test.querySelector('.notes')?.value || '').trim();
+
+      const origLabel = btn.innerHTML;
+      btn.classList.add('pinged');
+      btn.disabled = true;
+      btn.innerHTML = '⏳ Waiting for Claude…';
+
+      try {
+        await postState(); // flush latest state first
+        const r = await fetch('/ping', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            testId: id,
+            title,
+            status,
+            notes: notes.slice(0, 2000),
+          }),
+        });
+        if (!r.ok) throw new Error('http ' + r.status);
+        showToast('Ping sent. Claude will reply inside this card.');
+      } catch (e) {
+        btn.classList.remove('pinged');
+        btn.disabled = false;
+        btn.innerHTML = origLabel;
+        showToast('Ping failed: ' + e.message, true);
+      }
+    }
+
+    // Bootstrap the collaboration layer (only if served by qa-server.py)
+    if (SERVER_ACTIVE) {
+      setConn('syncing', 'connecting');
+      postState();
+      pollReplies();
+      setInterval(pollReplies, POLL_INTERVAL_MS);
+    } else {
+      // file:// mode — show setup banner
+      document.getElementById('setup-banner').classList.add('show');
+      const conn = document.getElementById('conn-status');
+      if (conn) {
+        conn.className = 'conn-status offline';
+        conn.querySelector('.conn-text').textContent = 'local only';
+        conn.title = 'No live link. Run qa-server.py and reload at http://localhost:8765/';
+      }
+    }
+  </script>
+</body>
+</html>

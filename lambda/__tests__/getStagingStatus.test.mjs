@@ -14,7 +14,7 @@ describe('getStagingStatus', () => {
   beforeEach(async () => {
     s3Mock.reset();
     jest.unstable_mockModule('../auth-middleware.mjs', () => ({
-      validateToken: jest.fn().mockResolvedValue({ valid: true, claims: { sub: 'alice', 'cognito:groups': ['admin'] } }),
+      validateToken: jest.fn().mockResolvedValue({ isValid: true, user: { sub: 'alice', role: 'admin' } }),
       createAuthResponse: jest.fn((status, body) => ({ statusCode: status, headers: {}, body: JSON.stringify(body) })),
     }));
     jest.unstable_mockModule('../role-auth.mjs', () => ({
