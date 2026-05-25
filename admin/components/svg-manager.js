@@ -264,6 +264,17 @@ function wireStagingActions() {
     // can't dismiss or trigger duplicate actions while it's in flight.
     const sequence = beginStagingSequence('promote');
     sequence.setStep('uploading');
+    // Issue #50 (Free-plan path): capture each displayed map's CURRENT
+    // (pre-promote) ETag BEFORE the promote POST, while production still serves
+    // the OLD bytes. Capturing after the POST risks reading the already-
+    // propagated NEW etag on a fast invalidation, so pollUntilFresh would wait
+    // for a change that already happened and never re-render the thumbnail
+    // (observed 2026-05-25). We don't yet know which files will be promoted, so
+    // baseline every map currently in the grid; the poll below uses the relevant ones.
+    const baselineEtags = {};
+    await Promise.all((svgFiles || []).map(async f => {
+      baselineEtags[f.name] = await fetchMapEtag(f.name);
+    }));
     try {
       const resp = await fetch(`${STAGING_API_BASE}/promote`, {
         method: 'POST',
@@ -286,18 +297,13 @@ function wireStagingActions() {
       } catch (_) {
         // Tolerate missing/non-JSON body — dispatch still goes out (empty map).
       }
-      // Issue #50 (Free-plan path): the promote's CloudFront invalidation takes
-      // tens of seconds to propagate, so a synchronous cache-buster bump would
-      // just re-render the still-stale edge object. Capture each changed map's
-      // current (pre-propagation) ETag now, then poll the bare URL until the
-      // served ETag changes — only THEN bump the buster and re-render the grid.
-      // The bare thumbnail keeps serving Primo throughout; the ?v= bust is purely
-      // a browser-side refetch trigger for the Replace-tab <img>.
+      // Issue #50 (Free-plan path): poll the bare URL until the promote's
+      // CloudFront invalidation propagates (served ETag differs from the
+      // pre-promote baseline captured above), then bump the buster + re-render
+      // the grid so the thumbnail refetches the promoted bytes. The bare
+      // thumbnail keeps serving Primo throughout; the ?v= bust is purely a
+      // browser-side refetch trigger for the Replace-tab <img>.
       const changedMapNames = Object.keys(promotedVersions).map(key => key.split('/').pop());
-      const baselineEtags = {};
-      await Promise.all(changedMapNames.map(async name => {
-        baselineEtags[name] = await fetchMapEtag(name);
-      }));
       sequence.setStep('validating');
       await refreshStagingPanel();
       sequence.setStep('refreshing');
