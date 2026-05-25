@@ -19,8 +19,8 @@
 - **Create** `admin/components/map-editor/promote-refresh.js` — pure, testable seam: per-floor cache-buster store, the "did this promote touch floor N" predicate, and the `svg-promoted` listener installer (takes injected `getCurrentFloor`/`reloadFloor`). Isolating this is what makes the fix unit-testable and structurally forces routing through `loadFloor()`.
 - **Modify** `admin/components/map-editor/svg-loader.js` — `loadFloorSvg()` gains an optional `cacheBust` arg and appends `?v=`.
 - **Modify** `admin/components/map-editor.js` — install the listener at module init; `loadFloor()` passes the stored cache-buster to `loadFloorSvg()`.
-- **Modify** `admin/components/svg-manager.js` — re-add the `svg-promoted` dispatch on successful promote (reverted in `ea824d7`).
-- **Create** `admin/__tests__/svg-loader-cachebust.test.js`, `admin/__tests__/promote-refresh.test.js`, `admin/__tests__/svg-manager-promote-event.test.js`.
+- **Modify** `admin/components/svg-manager.js` — (a) re-add the `svg-promoted` dispatch on successful promote (reverted in `ea824d7`); (b) cache-bust the map thumbnails + Preview modal + download on the Replace tab after a promote, so the **small map view refreshes too**, via a per-file `?v=` token (`mapAssetUrl()` + `mapCacheBusters`).
+- **Create** `admin/__tests__/svg-loader-cachebust.test.js`, `admin/__tests__/promote-refresh.test.js`, `admin/__tests__/svg-manager-promote-event.test.js`, `admin/__tests__/svg-manager-preview-refresh.test.js`.
 - **Infra (no repo file):** CloudFront distribution `E5SR0E5GM5GSB` — new `/maps/*` cache behavior + a custom cache policy whitelisting `v`.
 
 Test command (all tasks): `npm --prefix admin test -- <pattern>`
@@ -259,7 +259,7 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 **Files:**
 - Modify: `admin/components/map-editor.js` (import; `loadFloor` at :245-248; module-init listener near :303)
 
-This task is wiring between already-tested units; verify by the unit tests above plus the manual end-to-end in Task 6 (`loadFloor` is private and pulls in DOM + ranges state, so it is exercised manually, not unit-mounted).
+This task is wiring between already-tested units; verify by the unit tests above plus the manual end-to-end in Task 7 (`loadFloor` is private and pulls in DOM + ranges state, so it is exercised manually, not unit-mounted).
 
 - [ ] **Step 1: Add the import**
 
@@ -424,7 +424,114 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 
 ---
 
-## Task 5: CloudFront `/maps/*` behavior keyed on `v` (infra)
+## Task 5: SVG Manager map preview refreshes after promote
+
+The "Replace" tab shows each map as a grid thumbnail `<img src="…/maps/<file>">` (`renderGrid`, :339), plus a Preview modal (`showPreview`) and a download link (:462) — all built from the **bare** CloudFront URL. An `<img>` ignores `cache:'no-cache'`, so after a promote the thumbnail keeps showing the stale image. This task cache-busts those map URLs with the same per-file `?v=` token (so it also rides the Task 6 CloudFront behavior). Depends on Task 4 (the promote handler edited there is where the token is set).
+
+**Files:**
+- Modify: `admin/components/svg-manager.js` (add `mapCacheBusters` + `mapAssetUrl()` near :47; use it for the thumbnail :339, `showPreview`, and the download handler :462; set tokens in the promote handler from Task 4)
+- Test: `admin/__tests__/svg-manager-preview-refresh.test.js` (create)
+
+- [ ] **Step 1: Write the failing test**
+
+```js
+/** @jest-environment jsdom */
+import { jest } from '@jest/globals';
+
+function seed() { document.body.innerHTML = '<div id="svg-manager"></div><div id="toast-container"></div>'; }
+const flush = () => new Promise(r => setTimeout(r, 0));
+
+describe('#50 — SVG Manager map preview refreshes after promote', () => {
+  let fetchSpy;
+  beforeEach(() => { jest.resetModules(); window.__USE_STAGING_FLOW__ = true; });
+  afterEach(() => { fetchSpy?.mockRestore(); delete window.__USE_STAGING_FLOW__; });
+
+  test('thumbnail src gains ?v= for a promoted map', async () => {
+    seed();
+    const statusGreen = { locked: true, owner: 'unknown', files: ['maps/floor_1.svg'],
+      lastValidated: { ok: true, errors: [], summary: { addedShelves: [], removedRefs: [] } } };
+    fetchSpy = jest.spyOn(global, 'fetch').mockImplementation(async (url, opts = {}) => {
+      const u = typeof url === 'string' ? url : '';
+      if (u.includes('/api/svg') && (!opts.method || opts.method === 'GET'))
+        return { ok: true, json: async () => ({ success: true, files: [{ name: 'floor_1.svg', size: 1234 }] }) };
+      if (u.includes('/api/staging/status')) return { ok: true, json: async () => statusGreen };
+      if (u.includes('/api/staging/promote'))
+        return { ok: true, status: 200, json: async () => ({ ok: true, promotedVersions: { 'maps/floor_1.svg': 'updated' } }) };
+      return { ok: true, json: async () => ({}) };
+    });
+
+    const mod = await import('../components/svg-manager.js');
+    mod.initSVGManager();
+    for (let i = 0; i < 8; i++) await flush();
+
+    const before = document.querySelector('#svg-grid img');
+    expect(before.getAttribute('src')).toContain('/maps/floor_1.svg');
+    expect(before.getAttribute('src')).not.toContain('?v=');
+
+    document.querySelector('[data-action="promote-staging"]').click();
+    for (let i = 0; i < 8; i++) await flush();
+
+    const after = document.querySelector('#svg-grid img');
+    expect(after.getAttribute('src')).toMatch(/\/maps\/floor_1\.svg\?v=/);
+  });
+});
+```
+
+- [ ] **Step 2: Run to verify it fails**
+
+Run: `npm --prefix admin test -- svg-manager-preview-refresh`
+Expected: FAIL — after the promote the thumbnail src is still bare (no `?v=`).
+
+- [ ] **Step 3: Implement**
+
+In `admin/components/svg-manager.js`, near the `CLOUDFRONT_URL` constant (:47) add:
+
+```js
+// Per-file cache-buster for map asset URLs, bumped after a promote so the
+// Replace-tab thumbnails/preview/download refetch the new bytes. An <img> does
+// not honor cache:'no-cache', so a fresh ?v= is the only way to refresh it; the
+// /maps/* CloudFront behavior keys on `v` so this also defeats the edge cache.
+const mapCacheBusters = {};
+function mapAssetUrl(filename) {
+  const bust = mapCacheBusters[filename];
+  const base = `${CLOUDFRONT_URL}/maps/${encodeURIComponent(filename)}`;
+  return bust ? `${base}?v=${bust}` : base;
+}
+```
+
+Replace each map-URL construction with `mapAssetUrl(...)`:
+- `renderGrid` thumbnail (:339): `const thumbnailUrl = mapAssetUrl(file.name);`
+- the download handler (:462): `a.href = mapAssetUrl(filename);`
+- `showPreview(name)`: build its image/object URL with `mapAssetUrl(name)`.
+
+In the promote handler (the one edited in Task 4), right after `promotedVersions` is captured and **before** `await loadFiles()`, set the tokens:
+
+```js
+      // Issue #50: bump cache-busters for the changed maps so the Replace-tab
+      // thumbnails/preview refetch the promoted bytes when renderGrid re-runs.
+      const previewBust = Date.now().toString(36);
+      for (const key of Object.keys(promotedVersions)) {
+        mapCacheBusters[key.split('/').pop()] = previewBust;
+      }
+```
+
+- [ ] **Step 4: Run to verify it passes**
+
+Run: `npm --prefix admin test -- svg-manager-preview-refresh svg-manager svg-manager-promote-event`
+Expected: PASS (new preview test + existing svg-manager + producer suites unaffected).
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add admin/components/svg-manager.js admin/__tests__/svg-manager-preview-refresh.test.js
+git commit -m "feat(#50): cache-bust SVG Manager map thumbnails/preview after promote
+
+Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
+```
+
+---
+
+## Task 6: CloudFront `/maps/*` behavior keyed on `v` (infra)
 
 **Goal:** Make a `?v=<token>` produce a distinct cache key for `/maps/*` so a new token forces a fresh origin fetch — while the bare `…/floor_N.svg` URL (Primo NDE) keeps working and keeps its CORS headers.
 
@@ -536,13 +643,13 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 
 ---
 
-## Task 6: Deploy + manual end-to-end verification
+## Task 7: Deploy + manual end-to-end verification
 
 **Files:** none (deploy + verify).
 
 - [ ] **Step 1: Deploy the SPA**
 
-CloudFront `/maps/*` (Task 5) must already be `Deployed`. Then:
+CloudFront `/maps/*` (Task 6) must already be `Deployed`. Then:
 ```bash
 bash redeploy.sh   # admin SPA + CloudFront /admin/* invalidation
 ```
@@ -553,7 +660,8 @@ Reuse the bridge in `docs/manual-qa/` (`python3 docs/manual-qa/qa-server.py`, op
   - Add a visible test shelf to a local `floor_1.svg`, Replace + Promote it.
   - **At promote success**, confirm an automatic `GET …/maps/floor_1.svg?v=<token>` returns **200** and the **new shelf appears in the Map Editor with no hard refresh**.
   - **Click the new shelf / an existing shelf** → confirm it is still **interactive** (drawer opens) — proves the refresh went through `loadFloor()`.
-  - Revert (promote the original) → confirm the shelf disappears automatically.
+  - **Switch to the SVG Manager (Replace) tab** → confirm the **small map thumbnail** for the promoted floor now shows the new map (and the **Preview** modal does too) **without a hard refresh** — this is the Task 5 fix.
+  - Revert (promote the original) → confirm the shelf disappears automatically in both the Map Editor and the SVG Manager thumbnail.
 
 - [ ] **Step 3: Confirm Primo path unaffected**
 
@@ -576,7 +684,7 @@ gh pr create --title "fix(#50): Map Editor auto-refresh after promote (versioned
 
 ## Self-Review
 
-- **Spec coverage:** routing through `loadFloor()` (Task 3) ✓; cache-buster URL (Task 1) ✓; decide-which-floor + token (Task 2) ✓; producer dispatch (Task 4) ✓; CloudFront keys on `v` (Task 5) ✓; Primo unaffected (Tasks 5–6 verification) ✓; manual e2e that caught the original bug (Task 6) ✓.
+- **Spec coverage:** routing through `loadFloor()` (Task 3) ✓; cache-buster URL (Task 1) ✓; decide-which-floor + token (Task 2) ✓; producer dispatch (Task 4) ✓; **SVG Manager (Replace tab) preview refresh (Task 5) ✓**; CloudFront keys on `v` (Task 6) ✓; Primo unaffected (Tasks 6–7 verification) ✓; manual e2e — both Map Editor and SVG Manager — that caught the original bug (Task 7) ✓.
 - **No Lambda change:** confirmed — `promoteStaging` already returns `promotedVersions` keys; the client generates the cache-buster, so no Lambda redeploy/deploy-gate.
 - **Type/name consistency:** `nextCacheBust`, `getFloorCacheBust`, `floorChangedInPromote`, `installPromoteRefreshListener` used identically in Tasks 2 & 3; `loadFloorSvg(floorNumber, container, cacheBust)` signature consistent across Tasks 1 & 3.
-- **Ordering:** Task 5 (CloudFront) deploys before/with the SPA (Task 6) so `?v=` is honored; client change is harmless if Task 5 lags (extra ignored query param).
+- **Ordering:** Task 6 (CloudFront) deploys before/with the SPA (Task 7) so `?v=` is honored; client changes are harmless if Task 6 lags (extra ignored query param). Task 5 depends on Task 4 (shared promote handler).
