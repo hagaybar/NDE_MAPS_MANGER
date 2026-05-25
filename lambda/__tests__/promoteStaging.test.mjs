@@ -69,10 +69,22 @@ Lib,LibHe,Coll,CollHe,000,999,CC_NEW,,,1,,,,
     const resp = await handler(event());
     expect(resp.statusCode).toBe(200);
 
-    // Files should be copied to production paths
+    // Non-SVG files (CSV) keep the server-side copy path.
     const copies = s3Mock.commandCalls(CopyObjectCommand);
-    expect(copies.find(c => c.args[0].input.Key === 'maps/floor_1.svg')).toBeDefined();
     expect(copies.find(c => c.args[0].input.Key === 'data/mapping.csv')).toBeDefined();
+    // CSV is never read+stamped+put — it must NOT be copied via a stamp Put.
+    expect(copies.find(c => c.args[0].input.Key === 'maps/floor_1.svg')).toBeUndefined();
+
+    // SVG map files are read, stamped, and PutObject'd to the prod key
+    // (read+stamp+put instead of a server-side copy).
+    const prodSvgPut = s3Mock.commandCalls(PutObjectCommand)
+      .find(c => c.args[0].input.Key === 'maps/floor_1.svg');
+    expect(prodSvgPut).toBeDefined();
+    const putBody = prodSvgPut.args[0].input.Body;
+    const putStr = Buffer.isBuffer(putBody) ? putBody.toString('utf-8') : String(putBody);
+    // The staged shelf CC_NEW lacked a uid → promoted bytes carry one.
+    expect(putStr).toContain('data-shelf-uid="');
+    expect(putStr).toContain('id="CC_NEW"');
 
     // CloudFront invalidation
     const invalidations = cfMock.commandCalls(CreateInvalidationCommand);
@@ -176,9 +188,17 @@ Lib,LibHe,Coll,CollHe,000,999,CB_0,,,0,,,,
     const bodyStr = Buffer.isBuffer(body) ? body.toString('utf-8') : String(body);
     expect(bodyStr).toContain('LEGACY_SHELF');
 
-    // The CopyObjectCommand for the same prod key must still have run.
+    // SVG promote now reads+stamps+Puts to the prod key (no server-side copy).
     const copies = s3Mock.commandCalls(CopyObjectCommand);
-    expect(copies.find(c => c.args[0].input.Key === 'maps/floor_0.svg')).toBeDefined();
+    expect(copies.find(c => c.args[0].input.Key === 'maps/floor_0.svg')).toBeUndefined();
+    const prodPut = s3Mock.commandCalls(PutObjectCommand)
+      .find(c => c.args[0].input.Key === 'maps/floor_0.svg');
+    expect(prodPut).toBeDefined();
+    const prodBody = prodPut.args[0].input.Body;
+    const prodStr = Buffer.isBuffer(prodBody) ? prodBody.toString('utf-8') : String(prodBody);
+    // Promoted bytes come from the STAGED svg (CB_0) and carry a stamped uid.
+    expect(prodStr).toContain('id="CB_0"');
+    expect(prodStr).toContain('data-shelf-uid="');
   });
 
   test('creates backups for every file in meta.files before any prod overwrite', async () => {
@@ -229,8 +249,9 @@ Lib,LibHe,Coll,CollHe,000,999,CB_0,,,0,,,,
       c.args[0] instanceof PutObjectCommand &&
       /^versions\/maps\/floor_0_.+_alice\.svg$/.test(c.args[0].input.Key)
     );
-    const idxSvgCopy = idxOf(c =>
-      c.args[0] instanceof CopyObjectCommand && c.args[0].input.Key === 'maps/floor_0.svg'
+    // SVG now promotes via a stamped PutObject to the prod key (not a copy).
+    const idxSvgPromote = idxOf(c =>
+      c.args[0] instanceof PutObjectCommand && c.args[0].input.Key === 'maps/floor_0.svg'
     );
     const idxCsvBackup = idxOf(c =>
       c.args[0] instanceof PutObjectCommand &&
@@ -241,10 +262,11 @@ Lib,LibHe,Coll,CollHe,000,999,CB_0,,,0,,,,
     );
 
     expect(idxSvgBackup).toBeGreaterThan(-1);
-    expect(idxSvgCopy).toBeGreaterThan(-1);
+    expect(idxSvgPromote).toBeGreaterThan(-1);
     expect(idxCsvBackup).toBeGreaterThan(-1);
     expect(idxCsvCopy).toBeGreaterThan(-1);
-    expect(idxSvgBackup).toBeLessThan(idxSvgCopy);
+    // The version backup must precede the prod overwrite for each file.
+    expect(idxSvgBackup).toBeLessThan(idxSvgPromote);
     expect(idxCsvBackup).toBeLessThan(idxCsvCopy);
   });
 
@@ -318,8 +340,9 @@ Lib,LibHe,Coll,CollHe,000,999,CB_0,,,0,,,,
     );
     expect(versionPuts.length).toBe(0);
 
-    // The CopyObjectCommand still happened — promote proceeded.
-    const copies = s3Mock.commandCalls(CopyObjectCommand);
-    expect(copies.find(c => c.args[0].input.Key === 'maps/floor_0.svg')).toBeDefined();
+    // The stamped prod PutObject still happened — promote proceeded.
+    const prodPut = s3Mock.commandCalls(PutObjectCommand)
+      .find(c => c.args[0].input.Key === 'maps/floor_0.svg');
+    expect(prodPut).toBeDefined();
   });
 });

@@ -3,6 +3,7 @@ import { CloudFrontClient, CreateInvalidationCommand } from '@aws-sdk/client-clo
 import { validateToken, createAuthResponse } from './auth-middleware.mjs';
 import { checkPermission } from './role-auth.mjs';
 import { parseSvg } from './shared/svg-shelves.mjs';
+import { stampShelfUids } from './shared/stamp-shelf-uids.mjs';
 import { validateBundle } from './shared/validateBundle.mjs';
 import { readMeta, releaseLock } from './shared/staging-meta.mjs';
 import { parseCsvContent } from './range-validation.mjs';
@@ -113,13 +114,36 @@ export const handler = async (event) => {
       }
     }
 
-    // Step B: perform the copy from staging to production.
+    // Step B: write the staged file to production.
+    //
+    // SVG map files (maps/floor_N.svg) are read, stamped with a stable
+    // data-shelf-uid on every shelf that lacks one (idempotent — see #68), and
+    // PutObject'd to the prod key. The uid is rename-detection ground truth and
+    // must be present in the bytes that land in production, so a server-side
+    // CopyObject (which would copy the un-stamped staged bytes) is not enough.
+    //
+    // Non-SVG files (data/mapping.csv) keep the cheap server-side copy path.
     try {
-      await s3.send(new CopyObjectCommand({
-        Bucket: BUCKET,
-        Key: prodKey,
-        CopySource: `${BUCKET}/${stagedKey}`,
-      }));
+      if (isFloorSvgKey(prodKey)) {
+        const stagedResp = await s3.send(new GetObjectCommand({
+          Bucket: BUCKET,
+          Key: stagedKey,
+        }));
+        const stagedSvg = await streamToString(stagedResp.Body);
+        const stampedSvg = stampShelfUids(stagedSvg);
+        await s3.send(new PutObjectCommand({
+          Bucket: BUCKET,
+          Key: prodKey,
+          Body: stampedSvg,
+          ContentType: 'image/svg+xml',
+        }));
+      } else {
+        await s3.send(new CopyObjectCommand({
+          Bucket: BUCKET,
+          Key: prodKey,
+          CopySource: `${BUCKET}/${stagedKey}`,
+        }));
+      }
       promotedVersions[file] = 'updated';
       cdnPaths.push(`/${prodKey}`);
     } catch (err) {
@@ -187,6 +211,17 @@ export const handler = async (event) => {
     promotedVersions,
   }, CORS_HEADERS);
 };
+
+/**
+ * True for production keys of the form `maps/floor_<N>.svg` — the SVG map files
+ * that get stamped with data-shelf-uid on promote. Any other key (e.g.
+ * data/mapping.csv) uses the plain server-side copy path.
+ * @param {string} key
+ * @returns {boolean}
+ */
+function isFloorSvgKey(key) {
+  return /^maps\/floor_\d+\.svg$/.test(key);
+}
 
 async function fetchObjectOrFallback(primaryKey, fallbackKey) {
   try {
