@@ -3,6 +3,7 @@ import { applyRoleBasedUI, getPermittedRowIds } from '../auth-guard.js?v=5';
 import { showToast } from './toast.js?v=5';
 import { getAuthHeaders, getCurrentUsername } from '../app.js?v=5';
 import { loadFloorSvg, indexShelvesById, buildRangeCountByShelf, buildKnownSvgCodes } from './map-editor/svg-loader.js?v=2';
+import { installPromoteRefreshListener, getFloorCacheBust } from './map-editor/promote-refresh.js?v=1';
 import { indexShelfLocations } from './map-editor/location-model.js';
 import { attachInteraction, applySelection } from './map-editor/svg-interaction.js?v=1';
 import { createShelfState } from './map-editor/shelf-state.js?v=1';
@@ -245,7 +246,7 @@ let floorConflicts = new Map();
 async function loadFloor(floorNumber) {
   currentFloor = floorNumber;
   const canvas = document.getElementById('map-canvas');
-  const svgRoot = await loadFloorSvg(floorNumber, canvas);
+  const svgRoot = await loadFloorSvg(floorNumber, canvas, getFloorCacheBust(floorNumber));
 
   // Compute floorRanges BEFORE indexing — production SVGs are Inkscape exports
   // with hundreds of internal `[id]` elements (patterns, defs, clip-paths). We
@@ -301,6 +302,15 @@ async function loadFloor(floorNumber) {
 }
 
 window.addEventListener('mapeditor:floor-changed', e => loadFloor(e.detail.floor));
+
+// Issue #50 redo: a successful staging promote (svg-manager dispatches
+// 'svg-promoted') re-runs the FULL loadFloor for the current floor with a fresh
+// cache-buster, so the map shows the new bytes and stays interactive without a
+// page refresh. No-ops until a floor has been displayed (currentFloor null).
+installPromoteRefreshListener({
+  getCurrentFloor: () => currentFloor,
+  reloadFloor: (floor) => loadFloor(floor),
+});
 
 window.addEventListener('mapeditor:selection-changed', () => renderDrawer());
 
