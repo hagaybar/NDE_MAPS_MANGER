@@ -97,4 +97,20 @@ describe('reconcile-wizard (card layout)', () => {
     apply.click();
     expect(submitted.map).toEqual({ OLD: { action: 'rename', to: 'NEW_B' } });
   });
+
+  test('Cancel button invokes onCancel callback once', () => {
+    const onCancel = jest.fn();
+    renderReconcileWizard(host(), {
+      floor: 1,
+      removedRefs: [{ svgCode: 'OLD', affectedRowCount: 1 }],
+      candidateTargets: [{ svgCode: 'NEW_A' }],
+      renames: [],
+    }, () => {}, onCancel);
+
+    const cancel = host().querySelector('[data-action="cancel-reconcile"]');
+    expect(cancel).not.toBeNull();
+
+    cancel.click();
+    expect(onCancel).toHaveBeenCalledTimes(1);
+  });
 });

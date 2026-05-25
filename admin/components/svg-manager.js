@@ -463,7 +463,8 @@ function wireStagingActions() {
           body: '{}',
         });
         await refreshStagingPanel();
-      }
+      },
+      () => refreshStagingPanel()
     );
   });
 }

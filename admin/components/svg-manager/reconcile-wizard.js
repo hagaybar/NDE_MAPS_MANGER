@@ -17,8 +17,9 @@
  *   addedShelves?: Array<{svgCode: string}>
  * }} diff
  * @param {(floor: number, reconcileMap: object) => void} [onSubmit]
+ * @param {() => void} [onCancel]
  */
-export function renderReconcileWizard(host, diff, onSubmit) {
+export function renderReconcileWizard(host, diff, onSubmit, onCancel) {
   const detected = {};
   (diff.renames || []).forEach(r => { detected[r.fromCode] = r.toCode; });
   const candidates = (diff.candidateTargets || diff.addedShelves || []).map(c => c.svgCode);
@@ -170,6 +171,13 @@ export function renderReconcileWizard(host, diff, onSubmit) {
     }
     if (typeof onSubmit === 'function') {
       onSubmit(diff.floor, map);
+    }
+  });
+
+  host.querySelector('[data-action="cancel-reconcile"]').addEventListener('click', () => {
+    host.innerHTML = '';
+    if (typeof onCancel === 'function') {
+      onCancel();
     }
   });
 }
