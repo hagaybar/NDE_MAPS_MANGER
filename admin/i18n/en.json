@@ -69,6 +69,9 @@
         "unlinked": "{count} library entries will be unlinked",
         "preExisting": "{count} pre-existing unmapped shelf(s) (unchanged by this upload)",
         "preExistingHint": "On the map but missing library data (unchanged by this upload) — patrons can't find these in search until each map-code is mapped to a CSV row.",
+        "renamed": "{count} renamed shelf(s)",
+        "renamedNote": "(renamed — same shelf)",
+        "renamedHint": "These shelves were relabeled, not added or removed — the same physical shelf kept its place on the map. No patron-facing links break.",
         "shelfFloor": "Floor {floor}:"
       }
     }

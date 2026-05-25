@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <rect id="CB_0" data-map-object="shelf" data-shelf-uid="uid-aaa" x="10" y="10" width="20" height="20"/>
+  <rect id="CC_1-4" data-map-object="shelf" x="40.5" y="12.25" width="18" height="22.75"/>
+  <path id="CC_5-12" data-map-object="shelf" d="M70 10 L90 10 L90 30 Z"/>
+  <rect id="not-a-shelf" x="100" y="10" width="20" height="20"/>
+</svg>

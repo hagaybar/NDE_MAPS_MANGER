@@ -51,6 +51,78 @@ export function parseSvg(svgString) {
 }
 
 /**
+ * Per-shelf detail extractor used by rename detection.
+ *
+ * Same shelf rule as parseSvg (data-map-object="shelf" + non-empty id), but
+ * returns richer info per shelf instead of just the id list. Backward-compatible
+ * addition — does NOT change parseSvg's {shelves, duplicates} shape.
+ *
+ *   uid      = value of data-shelf-uid attribute, or null if absent.
+ *   x/y/     = numeric geometry via parseFloat when the attribute is present
+ *   width/     (rect shelves), else null (e.g. <path> shelves with no x/y).
+ *   height
+ *
+ * Unlike parseSvg, this does NOT de-duplicate by id: every matching shelf tag
+ * yields one entry (rename detection needs all occurrences). It also does not
+ * throw on malformed XML — it scans tags best-effort.
+ *
+ * MUST stay byte-for-byte equivalent in behavior to the corresponding function
+ * in admin/services/svg-shelves.js (parity tests over shared fixtures).
+ *
+ * @param {string} svgString Raw SVG XML text.
+ * @returns {Array<{id: string, uid: string|null, x: number|null, y: number|null, width: number|null, height: number|null}>}
+ */
+export function parseSvgShelfDetails(svgString) {
+  const tagRegex = /<[a-zA-Z][^>]*?>/g;
+  const details = [];
+
+  for (const match of svgString.matchAll(tagRegex)) {
+    const tag = match[0];
+    if (!/\bdata-map-object\s*=\s*["']shelf["']/.test(tag)) continue;
+    const id = getAttr(tag, 'id');
+    if (!id) continue;
+    details.push({
+      id,
+      uid: getAttr(tag, 'data-shelf-uid'),
+      x: getNumAttr(tag, 'x'),
+      y: getNumAttr(tag, 'y'),
+      width: getNumAttr(tag, 'width'),
+      height: getNumAttr(tag, 'height'),
+    });
+  }
+
+  return details;
+}
+
+/**
+ * Extract a string attribute value from a single tag string, or null if absent.
+ * @param {string} tag A single opening/self-closing tag including angle brackets.
+ * @param {string} name Attribute name (regex-safe literal).
+ * @returns {string|null}
+ */
+function getAttr(tag, name) {
+  const re = new RegExp('\\b' + name + '\\s*=\\s*["\']([^"\']*)["\']');
+  const m = tag.match(re);
+  if (!m) return null;
+  const value = m[1];
+  return value === '' ? null : value;
+}
+
+/**
+ * Extract a numeric attribute value via parseFloat, or null if the attribute is
+ * absent or does not parse to a finite number.
+ * @param {string} tag A single opening/self-closing tag including angle brackets.
+ * @param {string} name Attribute name (regex-safe literal).
+ * @returns {number|null}
+ */
+function getNumAttr(tag, name) {
+  const raw = getAttr(tag, name);
+  if (raw === null) return null;
+  const n = parseFloat(raw);
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
  * Minimal well-formedness check. We don't fully parse — we only catch the
  * obvious "missing close angle bracket" / "unclosed tag" cases that our
  * fixture set exercises. Full XML validation is the parser's job; this is
