@@ -26,7 +26,8 @@ const FALLBACKS = {
   'svg.staging.uploadFailed':    { en: 'Upload to staging failed',                 he: 'העלאה לסביבת בדיקה נכשלה' },
   'svg.staging.reconcileFailed': { en: 'Reconcile failed',                         he: 'יישוב נכשל' },
   'svg.staging.confirmDiscard':  { en: 'Discard the staged changes?',              he: 'להשליך את השינויים בסביבת הבדיקה?' },
-  'svg.staging.discarding':      { en: 'Discarding…',                              he: 'מבטל…' },
+  'svg.staging.discarding':      { en: 'Discarding staging…',                      he: 'מבטל את סביבת הבדיקה…' },
+  'svg.staging.discarded':       { en: 'Staging discarded',                        he: 'סביבת הבדיקה בוטלה' },
   'svg.staging.discardFailed':   { en: 'Discard failed',                           he: 'הביטול נכשל' },
   'svg.staging.progress.uploading':    { en: 'Uploading {filename}…',                        he: 'מעלה את {filename}…' },
   'svg.staging.progress.validating':   { en: 'Validating staging…',                          he: 'בודק את סביבת הבדיקה…' },
@@ -239,6 +240,57 @@ async function refreshStagingPanel() {
   wireStagingActions();
 }
 
+// One-time injection of a minimal keyframe so the discard spinner animates even
+// if Tailwind's `animate-spin` utility isn't present (CDN race / test jsdom).
+const DISCARD_SPINNER_STYLE_ID = 'discard-spinner-style';
+function ensureDiscardSpinnerStyles() {
+  if (typeof document === 'undefined') return;
+  if (document.getElementById(DISCARD_SPINNER_STYLE_ID)) return;
+  const style = document.createElement('style');
+  style.id = DISCARD_SPINNER_STYLE_ID;
+  style.textContent = `
+    @keyframes discard-spin { to { transform: rotate(360deg); } }
+    [data-discard-spinner] {
+      animation: discard-spin 0.7s linear infinite;
+      border-radius: 9999px;
+      border: 3px solid #bfdbfe;
+      border-top-color: #2563eb;
+      width: 1.75rem;
+      height: 1.75rem;
+      box-sizing: border-box;
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+/**
+ * Paint a prominent, animated in-progress indicator over the staging panel
+ * area the moment Discard is confirmed. Replaces the panel host's contents
+ * with a centered spinner + "Discarding staging…" label so the click is
+ * unmistakably acknowledged during the multi-second clear → refresh round-trip.
+ *
+ * Dedicated to the discard flow — intentionally NOT the shared blocking modal
+ * (staging-progress-modal.js) used by upload/promote, to keep those flows
+ * untouched.
+ *
+ * @param {HTMLElement} host  The staging-panel-host element.
+ */
+function showDiscardIndicator(host) {
+  if (!host) return;
+  ensureDiscardSpinnerStyles();
+  host.innerHTML = `
+    <div data-discard-indicator role="status" aria-live="polite"
+         class="rounded border border-blue-200 bg-blue-50 p-6 flex flex-col items-center justify-center gap-3 text-center">
+      <div data-discard-spinner class="animate-spin" aria-hidden="true"></div>
+      <div class="text-sm font-medium text-blue-800">${escapeHtmlText(t('svg.staging.discarding'))}</div>
+    </div>
+  `;
+}
+
+function escapeHtmlText(s) {
+  return String(s).replace(/[<>&"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c]));
+}
+
 /**
  * Wire click handlers for the staging panel action buttons. Re-attached on
  * every render because the panel is fully re-rendered each refresh.
@@ -339,34 +391,38 @@ function wireStagingActions() {
 
   host.querySelector('[data-action="discard-staging"]')?.addEventListener('click', async (e) => {
     if (!window.confirm(t('svg.staging.confirmDiscard'))) return;
-    // Lightweight button-level progress: a single quick op doesn't warrant the
-    // 3-step blocking modal. Disable + aria-busy + "Discarding…" gives feedback
-    // during the multi-second clear → refresh round-trip.
+    // The instant Discard is confirmed, paint a prominent animated-spinner
+    // indicator over the panel's state/actions region so the user clearly sees
+    // the click registered — the /clear → refresh round-trip is multi-second
+    // and was previously near-silent (only a subtle button-text swap). This is
+    // a dedicated, isolated indicator (NOT the shared blocking modal used by
+    // upload/promote) to avoid any regression to those flows.
     const btn = e.currentTarget
       || host.querySelector('[data-action="discard-staging"]');
-    const originalText = btn ? btn.textContent : null;
+    // Defense in depth: keep the button disabled while in flight even though
+    // the overlay sits on top of it.
     if (btn) {
       btn.disabled = true;
       btn.setAttribute('aria-busy', 'true');
-      btn.textContent = t('svg.staging.discarding');
     }
+    showDiscardIndicator(host);
     try {
       await fetch(`${STAGING_API_BASE}/clear`, {
         method: 'POST',
         headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
         body: '{}',
       });
-      // On success refreshStagingPanel() re-renders the panel, replacing the
-      // button entirely — no manual restore needed.
+      // Success: refreshStagingPanel() re-renders the panel back to its
+      // idle/empty state (clearing the indicator), then a completion toast
+      // confirms the discard finished.
       await refreshStagingPanel();
+      showToast(t('svg.staging.discarded'), 'success');
     } catch (err) {
       console.error('Failed to discard staging:', err);
-      if (btn) {
-        btn.disabled = false;
-        btn.removeAttribute('aria-busy');
-        if (originalText !== null) btn.textContent = originalText;
-      }
-      showToast(t('svg.staging.discardFailed'));
+      // Restore the panel (re-render from current status) so the indicator is
+      // cleared and the Discard button comes back, then surface the error.
+      await refreshStagingPanel().catch(() => {});
+      showToast(t('svg.staging.discardFailed'), 'error');
     }
   });
 

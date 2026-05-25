@@ -48,7 +48,8 @@
     "preview": "תצוגה מקדימה",
     "confirmDelete": "האם אתה בטוח שברצונך למחוק קובץ זה?",
     "staging": {
-      "discarding": "מבטל…",
+      "discarding": "מבטל את סביבת הבדיקה…",
+      "discarded": "סביבת הבדיקה בוטלה",
       "discardFailed": "הביטול נכשל",
       "progress": {
         "uploading": "מעלה את {filename}…",

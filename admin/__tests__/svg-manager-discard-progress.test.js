@@ -1,15 +1,16 @@
 /** @jest-environment jsdom */
 /**
- * Tests for the lightweight progress indicator on the staging Discard action
+ * Tests for the progress indicator on the staging Discard action
  * (data-action="discard-staging" handler in svg-manager.js).
  *
  * Before this change, clicking Discard fired POST /clear → refreshStagingPanel()
  * with no UI feedback, leaving a multi-second silent wait. The handler now:
- *   - disables the clicked button + sets aria-busy + swaps text to "Discarding…"
- *     while the /clear request is in flight,
- *   - on success lets refreshStagingPanel() re-render (button replaced),
- *   - on error re-enables the button, clears aria-busy, restores the text, and
- *     shows an error toast.
+ *   - disables the clicked button (defense in depth) AND replaces the panel's
+ *     state/actions region with a prominent animated-spinner overlay carrying
+ *     the "Discarding staging…" text, the instant Discard is confirmed,
+ *   - on success lets refreshStagingPanel() re-render (panel reset to idle) and
+ *     shows a success toast,
+ *   - on error re-renders the panel (restore) and shows an error toast.
  *
  * Drives the real component via initSVGManager() so the actual Discard button
  * markup and wiring is exercised (same approach as svg-manager-promote-event).
@@ -71,7 +72,7 @@ describe('svg-manager staging Discard progress indicator', () => {
     for (let i = 0; i < 8; i++) await flush();
   }
 
-  test('disables the Discard button and shows "Discarding…" while /clear is in flight', async () => {
+  test('shows a prominent animated spinner with "Discarding staging…" in the panel while /clear is in flight, then a success toast on resolve', async () => {
     const clearDef = deferred();
     await renderPanel(() => clearDef.promise);
 
@@ -79,38 +80,58 @@ describe('svg-manager staging Discard progress indicator', () => {
     expect(btn).not.toBeNull();
     expect(btn.disabled).toBe(false);
     expect(btn.getAttribute('aria-busy')).toBeNull();
-    const originalText = btn.textContent;
 
     btn.click();
     await flush();
 
-    const busyBtn = document.querySelector('[data-action="discard-staging"]');
-    expect(busyBtn.disabled).toBe(true);
-    expect(busyBtn.getAttribute('aria-busy')).toBe('true');
-    expect(busyBtn.textContent).toMatch(/Discarding/i);
-    expect(busyBtn.textContent).not.toBe(originalText);
+    // Prominent in-panel indicator appears immediately (at the start of the
+    // await), not after the round-trip completes.
+    const indicator = document.querySelector('[data-discard-indicator]');
+    expect(indicator).not.toBeNull();
+    expect(indicator.textContent).toMatch(/Discarding staging/i);
+    // Animated spinner element present inside the indicator.
+    expect(indicator.querySelector('[data-discard-spinner]')).not.toBeNull();
 
-    // Let the in-flight clear resolve so the test doesn't leak a pending fetch.
+    // Defense in depth: the Discard button stays disabled while in flight.
+    const busyBtn = document.querySelector('[data-action="discard-staging"]');
+    if (busyBtn) {
+      expect(busyBtn.disabled).toBe(true);
+      expect(busyBtn.getAttribute('aria-busy')).toBe('true');
+    }
+
+    // Resolve the clear → success path re-renders the panel (idle/empty state)
+    // and shows a completion toast.
     clearDef.resolve({ ok: true, json: async () => ({}) });
     for (let i = 0; i < 8; i++) await flush();
+
+    // Indicator gone after the panel reset.
+    expect(document.querySelector('[data-discard-indicator]')).toBeNull();
+    // Success toast surfaced.
+    const toastContainer = document.getElementById('toast-container');
+    expect(toastContainer.textContent).toMatch(/Staging discarded/i);
   });
 
-  test('on /clear failure: re-enables the button, clears aria-busy, restores text', async () => {
+  test('on /clear failure: restores the panel (Discard button back) and shows an error toast', async () => {
     const clearDef = deferred();
     await renderPanel(() => clearDef.promise);
 
     const btn = document.querySelector('[data-action="discard-staging"]');
-    const originalText = btn.textContent;
     btn.click();
     await flush();
-    expect(btn.disabled).toBe(true);
+    // Spinner indicator present while in flight.
+    expect(document.querySelector('[data-discard-indicator]')).not.toBeNull();
 
     clearDef.reject(new Error('network down'));
     for (let i = 0; i < 8; i++) await flush();
 
+    // Panel restored: Discard button is back and usable, indicator gone.
     const restored = document.querySelector('[data-action="discard-staging"]');
+    expect(restored).not.toBeNull();
     expect(restored.disabled).toBe(false);
     expect(restored.getAttribute('aria-busy')).toBeNull();
-    expect(restored.textContent).toBe(originalText);
+    expect(document.querySelector('[data-discard-indicator]')).toBeNull();
+    // Error toast surfaced.
+    const toastContainer = document.getElementById('toast-container');
+    expect(toastContainer.textContent).toMatch(/Discard failed/i);
   });
 });
