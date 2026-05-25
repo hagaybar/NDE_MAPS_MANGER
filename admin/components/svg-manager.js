@@ -241,29 +241,11 @@ function wireStagingActions() {
         showToast(`${t('svg.staging.promoteFailed')}: ${err.error}`);
         return;
       }
-      // Capture promotedVersions BEFORE the panel refresh — it's the only signal
-      // a consumer (map-editor/svg-loader.js, issue #50) has to know which floors
-      // just changed. The Lambda returns { ok: true, promotedVersions: { 'floor_N.svg': '<versionId>', ... } }.
-      let promotedVersions = {};
-      try {
-        const body = await resp.json();
-        promotedVersions = body?.promotedVersions || {};
-      } catch (_) {
-        // Tolerate missing/non-JSON body — the dispatch still goes out with an
-        // empty payload so consumers can fall back to a blanket refresh.
-      }
       sequence.setStep('validating');
       await refreshStagingPanel();
       sequence.setStep('refreshing');
       await loadFiles();  // existing function that re-fetches the production file grid
       showToast(t('svg.staging.promoted'));
-      // Issue #50: notify other views (currently Map Editor) that production SVG
-      // bytes have changed so they can re-fetch. Dispatched AFTER the local
-      // panel/grid refresh so the SVG Manager view is already settled; consumers
-      // see a single coherent event. Not fired on non-2xx promote (early return).
-      document.dispatchEvent(new CustomEvent('svg-promoted', {
-        detail: { promotedVersions, ts: Date.now() },
-      }));
     } catch (err) {
       console.error('Failed to promote staging:', err);
       showToast(t('svg.staging.promoteFailed'));
