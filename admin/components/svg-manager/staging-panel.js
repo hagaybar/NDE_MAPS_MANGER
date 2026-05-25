@@ -9,6 +9,31 @@
  * @param {Object} status  Result of getStagingStatus Lambda.
  * @param {Object} [opts]  Optional. { currentUser } — used to detect "lock held by someone else."
  */
+import i18n from '../../i18n.js?v=5';
+
+// Same fallback-map idiom as svg-manager.js / staging-progress-modal.js — keeps
+// labels readable when i18n hasn't loaded the bundle yet (cold-cache race) and
+// lets unit tests assert copy without bootstrapping the async i18n fetch.
+const FALLBACKS = {
+  'svg.staging.validate.passed':          { en: '✓ Validation passed — ready to promote.', he: '✓ הבדיקה עברה — מוכן לקידום לייצור.' },
+  'svg.staging.validate.newlyAdded':      { en: '{count} newly added shelf(s)', he: '{count} מדפים חדשים שנוספו' },
+  'svg.staging.validate.newlyAddedHint':  { en: "On the uploaded map but not yet linked to library data — patrons won't find these in search until each map-code is mapped to a CSV row.", he: 'מופיעות במפה שהועלתה אך עדיין אינן מקושרות לנתוני ספרייה — משתמשים לא ימצאו אותן בחיפוש עד שכל קוד-מפה ימופה לשורת CSV.' },
+  'svg.staging.validate.removed':         { en: '{count} shelf(s) removed from the map', he: '{count} מדפים הוסרו מהמפה' },
+  'svg.staging.validate.unlinked':        { en: '{count} library entries will be unlinked', he: '{count} רשומות ספרייה ינותקו' },
+  'svg.staging.validate.preExisting':     { en: '{count} pre-existing unmapped shelf(s) (unchanged by this upload)', he: '{count} מדפים לא ממופים מקודם (לא הושפעו מהעלאה זו)' },
+  'svg.staging.validate.preExistingHint': { en: "On the map but missing library data (unchanged by this upload) — patrons can't find these in search until each map-code is mapped to a CSV row.", he: 'מופיעות במפה אך חסרות נתוני ספרייה (לא הושפעו מהעלאה זו) — משתמשים לא ימצאו אותן בחיפוש עד שכל קוד-מפה ימופה לשורת CSV.' },
+  'svg.staging.validate.shelfFloor':      { en: 'Floor {floor}:', he: 'קומה {floor}:' },
+};
+
+function t(key) {
+  const value = i18n.t(key);
+  if (value === key && FALLBACKS[key]) {
+    const locale = i18n.getLocale?.() || 'en';
+    return FALLBACKS[key][locale] || FALLBACKS[key]['en'];
+  }
+  return value;
+}
+
 export function renderStagingPanel(host, status, opts = {}) {
   host.innerHTML = '';
 
@@ -45,10 +70,47 @@ export function renderStagingPanel(host, status, opts = {}) {
       <button data-action="discard-staging" class="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200">Discard</button>
     `;
   } else if (validated.ok) {
-    const added = (validated.summary?.addedShelves || []).length;
+    const summary = validated.summary || {};
+    const newlyAdded = summary.newlyAddedShelves || [];
+    const removed = summary.removedShelves || [];
+    const removedRefs = summary.removedRefs || [];
+    const unmapped = summary.unmappedShelves || [];
+
+    // Pre-existing unmapped = staged-unmapped shelves that are NOT newly added
+    // by this upload (matched by svgCode + floor). These are long-standing
+    // orphans, surfaced separately so they aren't read as "new this upload."
+    const newlyAddedKeys = new Set(newlyAdded.map(s => `${s.floor}::${s.svgCode}`));
+    const preExisting = unmapped.filter(s => !newlyAddedKeys.has(`${s.floor}::${s.svgCode}`));
+
+    const idList = (shelves) =>
+      shelves.length
+        ? `<ul class="list-disc pl-6 text-xs text-gray-600 mt-0.5">${shelves
+            .map(s => {
+              const floorLabel = escapeHtml(t('svg.staging.validate.shelfFloor').replace('{floor}', s.floor));
+              return `<li>${floorLabel} <span class="font-mono">${escapeHtml(s.svgCode)}</span></li>`;
+            })
+            .join('')}</ul>`
+        : '';
+
+    const newlyAddedHint = newlyAdded.length
+      ? `<div class="text-xs text-amber-700 mt-0.5">${escapeHtml(t('svg.staging.validate.newlyAddedHint'))}</div>`
+      : '';
+
+    const preExistingHint = preExisting.length
+      ? `<div class="text-xs text-amber-700 mt-0.5">${escapeHtml(t('svg.staging.validate.preExistingHint'))}</div>`
+      : '';
+
     stateBlock = `
-      <div class="text-sm text-green-700">✓ Validation passed — ready to promote.</div>
-      <div class="text-xs text-gray-600 mt-1">${added} new shelf${added === 1 ? '' : 'es'} added; no CSV changes needed.</div>
+      <div class="text-sm text-green-700">${escapeHtml(t('svg.staging.validate.passed'))}</div>
+      <div class="text-xs text-gray-700 mt-2">${escapeHtml(t('svg.staging.validate.newlyAdded').replace('{count}', newlyAdded.length))}</div>
+      ${idList(newlyAdded)}
+      ${newlyAddedHint}
+      <div class="text-xs text-gray-700 mt-2">${escapeHtml(t('svg.staging.validate.removed').replace('{count}', removed.length))}</div>
+      ${idList(removed)}
+      <div class="text-xs text-gray-700 mt-2">${escapeHtml(t('svg.staging.validate.unlinked').replace('{count}', removedRefs.length))}</div>
+      <div class="text-xs text-gray-700 mt-2">${escapeHtml(t('svg.staging.validate.preExisting').replace('{count}', preExisting.length))}</div>
+      ${preExistingHint}
+      ${idList(preExisting)}
     `;
     actions = `
       <button data-action="promote-staging" class="px-3 py-1.5 text-sm bg-green-600 text-white rounded hover:bg-green-700">Promote to production</button>

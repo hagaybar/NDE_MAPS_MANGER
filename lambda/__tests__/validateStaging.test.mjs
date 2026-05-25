@@ -100,4 +100,56 @@ Lib,LibHe,Coll,CollHe,000,999,CC_X,,,1,,,,
     expect(body.errors[0]).toMatchObject({ svgCode: 'CC_X', floor: 1, type: 'shelf-not-found' });
     expect(body.summary.removedRefs).toEqual([{ svgCode: 'CC_X', floor: 1, affectedRowCount: 1 }]);
   });
+
+  test('summary distinguishes newly-added, removed, and unmapped shelves', async () => {
+    // Production SVG floor 1: CC_X (mapped), CC_ORPH (pre-existing orphan), CC_DROP (will be dropped)
+    s3Mock.on(GetObjectCommand, { Key: 'maps/floor_1.svg' }).resolves(
+      streamFromString('<svg><rect id="CC_X" data-map-object="shelf"/><rect id="CC_ORPH" data-map-object="shelf"/><rect id="CC_DROP" data-map-object="shelf"/></svg>')
+    );
+    // Staged SVG floor 1: keeps CC_X + CC_ORPH, adds genuinely-new CC_NEW, drops CC_DROP
+    s3Mock.on(GetObjectCommand, { Key: 'staging/maps/floor_1.svg' }).resolves(
+      streamFromString('<svg><rect id="CC_X" data-map-object="shelf"/><rect id="CC_ORPH" data-map-object="shelf"/><rect id="CC_NEW" data-map-object="shelf"/></svg>')
+    );
+    // floors 0 and 2: no staged SVG — fall back to prod
+    s3Mock.on(GetObjectCommand, { Key: 'staging/maps/floor_0.svg' }).rejects(
+      Object.assign(new Error('NoSuchKey'), { name: 'NoSuchKey' })
+    );
+    s3Mock.on(GetObjectCommand, { Key: 'staging/maps/floor_2.svg' }).rejects(
+      Object.assign(new Error('NoSuchKey'), { name: 'NoSuchKey' })
+    );
+    s3Mock.on(GetObjectCommand, { Key: 'maps/floor_0.svg' }).resolves(streamFromString('<svg/>'));
+    s3Mock.on(GetObjectCommand, { Key: 'maps/floor_2.svg' }).resolves(streamFromString('<svg/>'));
+    // prod CSV: only CC_X mapped on floor 1
+    s3Mock.on(GetObjectCommand, { Key: 'data/mapping.csv' }).resolves(
+      streamFromString(`libraryName,libraryNameHe,collectionName,collectionNameHe,rangeStart,rangeEnd,svgCode,description,descriptionHe,floor,shelfLabel,shelfLabelHe,notes,notesHe
+Lib,LibHe,Coll,CollHe,000,999,CC_X,,,1,,,,
+`)
+    );
+    s3Mock.on(GetObjectCommand, { Key: 'staging/data/mapping.csv' }).rejects(
+      Object.assign(new Error('NoSuchKey'), { name: 'NoSuchKey' })
+    );
+    s3Mock.on(GetObjectCommand, { Key: 'staging/.meta.json' }).resolves(
+      streamFromString(JSON.stringify({ locked: true, owner: 'alice', files: ['maps/floor_1.svg'] }))
+    );
+
+    const resp = await handler(event());
+    expect(resp.statusCode).toBe(200);
+    const body = JSON.parse(resp.body);
+
+    // newly added: only the genuinely-new shelf (staged SVG \ prod SVG)
+    expect(body.summary.newlyAddedShelves).toEqual([{ svgCode: 'CC_NEW', floor: 1 }]);
+    // removed: dropped from the SVG (prod SVG \ staged SVG)
+    expect(body.summary.removedShelves).toEqual([{ svgCode: 'CC_DROP', floor: 1 }]);
+    // unmapped: all staged shelves not referenced by CSV (orphan + new) == legacy addedShelves
+    expect(body.summary.unmappedShelves).toEqual([
+      { svgCode: 'CC_ORPH', floor: 1 },
+      { svgCode: 'CC_NEW', floor: 1 },
+    ]);
+    expect(body.summary.addedShelves).toEqual([
+      { svgCode: 'CC_ORPH', floor: 1 },
+      { svgCode: 'CC_NEW', floor: 1 },
+    ]);
+    // back-compat: removedRefs unchanged (CC_X still present in staged SVG)
+    expect(body.summary.removedRefs).toEqual([]);
+  });
 });

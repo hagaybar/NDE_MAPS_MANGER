@@ -60,11 +60,24 @@ export const handler = async (event) => {
     prodRefsByFloor[f].add(String(r.svgCode));
   }
 
+  // Production SVG shelves (always prod, never staged) — lets us tell shelves
+  // that are NEW in this upload from ones that already existed in production.
+  const prodSvgShelfIdsByFloor = {};
+  for (const floor of [0, 1, 2]) {
+    let prodSvg = null;
+    try { prodSvg = await fetchObject(`maps/floor_${floor}.svg`); } catch { prodSvg = null; }
+    prodSvgShelfIdsByFloor[floor] = new Set(prodSvg ? parseSvg(prodSvg).shelves : []);
+  }
+
   const removedRefs = [];
   const addedShelves = [];
+  const newlyAddedShelves = [];
+  const removedShelves = [];
+  const unmappedShelves = [];
   for (const floor of [0, 1, 2]) {
     const prodRefs = prodRefsByFloor[floor] || new Set();
     const stagedShelves = svgShelfIdsByFloor[floor];
+    const prodShelves = prodSvgShelfIdsByFloor[floor] || new Set();
     for (const ref of prodRefs) {
       if (!stagedShelves.has(ref)) {
         const affectedRowCount = prodCsvRows.filter(r => Number(r.floor) === floor && String(r.svgCode) === ref).length;
@@ -73,10 +86,15 @@ export const handler = async (event) => {
     }
     for (const id of stagedShelves) {
       if (!prodRefs.has(id)) addedShelves.push({ svgCode: id, floor });
+      if (!prodRefs.has(id)) unmappedShelves.push({ svgCode: id, floor });   // orphan OR new (== addedShelves)
+      if (!prodShelves.has(id)) newlyAddedShelves.push({ svgCode: id, floor }); // new in THIS upload
+    }
+    for (const id of prodShelves) {
+      if (!stagedShelves.has(id)) removedShelves.push({ svgCode: id, floor }); // dropped from the SVG (#56)
     }
   }
 
-  const summary = { addedShelves, removedRefs };
+  const summary = { addedShelves, removedRefs, newlyAddedShelves, removedShelves, unmappedShelves };
   await recordValidation(BUCKET, { ok: result.ok, errors: result.errors, summary });
 
   return createAuthResponse(200, {
