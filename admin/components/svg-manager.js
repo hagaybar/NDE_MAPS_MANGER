@@ -241,11 +241,28 @@ function wireStagingActions() {
         showToast(`${t('svg.staging.promoteFailed')}: ${err.error}`);
         return;
       }
+      // Capture promotedVersions BEFORE the panel refresh — its KEYS name the
+      // production files that changed, which map-editor uses to decide whether
+      // to refresh the current floor (issue #50). Value is a placeholder; the
+      // consumer generates its own cache-buster.
+      let promotedVersions = {};
+      try {
+        const body = await resp.json();
+        promotedVersions = body?.promotedVersions || {};
+      } catch (_) {
+        // Tolerate missing/non-JSON body — dispatch still goes out (empty map).
+      }
       sequence.setStep('validating');
       await refreshStagingPanel();
       sequence.setStep('refreshing');
       await loadFiles();  // existing function that re-fetches the production file grid
       showToast(t('svg.staging.promoted'));
+      // Issue #50: tell the Map Editor production SVG bytes changed so it can
+      // re-render the affected floor. Dispatched only on a successful promote
+      // (the !resp.ok branch returns early above).
+      document.dispatchEvent(new CustomEvent('svg-promoted', {
+        detail: { promotedVersions, ts: Date.now() },
+      }));
     } catch (err) {
       console.error('Failed to promote staging:', err);
       showToast(t('svg.staging.promoteFailed'));
