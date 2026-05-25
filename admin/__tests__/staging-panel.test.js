@@ -73,6 +73,16 @@ describe('staging-panel', () => {
 
     // Pre-existing unmapped = unmapped minus newly-added = ORPH (count 1).
     expect(text).toContain('ORPH');
+
+    // Listed shelves now lead with a human-readable floor label.
+    expect(text).toContain('Floor 1:');
+
+    // Newly-added explanation copy (distinctive substring).
+    expect(text).toContain('not yet linked to library data');
+
+    // Pre-existing explanation copy (distinctive substring).
+    expect(text).toContain('missing library data');
+
     // Promote still available.
     expect(host.querySelector('[data-action="promote-staging"]')).not.toBeNull();
   });

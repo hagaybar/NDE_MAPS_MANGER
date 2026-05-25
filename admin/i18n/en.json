@@ -61,10 +61,12 @@
       "validate": {
         "passed": "✓ Validation passed — ready to promote.",
         "newlyAdded": "{count} newly added shelf(s)",
-        "newlyAddedHint": "These need library data before they will show shelf info.",
+        "newlyAddedHint": "On the uploaded map but not yet linked to library data — patrons won't find these in search until each map-code is mapped to a CSV row.",
         "removed": "{count} shelf(s) removed from the map",
         "unlinked": "{count} library entries will be unlinked",
-        "preExisting": "{count} pre-existing unmapped shelf(s) (unchanged by this upload)"
+        "preExisting": "{count} pre-existing unmapped shelf(s) (unchanged by this upload)",
+        "preExistingHint": "On the map but missing library data (unchanged by this upload) — patrons can't find these in search until each map-code is mapped to a CSV row.",
+        "shelfFloor": "Floor {floor}:"
       }
     }
   },

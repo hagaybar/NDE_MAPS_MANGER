@@ -17,10 +17,12 @@ import i18n from '../../i18n.js?v=5';
 const FALLBACKS = {
   'svg.staging.validate.passed':          { en: '✓ Validation passed — ready to promote.', he: '✓ הבדיקה עברה — מוכן לקידום לייצור.' },
   'svg.staging.validate.newlyAdded':      { en: '{count} newly added shelf(s)', he: '{count} מדפים חדשים שנוספו' },
-  'svg.staging.validate.newlyAddedHint':  { en: 'These need library data before they will show shelf info.', he: 'מדפים אלו זקוקים לנתוני ספרייה לפני שיציגו מידע על המדף.' },
+  'svg.staging.validate.newlyAddedHint':  { en: "On the uploaded map but not yet linked to library data — patrons won't find these in search until each map-code is mapped to a CSV row.", he: 'מופיעות במפה שהועלתה אך עדיין אינן מקושרות לנתוני ספרייה — משתמשים לא ימצאו אותן בחיפוש עד שכל קוד-מפה ימופה לשורת CSV.' },
   'svg.staging.validate.removed':         { en: '{count} shelf(s) removed from the map', he: '{count} מדפים הוסרו מהמפה' },
   'svg.staging.validate.unlinked':        { en: '{count} library entries will be unlinked', he: '{count} רשומות ספרייה ינותקו' },
   'svg.staging.validate.preExisting':     { en: '{count} pre-existing unmapped shelf(s) (unchanged by this upload)', he: '{count} מדפים לא ממופים מקודם (לא הושפעו מהעלאה זו)' },
+  'svg.staging.validate.preExistingHint': { en: "On the map but missing library data (unchanged by this upload) — patrons can't find these in search until each map-code is mapped to a CSV row.", he: 'מופיעות במפה אך חסרות נתוני ספרייה (לא הושפעו מהעלאה זו) — משתמשים לא ימצאו אותן בחיפוש עד שכל קוד-מפה ימופה לשורת CSV.' },
+  'svg.staging.validate.shelfFloor':      { en: 'Floor {floor}:', he: 'קומה {floor}:' },
 };
 
 function t(key) {
@@ -83,12 +85,19 @@ export function renderStagingPanel(host, status, opts = {}) {
     const idList = (shelves) =>
       shelves.length
         ? `<ul class="list-disc pl-6 text-xs text-gray-600 mt-0.5">${shelves
-            .map(s => `<li class="font-mono">${escapeHtml(s.svgCode)}</li>`)
+            .map(s => {
+              const floorLabel = escapeHtml(t('svg.staging.validate.shelfFloor').replace('{floor}', s.floor));
+              return `<li>${floorLabel} <span class="font-mono">${escapeHtml(s.svgCode)}</span></li>`;
+            })
             .join('')}</ul>`
         : '';
 
     const newlyAddedHint = newlyAdded.length
       ? `<div class="text-xs text-amber-700 mt-0.5">${escapeHtml(t('svg.staging.validate.newlyAddedHint'))}</div>`
+      : '';
+
+    const preExistingHint = preExisting.length
+      ? `<div class="text-xs text-amber-700 mt-0.5">${escapeHtml(t('svg.staging.validate.preExistingHint'))}</div>`
       : '';
 
     stateBlock = `
@@ -100,6 +109,7 @@ export function renderStagingPanel(host, status, opts = {}) {
       ${idList(removed)}
       <div class="text-xs text-gray-700 mt-2">${escapeHtml(t('svg.staging.validate.unlinked').replace('{count}', removedRefs.length))}</div>
       <div class="text-xs text-gray-700 mt-2">${escapeHtml(t('svg.staging.validate.preExisting').replace('{count}', preExisting.length))}</div>
+      ${preExistingHint}
       ${idList(preExisting)}
     `;
     actions = `
