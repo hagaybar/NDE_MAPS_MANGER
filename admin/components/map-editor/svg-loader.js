@@ -1,5 +1,12 @@
 const CLOUDFRONT_URL = 'https://d3h8i7y9p8lyw7.cloudfront.net';
 
+// Per-floor record of the ETag last served for a rendered floor SVG. Used by
+// the #50 poll-until-fresh refresh: after a promote, pollUntilFresh compares
+// the served ETag to this baseline to detect when the CloudFront invalidation
+// has propagated, then re-renders.
+const _renderedEtag = {};
+export function getRenderedEtag(floorNumber) { return _renderedEtag[floorNumber]; }
+
 export async function loadFloorSvg(floorNumber, container, cacheBust) {
   // cache: 'no-cache' forces the browser to revalidate with the origin
   // (sends If-None-Match / If-Modified-Since). When the SVG hasn't changed,
@@ -21,6 +28,8 @@ export async function loadFloorSvg(floorNumber, container, cacheBust) {
     container.innerHTML = `<p class="text-red-600 p-4">Could not load floor map.</p>`;
     throw new Error(`SVG load failed: floor ${floorNumber} (${resp.status})`);
   }
+  const etag = resp.headers && resp.headers.get ? resp.headers.get('etag') : null;
+  if (etag) _renderedEtag[floorNumber] = etag;
   const text = await resp.text();
   // Preserve any non-SVG element children (e.g. the orphan-panel host)
   // across reloads. innerHTML replacement would otherwise detach them.
