@@ -46,7 +46,19 @@
     "delete": "Delete",
     "replace": "Replace",
     "preview": "Preview",
-    "confirmDelete": "Are you sure you want to delete this file?"
+    "confirmDelete": "Are you sure you want to delete this file?",
+    "staging": {
+      "progress": {
+        "uploading": "Uploading {filename}…",
+        "validating": "Validating staging…",
+        "refreshing": "Updating staging panel…",
+        "leaveWarning": "An upload is in progress. Leaving may leave staging in an inconsistent state.",
+        "heading": "Updating staged map",
+        "doNotClose": "Do not close this tab. The operation is in progress.",
+        "stuckWarning": "Taking longer than expected. The upload may have failed silently.",
+        "forceClose": "Force close"
+      }
+    }
   },
   "validation": {
     "required": "This field is required",

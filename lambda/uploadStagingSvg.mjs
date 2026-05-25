@@ -19,15 +19,15 @@ export const handler = async (event) => {
   }
 
   const authResult = await validateToken(event);
-  if (!authResult.valid) {
+  if (!authResult.isValid) {
     return createAuthResponse(401, { error: 'Invalid token' }, CORS_HEADERS);
   }
-  const permission = checkPermission(authResult.claims, 'admin');
+  const permission = checkPermission(authResult.user, 'delete');
   if (!permission.allowed) {
     return createAuthResponse(403, { error: 'Admin role required' }, CORS_HEADERS);
   }
 
-  const user = authResult.claims.sub;
+  const user = authResult.user.sub;
   let body;
   try {
     body = JSON.parse(event.body || '{}');

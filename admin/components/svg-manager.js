@@ -5,6 +5,7 @@ import { getAuthHeaders, getCurrentUsername } from '../app.js?v=5';
 import { applyRoleBasedUI } from '../auth-guard.js?v=5';
 import { renderStagingPanel } from './svg-manager/staging-panel.js?v=5';
 import { renderReconcileWizard } from './svg-manager/reconcile-wizard.js?v=5';
+import { showStagingProgressModal } from './staging-progress-modal.js?v=5';
 
 // Fallback translations if i18n hasn't loaded yet
 const FALLBACKS = {
@@ -24,6 +25,10 @@ const FALLBACKS = {
   'svg.staging.uploadFailed':    { en: 'Upload to staging failed',                 he: 'העלאה לסביבת בדיקה נכשלה' },
   'svg.staging.reconcileFailed': { en: 'Reconcile failed',                         he: 'יישוב נכשל' },
   'svg.staging.confirmDiscard':  { en: 'Discard the staged changes?',              he: 'להשליך את השינויים בסביבת הבדיקה?' },
+  'svg.staging.progress.uploading':    { en: 'Uploading {filename}…',                        he: 'מעלה את {filename}…' },
+  'svg.staging.progress.validating':   { en: 'Validating staging…',                          he: 'בודק את סביבת הבדיקה…' },
+  'svg.staging.progress.refreshing':   { en: 'Updating staging panel…',                      he: 'מעדכן את לוח סביבת הבדיקה…' },
+  'svg.staging.progress.leaveWarning': { en: 'An upload is in progress. Leaving may leave staging in an inconsistent state.', he: 'העלאה מתבצעת. עזיבה כעת עלולה להשאיר את סביבת הבדיקה במצב לא עקבי.' },
   'common.error': { en: 'An error occurred', he: 'אירעה שגיאה' },
   'common.loading': { en: 'Loading...', he: 'טוען...' }
 };
@@ -219,19 +224,34 @@ function wireStagingActions() {
   });
 
   host.querySelector('[data-action="promote-staging"]')?.addEventListener('click', async () => {
-    const resp = await fetch(`${STAGING_API_BASE}/promote`, {
-      method: 'POST',
-      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
-      body: '{}',
-    });
-    if (!resp.ok) {
-      const err = await resp.json();
-      showToast(`${t('svg.staging.promoteFailed')}: ${err.error}`);
-      return;
+    // Issue #62: promote runs the same multi-fetch chain (promote → refresh
+    // status → reload file grid) and was previously silent for 5–15s. Use
+    // the same blocking modal as the staged-replace sequence so the user
+    // can't dismiss or trigger duplicate actions while it's in flight.
+    const sequence = beginStagingSequence('promote');
+    sequence.setStep('uploading');
+    try {
+      const resp = await fetch(`${STAGING_API_BASE}/promote`, {
+        method: 'POST',
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: '{}',
+      });
+      if (!resp.ok) {
+        const err = await resp.json();
+        showToast(`${t('svg.staging.promoteFailed')}: ${err.error}`);
+        return;
+      }
+      sequence.setStep('validating');
+      await refreshStagingPanel();
+      sequence.setStep('refreshing');
+      await loadFiles();  // existing function that re-fetches the production file grid
+      showToast(t('svg.staging.promoted'));
+    } catch (err) {
+      console.error('Failed to promote staging:', err);
+      showToast(t('svg.staging.promoteFailed'));
+    } finally {
+      sequence.end();
     }
-    showToast(t('svg.staging.promoted'));
-    await refreshStagingPanel();
-    await loadFiles();  // existing function that re-fetches the production file grid
   });
 
   host.querySelector('[data-action="discard-staging"]')?.addEventListener('click', async () => {
@@ -541,6 +561,75 @@ async function uploadFile(file) {
 }
 
 /**
+ * Selectors for file-grid action buttons that should be locked while a
+ * staging sequence is in flight. Keeps the user from triggering concurrent
+ * destructive operations (replace/delete) or starting a second upload.
+ */
+const STAGING_BUSY_SELECTORS = [
+  '#svg-grid .btn-replace',
+  '#svg-grid .btn-delete',
+  '#svg-grid .btn-download',
+  '#btn-upload-toggle',
+];
+
+/**
+ * Begin the staged-replace UI sequence: disables the file-grid action
+ * buttons, marks them aria-busy, mounts the blocking progress modal, and
+ * attaches a beforeunload guard. Returns a small controller with
+ * `setStep(name)` and `end()` so the caller can update progress between
+ * network calls and tear down the UI state in a finally block.
+ *
+ * The beforeunload listener is stored on the controller as a single bound
+ * function reference so add/remove pair correctly — attaching one anonymous
+ * function and removing a different one would silently leak the listener.
+ *
+ * The button-disable and beforeunload guard remain even though the modal
+ * already blocks every viewport interaction — they're complementary defense
+ * in depth: the modal stops user clicks, the disable stops programmatic
+ * triggers, and beforeunload catches tab-close attempts (which the modal
+ * cannot intercept).
+ *
+ * Issue #62: the modal is the primary visual; the inline status-text element
+ * from #58 has been removed in favor of the modal's own step indicator.
+ *
+ * @param {string} filename — currently unused (modal copy is generic) but
+ *   kept in the signature for future per-file telemetry.
+ */
+function beginStagingSequence(filename) { // eslint-disable-line no-unused-vars
+  const buttons = Array.from(document.querySelectorAll(STAGING_BUSY_SELECTORS.join(',')));
+  for (const btn of buttons) {
+    btn.disabled = true;
+    btn.setAttribute('aria-busy', 'true');
+  }
+
+  const modal = showStagingProgressModal();
+
+  const beforeUnloadHandler = (event) => {
+    const msg = t('svg.staging.progress.leaveWarning');
+    event.returnValue = msg;
+    return msg;
+  };
+  window.addEventListener('beforeunload', beforeUnloadHandler);
+
+  let finished = false;
+  return {
+    setStep(name) {
+      modal.updateStep(name);
+    },
+    end() {
+      if (finished) return;
+      finished = true;
+      window.removeEventListener('beforeunload', beforeUnloadHandler);
+      for (const btn of buttons) {
+        btn.disabled = false;
+        btn.removeAttribute('aria-busy');
+      }
+      modal.close();
+    },
+  };
+}
+
+/**
  * Replace an existing SVG file with a new body, preserving the original filename.
  *
  * Backend (`lambda/uploadSvg.mjs`) writes the prior body to
@@ -560,9 +649,14 @@ async function replaceFile(targetFilename, file) {
   // Feature-flagged so the existing direct-PUT flow remains the default until
   // Task 16 flips USE_STAGING_FLOW to true.
   if (USE_STAGING_FLOW) {
+    // Issue #58: provide per-step UI feedback during the upload → validate →
+    // refresh sequence. Without this, librarians sit through 3-15s of silent
+    // UI and frequently double-click Replace or close the tab mid-flight.
+    const sequence = beginStagingSequence(targetFilename);
     try {
       const base64 = await fileToBase64(file);
       const floor = Number(targetFilename.match(/floor_(\d+)\.svg/)?.[1]);
+      sequence.setStep('uploading');
       const resp = await fetch(`${STAGING_API_BASE}/upload`, {
         method: 'POST',
         headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
@@ -574,15 +668,19 @@ async function replaceFile(targetFilename, file) {
         return;
       }
       // Trigger validation immediately
+      sequence.setStep('validating');
       await fetch(`${STAGING_API_BASE}/validate`, {
         method: 'POST',
         headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
         body: '{}',
       });
+      sequence.setStep('refreshing');
       await refreshStagingPanel();
     } catch (err) {
       console.error('Failed to upload SVG to staging:', err);
       showToast(t('svg.staging.uploadFailed'));
+    } finally {
+      sequence.end();
     }
     return;
   }
