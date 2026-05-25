@@ -6,6 +6,7 @@ import { applyRoleBasedUI } from '../auth-guard.js?v=5';
 import { renderStagingPanel } from './svg-manager/staging-panel.js?v=5';
 import { renderReconcileWizard } from './svg-manager/reconcile-wizard.js?v=5';
 import { showStagingProgressModal } from './staging-progress-modal.js?v=5';
+import { pollUntilFresh } from './map-editor/promote-refresh.js?v=5';
 
 // Fallback translations if i18n hasn't loaded yet
 const FALLBACKS = {
@@ -49,13 +50,35 @@ const STAGING_API_BASE = `${API_ENDPOINT}/api/staging`;
 
 // Per-file cache-buster for map asset URLs, bumped after a promote so the
 // Replace-tab thumbnails/preview/download refetch the new bytes. An <img> does
-// not honor cache:'no-cache', so a fresh ?v= is the only way to refresh it; the
-// /maps/* CloudFront behavior keys on `v` so this also defeats the edge cache.
+// not honor cache:'no-cache', so a fresh ?v= is the only way to refresh it.
+//
+// Issue #50 (Free-plan path): the bump is no longer done synchronously on the
+// promote. The /maps/* CloudFront behavior is on the Free plan and cannot key
+// on `v`, so a fresh ?v= on its own would still serve the stale edge object.
+// Instead we poll the bare URL until the promote's invalidation propagates
+// (ETag changes), THEN bump and re-render. The bare URL keeps serving Primo;
+// the ?v= here is only a browser-side bust to force the <img> to refetch.
 const mapCacheBusters = {};
 function mapAssetUrl(filename) {
   const bust = mapCacheBusters[filename];
   const base = `${CLOUDFRONT_URL}/maps/${encodeURIComponent(filename)}`;
   return bust ? `${base}?v=${bust}` : base;
+}
+
+/**
+ * Read the current ETag served for a map's bare CloudFront URL. Used as the
+ * baseline before a promote so pollUntilFresh can detect when the new bytes
+ * have propagated. Returns null on any error (poll then treats the first
+ * non-null ETag it sees as "fresh", which is acceptable for the worst case).
+ */
+async function fetchMapEtag(filename) {
+  try {
+    const url = `${CLOUDFRONT_URL}/maps/${encodeURIComponent(filename)}`;
+    const resp = await fetch(`${url}?_=${Date.now()}`, { cache: 'reload' });
+    return resp && resp.headers && resp.headers.get ? resp.headers.get('etag') : null;
+  } catch (_) {
+    return null;
+  }
 }
 // Feature flag: read from window for ease of A/B testing. Defaults to false.
 // Once Task 16 cutover runs, this constant flips to true.
@@ -263,17 +286,35 @@ function wireStagingActions() {
       } catch (_) {
         // Tolerate missing/non-JSON body — dispatch still goes out (empty map).
       }
-      // Issue #50: bump cache-busters for the changed maps so the Replace-tab
-      // thumbnails/preview refetch the promoted bytes when renderGrid re-runs.
-      const previewBust = Date.now().toString(36);
-      for (const key of Object.keys(promotedVersions)) {
-        mapCacheBusters[key.split('/').pop()] = previewBust;
-      }
+      // Issue #50 (Free-plan path): the promote's CloudFront invalidation takes
+      // tens of seconds to propagate, so a synchronous cache-buster bump would
+      // just re-render the still-stale edge object. Capture each changed map's
+      // current (pre-propagation) ETag now, then poll the bare URL until the
+      // served ETag changes — only THEN bump the buster and re-render the grid.
+      // The bare thumbnail keeps serving Primo throughout; the ?v= bust is purely
+      // a browser-side refetch trigger for the Replace-tab <img>.
+      const changedMapNames = Object.keys(promotedVersions).map(key => key.split('/').pop());
+      const baselineEtags = {};
+      await Promise.all(changedMapNames.map(async name => {
+        baselineEtags[name] = await fetchMapEtag(name);
+      }));
       sequence.setStep('validating');
       await refreshStagingPanel();
       sequence.setStep('refreshing');
       await loadFiles();  // existing function that re-fetches the production file grid
       showToast(t('svg.staging.promoted'));
+      // Start one poll per changed map. On freshness, bump that file's buster and
+      // re-render the grid so its thumbnail refetches the promoted bytes.
+      for (const name of changedMapNames) {
+        pollUntilFresh({
+          url: `${CLOUDFRONT_URL}/maps/${encodeURIComponent(name)}`,
+          baselineEtag: baselineEtags[name],
+          onFresh: () => {
+            mapCacheBusters[name] = Date.now().toString(36);
+            renderGrid();
+          },
+        });
+      }
       // Issue #50: tell the Map Editor production SVG bytes changed so it can
       // re-render the affected floor. Dispatched only on a successful promote
       // (the !resp.ok branch returns early above).
