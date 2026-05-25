@@ -46,6 +46,17 @@ function t(key) {
 const API_ENDPOINT = 'https://tt3xt4tr09.execute-api.us-east-1.amazonaws.com/prod';
 const CLOUDFRONT_URL = 'https://d3h8i7y9p8lyw7.cloudfront.net';
 const STAGING_API_BASE = `${API_ENDPOINT}/api/staging`;
+
+// Per-file cache-buster for map asset URLs, bumped after a promote so the
+// Replace-tab thumbnails/preview/download refetch the new bytes. An <img> does
+// not honor cache:'no-cache', so a fresh ?v= is the only way to refresh it; the
+// /maps/* CloudFront behavior keys on `v` so this also defeats the edge cache.
+const mapCacheBusters = {};
+function mapAssetUrl(filename) {
+  const bust = mapCacheBusters[filename];
+  const base = `${CLOUDFRONT_URL}/maps/${encodeURIComponent(filename)}`;
+  return bust ? `${base}?v=${bust}` : base;
+}
 // Feature flag: read from window for ease of A/B testing. Defaults to false.
 // Once Task 16 cutover runs, this constant flips to true.
 const USE_STAGING_FLOW = window.__USE_STAGING_FLOW__ === true;
@@ -252,6 +263,12 @@ function wireStagingActions() {
       } catch (_) {
         // Tolerate missing/non-JSON body — dispatch still goes out (empty map).
       }
+      // Issue #50: bump cache-busters for the changed maps so the Replace-tab
+      // thumbnails/preview refetch the promoted bytes when renderGrid re-runs.
+      const previewBust = Date.now().toString(36);
+      for (const key of Object.keys(promotedVersions)) {
+        mapCacheBusters[key.split('/').pop()] = previewBust;
+      }
       sequence.setStep('validating');
       await refreshStagingPanel();
       sequence.setStep('refreshing');
@@ -353,7 +370,7 @@ function renderGrid() {
 
   gridContainer.innerHTML = svgFiles.map(file => {
     const filename = file.name;
-    const thumbnailUrl = `${CLOUDFRONT_URL}/maps/${file.name}`;
+    const thumbnailUrl = mapAssetUrl(file.name);
     const formattedSize = formatSize(file.size);
 
     return `
@@ -476,7 +493,7 @@ function setupManagerEvents() {
     if (downloadBtn) {
       const filename = downloadBtn.dataset.name;
       const a = document.createElement('a');
-      a.href = `${CLOUDFRONT_URL}/maps/${encodeURIComponent(filename)}`;
+      a.href = mapAssetUrl(filename);
       a.download = filename;
       document.body.appendChild(a);
       a.click();
@@ -787,7 +804,7 @@ function showPreview(name) {
   if (!previewModal || !previewTitle || !previewContent) return;
 
   const filename = name;
-  const imageUrl = `${CLOUDFRONT_URL}/maps/${name}`;
+  const imageUrl = mapAssetUrl(name);
 
   previewTitle.textContent = filename;
   previewContent.innerHTML = `
