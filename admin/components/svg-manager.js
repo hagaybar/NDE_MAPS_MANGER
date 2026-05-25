@@ -26,6 +26,8 @@ const FALLBACKS = {
   'svg.staging.uploadFailed':    { en: 'Upload to staging failed',                 he: 'העלאה לסביבת בדיקה נכשלה' },
   'svg.staging.reconcileFailed': { en: 'Reconcile failed',                         he: 'יישוב נכשל' },
   'svg.staging.confirmDiscard':  { en: 'Discard the staged changes?',              he: 'להשליך את השינויים בסביבת הבדיקה?' },
+  'svg.staging.discarding':      { en: 'Discarding…',                              he: 'מבטל…' },
+  'svg.staging.discardFailed':   { en: 'Discard failed',                           he: 'הביטול נכשל' },
   'svg.staging.progress.uploading':    { en: 'Uploading {filename}…',                        he: 'מעלה את {filename}…' },
   'svg.staging.progress.validating':   { en: 'Validating staging…',                          he: 'בודק את סביבת הבדיקה…' },
   'svg.staging.progress.refreshing':   { en: 'Updating staging panel…',                      he: 'מעדכן את לוח סביבת הבדיקה…' },
@@ -335,14 +337,37 @@ function wireStagingActions() {
     }
   });
 
-  host.querySelector('[data-action="discard-staging"]')?.addEventListener('click', async () => {
+  host.querySelector('[data-action="discard-staging"]')?.addEventListener('click', async (e) => {
     if (!window.confirm(t('svg.staging.confirmDiscard'))) return;
-    await fetch(`${STAGING_API_BASE}/clear`, {
-      method: 'POST',
-      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
-      body: '{}',
-    });
-    await refreshStagingPanel();
+    // Lightweight button-level progress: a single quick op doesn't warrant the
+    // 3-step blocking modal. Disable + aria-busy + "Discarding…" gives feedback
+    // during the multi-second clear → refresh round-trip.
+    const btn = e.currentTarget
+      || host.querySelector('[data-action="discard-staging"]');
+    const originalText = btn ? btn.textContent : null;
+    if (btn) {
+      btn.disabled = true;
+      btn.setAttribute('aria-busy', 'true');
+      btn.textContent = t('svg.staging.discarding');
+    }
+    try {
+      await fetch(`${STAGING_API_BASE}/clear`, {
+        method: 'POST',
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: '{}',
+      });
+      // On success refreshStagingPanel() re-renders the panel, replacing the
+      // button entirely — no manual restore needed.
+      await refreshStagingPanel();
+    } catch (err) {
+      console.error('Failed to discard staging:', err);
+      if (btn) {
+        btn.disabled = false;
+        btn.removeAttribute('aria-busy');
+        if (originalText !== null) btn.textContent = originalText;
+      }
+      showToast(t('svg.staging.discardFailed'));
+    }
   });
 
   host.querySelector('[data-action="open-reconcile-wizard"]')?.addEventListener('click', async () => {
