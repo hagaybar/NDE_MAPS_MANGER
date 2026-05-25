@@ -57,6 +57,14 @@
         "doNotClose": "Do not close this tab. The operation is in progress.",
         "stuckWarning": "Taking longer than expected. The upload may have failed silently.",
         "forceClose": "Force close"
+      },
+      "validate": {
+        "passed": "✓ Validation passed — ready to promote.",
+        "newlyAdded": "{count} newly added shelf(s)",
+        "newlyAddedHint": "These need library data before they will show shelf info.",
+        "removed": "{count} shelf(s) removed from the map",
+        "unlinked": "{count} library entries will be unlinked",
+        "preExisting": "{count} pre-existing unmapped shelf(s) (unchanged by this upload)"
       }
     }
   },

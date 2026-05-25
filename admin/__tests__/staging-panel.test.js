@@ -10,6 +10,10 @@ describe('staging-panel', () => {
     jest.resetModules();
     document.body.innerHTML = '<div id="staging-panel-host"></div>';
     ({ renderStagingPanel } = await import('../components/svg-manager/staging-panel.js'));
+    // Force English so FALLBACKS resolve to the en strings asserted below
+    // (default locale is 'he'; same idiom as staging-progress-modal.test.js).
+    const i18n = (await import('../i18n.js?v=5')).default;
+    i18n.locale = 'en';
   });
 
   test('renders empty state when no staging active', () => {
@@ -30,6 +34,47 @@ describe('staging-panel', () => {
     const host = document.getElementById('staging-panel-host');
     expect(host.querySelector('[data-action="promote-staging"]')).not.toBeNull();
     expect(host.querySelector('[data-action="discard-staging"]')).not.toBeNull();
+  });
+
+  test('GREEN state renders honest sections, not "no CSV changes needed"', () => {
+    renderStagingPanel(document.getElementById('staging-panel-host'), {
+      locked: true,
+      owner: 'alice',
+      files: ['maps/floor_1.svg'],
+      lastValidated: {
+        ok: true,
+        errors: [],
+        summary: {
+          newlyAddedShelves: [{ svgCode: 'X', floor: 1 }],
+          removedShelves: [{ svgCode: 'Y', floor: 1 }],
+          removedRefs: [],
+          unmappedShelves: [
+            { svgCode: 'X', floor: 1 },
+            { svgCode: 'ORPH', floor: 1 },
+          ],
+        },
+      },
+    });
+    const host = document.getElementById('staging-panel-host');
+    const text = host.textContent;
+
+    // The misleading legacy string must be gone.
+    expect(host.innerHTML).not.toContain('no CSV changes needed');
+
+    // Newly added: count 1 + the id X.
+    expect(text).toMatch(/1/);
+    expect(text).toContain('X');
+
+    // Removed shelves: count 1 + the id Y.
+    expect(text).toContain('Y');
+
+    // Library entries unlinked: explicit zero.
+    expect(text).toMatch(/0 library entries will be unlinked/i);
+
+    // Pre-existing unmapped = unmapped minus newly-added = ORPH (count 1).
+    expect(text).toContain('ORPH');
+    // Promote still available.
+    expect(host.querySelector('[data-action="promote-staging"]')).not.toBeNull();
   });
 
   test('renders RED state with reconcile wizard CTA', () => {
