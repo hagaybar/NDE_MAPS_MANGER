@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Phase 4 — Design Spec (visual)</title>
+<style>
+  :root{--bg:#0b1220;--bg-grad:radial-gradient(ellipse at top,#1a2540 0%,#0b1220 70%);--surface:#131c33;--surface-elev:#1c2742;--surface-hover:#243254;--border:#2a3858;--border-strong:#3d4f7a;--text:#e8edf7;--text-dim:#9aa6c2;--text-muted:#6b7898;--accent:#7aa2f7;--accent-strong:#4a7fde;--success:#6cc395;--success-bg:rgba(108,195,149,.12);--warn:#e0af68;--warn-bg:rgba(224,175,104,.12);--danger:#e06c75;--danger-bg:rgba(224,108,117,.12);--info-bg:rgba(122,162,247,.10);--code-bg:#0a101d;--shadow-lg:0 8px 32px rgba(0,0,0,.5);--radius:12px;--radius-sm:6px}
+  *{box-sizing:border-box;margin:0;padding:0}html{font-size:15px}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--bg);background-image:var(--bg-grad);background-attachment:fixed;color:var(--text);line-height:1.6;min-height:100vh;padding:2rem 1rem 5rem}
+  .container{max-width:940px;margin:0 auto}
+  .eyebrow{font-size:.75rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+  h1{font-size:2rem;font-weight:700;letter-spacing:-.02em;margin:.4rem 0}
+  .goal{color:var(--text-dim);font-size:1.05rem;margin-bottom:.5rem}
+  .pills{display:flex;gap:.5rem;flex-wrap:wrap;margin:.75rem 0 1.5rem}
+  .pill{font-size:.75rem;font-weight:600;padding:.25rem .6rem;border-radius:999px;border:1px solid var(--border);background:var(--surface-elev);color:var(--text-dim)}
+  .pill.green{color:var(--success);border-color:var(--success)}
+  section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;margin-bottom:1.25rem;box-shadow:var(--shadow-lg)}
+  .sec-eyebrow{font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:.4rem}
+  h2{font-size:1.3rem;font-weight:700;margin-bottom:.75rem}
+  p{margin-bottom:.75rem}p:last-child{margin-bottom:0}
+  b,strong{color:#fff}
+  code{background:var(--code-bg);padding:.0625rem .4rem;border-radius:4px;font-family:'SF Mono',Monaco,monospace;font-size:.85em;color:var(--warn)}
+  .callout{border-left:4px solid var(--accent);background:var(--info-bg);border-radius:0 var(--radius-sm) var(--radius-sm) 0;padding:.75rem 1rem;margin:.9rem 0;font-size:.95rem}
+  .callout.key{border-color:var(--success);background:var(--success-bg)}
+  .callout.risk{border-color:var(--warn);background:var(--warn-bg)}
+  .callout .tag{font-size:.68rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--accent);display:block;margin-bottom:.2rem}
+  .callout.key .tag{color:var(--success)}.callout.risk .tag{color:var(--warn)}
+  /* before/after */
+  .ba{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin:1rem 0}
+  @media(max-width:640px){.ba{grid-template-columns:1fr}}
+  .ba .box{border-radius:var(--radius-sm);padding:.9rem 1rem;font-size:.9rem}
+  .ba .before{background:var(--danger-bg);border:1px solid rgba(224,108,117,.35)}
+  .ba .after{background:var(--success-bg);border:1px solid rgba(108,195,149,.35)}
+  .ba h4{font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem}
+  .ba .before h4{color:var(--danger)}.ba .after h4{color:var(--success)}
+  .ba .mono{font-family:'SF Mono',Monaco,monospace;font-size:.82rem;color:var(--text-dim);line-height:1.5}
+  /* flow */
+  .flow{display:flex;align-items:stretch;gap:.5rem;flex-wrap:wrap;margin:1rem 0}
+  .flow .node{flex:1;min-width:120px;background:var(--surface-elev);border:1px solid var(--border);border-radius:var(--radius-sm);padding:.7rem .8rem;font-size:.85rem;text-align:center}
+  .flow .node .nh{font-weight:700;color:#fff;display:block;margin-bottom:.2rem}
+  .flow .node.good{border-color:var(--success)}.flow .node.fade{opacity:.75}
+  .flow .arrow{align-self:center;color:var(--accent);font-weight:700;font-size:1.1rem}
+  /* wizard groups */
+  .wgroups{display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;margin:1rem 0}
+  @media(max-width:760px){.wgroups{grid-template-columns:1fr}}
+  .wg{background:var(--surface-elev);border:1px solid var(--border);border-radius:var(--radius-sm);padding:.9rem}
+  .wg h4{font-size:.92rem;margin-bottom:.5rem;display:flex;align-items:center;gap:.4rem}
+  .wg.rename h4{color:var(--accent)}.wg.add h4{color:var(--warn)}.wg.remove h4{color:var(--success)}
+  .wg ul{list-style:none;font-size:.82rem;color:var(--text-dim)}
+  .wg li{padding:.25rem 0;border-top:1px solid var(--border)}
+  .wg li:first-child{border-top:none}
+  .wg .badge{font-size:.62rem;font-weight:700;color:var(--text-muted)}
+  /* stages */
+  .stages{display:flex;gap:.6rem;flex-wrap:wrap;margin:1rem 0}
+  .stage{flex:1;min-width:200px;background:var(--surface-elev);border:1px solid var(--border);border-radius:var(--radius-sm);padding:.9rem}
+  .stage .st-h{font-weight:700;color:#fff;margin-bottom:.3rem}
+  .stage .st-issue{font-size:.7rem;font-weight:700;color:var(--accent)}
+  .stage .st-body{font-size:.82rem;color:var(--text-dim);margin-top:.4rem}
+  .stage.first{border-color:var(--success)}
+  /* footer review bar */
+  .review{position:sticky;bottom:1rem;background:var(--surface-elev);border:1px solid var(--border-strong);border-radius:var(--radius);padding:1rem 1.125rem;box-shadow:var(--shadow-lg);margin-top:1.5rem;backdrop-filter:blur(8px)}
+  .review h3{font-size:1rem;margin-bottom:.5rem}
+  .review .row{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap}
+  .rbtn{border:1px solid var(--border);background:var(--surface);color:var(--text-dim);padding:.5rem 1rem;border-radius:var(--radius-sm);font-size:.875rem;font-weight:600;cursor:pointer;font-family:inherit}
+  .rbtn.approve.active{background:var(--success-bg);color:var(--success);border-color:var(--success)}
+  .rbtn.changes.active{background:var(--warn-bg);color:var(--warn);border-color:var(--warn)}
+  .review textarea{width:100%;margin-top:.6rem;min-height:54px;background:var(--code-bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:.6rem .75rem;color:var(--text);font-family:inherit;font-size:.875rem;resize:vertical}
+  .ask{margin-left:auto;background:var(--accent);color:#fff;border:1px solid var(--accent);padding:.5rem 1rem;border-radius:var(--radius-sm);font-weight:600;cursor:pointer;font-family:inherit}
+  .conn{display:inline-flex;align-items:center;gap:.375rem;font-size:.72rem;padding:.2rem .55rem;border-radius:999px;background:var(--surface);border:1px solid var(--border);color:var(--text-dim)}
+  .conn .dot{width:6px;height:6px;border-radius:50%;background:#545c75}.conn.online .dot{background:var(--success)}.conn.offline .dot{background:var(--danger)}
+  #replies{display:flex;flex-direction:column;gap:.5rem;margin-top:.6rem}#replies:empty{display:none}
+  .reply{background:var(--info-bg);border-left:3px solid var(--accent);border-radius:0 var(--radius-sm) var(--radius-sm) 0;padding:.55rem .8rem;font-size:.875rem}
+  .reply .rm{font-size:.66rem;text-transform:uppercase;letter-spacing:.05em;font-weight:700;color:var(--accent);margin-bottom:.25rem}
+  .toast{position:fixed;bottom:6rem;left:50%;transform:translateX(-50%) translateY(20px);background:var(--surface-elev);color:var(--text);border:1px solid var(--success);padding:.6rem 1rem;border-radius:var(--radius-sm);box-shadow:var(--shadow-lg);opacity:0;transition:.2s;pointer-events:none;z-index:100}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  #banner{display:none;background:var(--warn-bg);border-left:4px solid var(--warn);border-radius:var(--radius);padding:.8rem 1rem;margin-bottom:1rem;font-size:.85rem}#banner.show{display:block}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="eyebrow">Design spec · Phase 4 (final phase) <span class="conn" id="conn" style="float:right"><span class="dot"></span><span class="ct">connecting</span></span></div>
+  <h1>Reconcile Wizard Redesign</h1>
+  <p class="goal">Make reconcile <b>shelf-centric and non-destructive by default</b> — so a librarian can rename, add, and remove shelves through a full edit cycle without losing data or needing an engineer.</p>
+  <div class="pills"><span class="pill green">Closes #57</span><span class="pill green">Closes #59</span><span class="pill">3 shippable specs</span><span class="pill">builds on Phase 3 renames</span></div>
+  <div id="banner">Read-only without the server. To enable the Approve/Ask bridge: <code>QA_HTML=docs/manual-qa/2026-05-25-phase-4-spec-presentation.html python3 docs/manual-qa/qa-server.py</code> → open <code>http://localhost:8765/</code>.</div>
+
+  <section>
+    <div class="sec-eyebrow">The core idea</div>
+    <h2>1 · Removing a shelf stops destroying its data</h2>
+    <p>Today, removing a shelf in reconcile <b>deletes its library row forever</b> — collection ranges, descriptions, all gone. The fix: a <b>soft-delete</b> — the row is set aside in a recoverable “unlinked” pool, reassignable later.</p>
+    <div class="ba">
+      <div class="box before"><h4>✗ Today</h4><div class="mono">remove shelf CC_1
+  → CSV row (ranges,
+    descriptions) <b style="color:var(--danger)">gone</b></div></div>
+      <div class="box after"><h4>✓ Phase 4</h4><div class="mono">remove shelf CC_1
+  → 📦 row set aside
+    in "unlinked" pool
+  → reassign to CC_9 later</div></div>
+    </div>
+    <div class="callout key"><span class="tag">Why this is the heart of it</span>A "remove" becomes safe and reversible. Everything in spec 4c hangs off this single idea.</div>
+  </section>
+
+  <section>
+    <div class="sec-eyebrow">How the pool behaves</div>
+    <h2>2 · An unlinked row's life</h2>
+    <div class="flow">
+      <div class="node"><span class="nh">Removed</span>during reconcile</div>
+      <div class="arrow">→</div>
+      <div class="node good"><span class="nh">📦 Unlinked pool</span><code>versions/unlinked/&lt;ts&gt;_&lt;code&gt;.csv</code> (one file per row)</div>
+      <div class="arrow">→</div>
+      <div class="node"><span class="nh">Reassigned</span>back to a live shelf (CSV editor)</div>
+    </div>
+    <div class="flow">
+      <div class="node fade" style="flex:2">…or, if untouched</div>
+      <div class="arrow">→</div>
+      <div class="node"><span class="nh">Auto-expires</span>after <b>90 days</b> via an S3 lifecycle rule (no code — same as the 7-day staging cleanup)</div>
+    </div>
+    <div class="callout"><span class="tag">Storage</span><b>One small file per removed row</b> under <code>versions/unlinked/</code> — survives promotes, and each entry can expire on its own.</div>
+  </section>
+
+  <section>
+    <div class="sec-eyebrow">Recovery</div>
+    <h2>3 · Getting a set-aside row back</h2>
+    <p>The CSV editor gains an <b>“Unlinked entries (N)”</b> panel. Each row has a <b>“Reassign to shelf …”</b> action that <b>validates the target shelf id exists on that floor</b> before saving — so a recovered row can never re-introduce a broken reference.</p>
+    <div class="callout risk"><span class="tag">Guardrail</span>Reassign (and the inline "add entry") both enforce the <b>bundle invariant</b>: the svgCode must resolve to a real shelf on its floor, or the save is rejected with a clear message.</div>
+  </section>
+
+  <section>
+    <div class="sec-eyebrow">The new wizard</div>
+    <h2>4 · Grouped by what changed — nothing destructive by default</h2>
+    <p>The wizard reads top-to-bottom, grouped by change type. Each item has safe, explicit actions:</p>
+    <div class="wgroups">
+      <div class="wg rename"><h4>↺ Renamed <span class="badge">via Phase 3</span></h4><ul><li><b>Confirm</b> — apply old → new to the CSV</li><li><b>Treat as separate</b> add + remove</li><li>Ambiguous → pick from candidate previews</li></ul></div>
+      <div class="wg add"><h4>＋ Added <span class="badge">#57</span></h4><ul><li><b>Add library entry now</b> (inline form)</li><li><b>Leave unmapped</b> (decorative/later)</li><li><b>Remove from the map</b> (undo before promote)</li></ul></div>
+      <div class="wg remove"><h4>－ Removed <span class="badge">#59</span></h4><ul><li><b>Unlink (keep data)</b> → the pool</li><li><b>Cancel removal</b> → revert that floor's SVG</li></ul></div>
+    </div>
+    <div class="callout key"><span class="tag">The mental-model fix</span>A librarian can answer, in plain language: <i>“what changed, and what do I want to do about each?”</i> — which today's wizard can't.</div>
+  </section>
+
+  <section>
+    <div class="sec-eyebrow">How we'll build it</div>
+    <h2>5 · Three shippable stages</h2>
+    <div class="stages">
+      <div class="stage first"><div class="st-issue">4a · ships first</div><div class="st-h">Renames</div><div class="st-body">Confirmable rename pairs (uses Phase 3 + the existing backend <code>rename</code> action). Smallest, highest immediate value. <span style="color:var(--text-muted)">(rename half of #59)</span></div></div>
+      <div class="stage"><div class="st-issue">4b · #57</div><div class="st-h">Adds</div><div class="st-body">The three new-shelf actions: add inline / leave / remove-from-SVG. Needs an add-entry form + a staged-SVG edit.</div></div>
+      <div class="stage"><div class="st-issue">4c · #59</div><div class="st-h">Soft-unlink pool</div><div class="st-body">The recoverable pool + CSV reassign panel + 90-day lifecycle cleanup. The largest; the heart of #59.</div></div>
+    </div>
+    <div class="callout"><span class="tag">Order</span>Smallest-first by value &amp; risk. Each is its own spec → plan → PR, tracked by a meta-issue. 4a/4b don't need the pool; 4c is self-contained.</div>
+    <div class="callout risk"><span class="tag">Two things still open (resolved in each sub-plan)</span>(a) the exact "remove from SVG" edit mechanism (4b); (b) whether pool files keep all CSV columns (default: yes, lossless).</div>
+  </section>
+
+  <div class="review">
+    <h3>Does this design look right?</h3>
+    <div class="row">
+      <button class="rbtn approve" data-v="approve" onclick="setReview(this)">✓ Approve — write the 4a plan</button>
+      <button class="rbtn changes" data-v="changes" onclick="setReview(this)">✎ Request changes</button>
+      <button class="ask" onclick="askClaude()">💬 Ask Claude</button>
+    </div>
+    <textarea id="notes" placeholder="Any changes, concerns, or questions about the design…"></textarea>
+    <div id="replies"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+  const KEY='phase-4-spec-review-v1';
+  function load(){try{return JSON.parse(localStorage.getItem(KEY))||{}}catch{return{}}}
+  function save(s){localStorage.setItem(KEY,JSON.stringify(s));sync()}
+  function toast(m,e){const t=document.getElementById('toast');t.textContent=m;t.style.borderColor=e?'var(--danger)':'var(--success)';t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2400)}
+  function setReview(btn){document.querySelectorAll('.rbtn').forEach(b=>b.classList.toggle('active',b===btn));const s=load();s.verdict=btn.dataset.v;save(s);toast(btn.dataset.v==='approve'?'Approved — I\'ll write the 4a plan.':'Marked: request changes.')}
+  const SA=location.protocol.startsWith('http');let last='0',_t=null,_busy=false,_c=null;
+  function setConn(st,t){const e=document.getElementById('conn');if(!e)return;e.className='conn '+st;e.querySelector('.ct').textContent=t||st;_c=st}
+  function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+  function md(s){return esc(s).replace(/`([^`]+)`/g,'<code>$1</code>').replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>')}
+  async function postState(){if(!SA||_busy)return;_busy=true;setConn('syncing','syncing');try{const s=load();const n=document.getElementById('notes');if(n)s.notes=n.value;const r=await fetch('/state',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(s)});if(!r.ok)throw 0;setConn('online','in sync')}catch{setConn('offline','offline')}finally{_busy=false}}
+  function sync(){if(!SA)return;clearTimeout(_t);_t=setTimeout(postState,500)}
+  async function poll(){if(!SA)return;try{const r=await fetch('/replies/since/'+encodeURIComponent(last));if(!r.ok)throw 0;(await r.json()).forEach(rp=>{const h=document.getElementById('replies');if(h.querySelector(`[data-r="${rp.id}"]`))return;const d=document.createElement('div');d.className='reply';d.dataset.r=rp.id;d.innerHTML=`<div class="rm">Claude · ${new Date((rp.ts||0)*1000).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</div><div>${md(rp.text||'')}</div>`;h.appendChild(d);if(String(rp.id)>last)last=String(rp.id)});if(_c==='offline')setConn('online','online')}catch{setConn('offline','offline')}}
+  async function askClaude(){if(!SA){toast('Needs the server (see banner).',true);return}const n=document.getElementById('notes');await postState();try{const r=await fetch('/ping',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({testId:'spec',title:'Phase 4 design spec',notes:(n?n.value:'').slice(0,2000)})});if(!r.ok)throw 0;toast('Asked Claude — reply appears below.')}catch{toast('Ping failed',true)}}
+  (function(){const s=load();if(s.verdict){const b=document.querySelector(`.rbtn[data-v="${s.verdict}"]`);if(b)b.classList.add('active')}const n=document.getElementById('notes');if(n){if(s.notes)n.value=s.notes;n.addEventListener('input',()=>{const x=load();x.notes=n.value;save(x)})}if(SA){setConn('syncing','connecting');postState();poll();setInterval(poll,2000)}else{document.getElementById('banner').classList.add('show');setConn('offline','local only')}})();
+</script>
+</body>
+</html>
