@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Phase 4 — Reconcile Wizard Redesign · Planning</title>
+  <style>
+    :root {
+      --bg:#0b1220; --bg-grad:radial-gradient(ellipse at top,#1a2540 0%,#0b1220 70%);
+      --surface:#131c33; --surface-elev:#1c2742; --surface-hover:#243254;
+      --border:#2a3858; --border-strong:#3d4f7a; --text:#e8edf7; --text-dim:#9aa6c2; --text-muted:#6b7898;
+      --accent:#7aa2f7; --accent-strong:#4a7fde; --success:#6cc395; --success-bg:rgba(108,195,149,.12);
+      --warn:#e0af68; --warn-bg:rgba(224,175,104,.12); --danger:#e06c75; --danger-bg:rgba(224,108,117,.12);
+      --neutral:#545c75; --info-bg:rgba(122,162,247,.10); --code-bg:#0a101d; --shadow-lg:0 8px 32px rgba(0,0,0,.5);
+      --radius:10px; --radius-sm:6px;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    html{font-size:15px}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--bg);background-image:var(--bg-grad);background-attachment:fixed;color:var(--text);line-height:1.55;min-height:100vh;padding:2rem 1rem 4rem}
+    .container{max-width:920px;margin:0 auto}
+    header.top{margin-bottom:1.25rem}
+    .eyebrow{font-size:.75rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:.5rem}
+    h1{font-size:1.85rem;font-weight:700;letter-spacing:-.02em;margin-bottom:.5rem}
+    .lede{color:var(--text-dim);font-size:.95rem;margin-bottom:1rem}
+    .progress{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:.875rem 1.125rem;margin-bottom:1.25rem;display:flex;align-items:center;gap:1rem}
+    .progress-text{font-size:.875rem;color:var(--text-dim);white-space:nowrap}
+    .progress-text strong{color:var(--text);font-variant-numeric:tabular-nums}
+    .progress-bar{flex:1;height:8px;background:var(--code-bg);border-radius:999px;overflow:hidden}
+    .progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--success));width:0%;transition:width .3s;border-radius:999px}
+    .conn-status{display:inline-flex;align-items:center;gap:.375rem;font-size:.75rem;padding:.25rem .625rem;border-radius:999px;background:var(--surface-elev);border:1px solid var(--border);color:var(--text-dim);white-space:nowrap}
+    .conn-status .dot{width:6px;height:6px;border-radius:50%;background:var(--neutral)}
+    .conn-status.online .dot{background:var(--success);box-shadow:0 0 6px var(--success)}
+    .conn-status.offline .dot{background:var(--danger)} .conn-status.syncing .dot{background:var(--accent);animation:pulse 1s infinite}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+    #setup-banner{display:none;background:var(--warn-bg);border:1px solid rgba(224,175,104,.4);border-left:4px solid var(--warn);border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:1.25rem;font-size:.875rem}
+    #setup-banner.show{display:block}
+    #setup-banner code,.lede code{background:var(--code-bg);padding:.0625rem .4rem;border-radius:4px;font-family:'SF Mono',Monaco,monospace;font-size:.8125rem;color:var(--warn)}
+    #global-replies{display:flex;flex-direction:column;gap:.5rem;margin-bottom:1.25rem}
+    #global-replies:empty{display:none}
+    .decision{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:.875rem;overflow:hidden;transition:border-color .2s,background .2s}
+    .decision[data-status="decided"]{border-color:rgba(108,195,149,.4);background:linear-gradient(180deg,var(--success-bg) 0%,var(--surface) 80%)}
+    .d-head{display:flex;align-items:flex-start;gap:.875rem;padding:1rem 1.25rem;cursor:pointer;user-select:none}
+    .d-head:hover{background:rgba(255,255,255,.02)}
+    .d-num{flex-shrink:0;width:28px;height:28px;background:var(--surface-elev);border:1px solid var(--border);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.8125rem;font-weight:600;color:var(--text-dim)}
+    .decision[data-status="decided"] .d-num{background:var(--success);border-color:var(--success);color:#fff}
+    .d-title-block{flex:1;min-width:0}
+    .d-title{font-size:.95rem;font-weight:600;margin-bottom:.125rem}
+    .d-meta{font-size:.75rem;color:var(--text-muted);display:flex;gap:.75rem;flex-wrap:wrap}
+    .d-chosen{font-size:.75rem;color:var(--success);font-weight:600}
+    .d-chevron{flex-shrink:0;width:18px;height:18px;align-self:center;color:var(--text-muted);transition:transform .2s}
+    .decision[data-expanded="true"] .d-chevron{transform:rotate(180deg)}
+    .d-body{max-height:0;overflow:hidden;transition:max-height .3s ease}
+    .decision[data-expanded="true"] .d-body{max-height:4000px}
+    .d-inner{padding:0 1.25rem 1.25rem;border-top:1px solid var(--border);padding-top:1rem}
+    .simple{font-size:.95rem;color:var(--text);margin-bottom:.75rem}
+    .simple b{color:#fff}
+    .why{font-size:.8125rem;color:var(--text-muted);font-style:italic;margin-bottom:.75rem}
+    .illus{background:var(--code-bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:.625rem .875rem;margin-bottom:.75rem;font-family:'SF Mono',Monaco,monospace;font-size:.8125rem;color:var(--text-dim);white-space:pre-wrap;line-height:1.5}
+    .illus .good{color:var(--success)} .illus .bad{color:var(--danger)} .illus .arr{color:var(--accent)}
+    details.deeper{margin-bottom:.75rem} details.deeper summary{cursor:pointer;font-size:.8125rem;color:var(--accent);font-weight:600}
+    details.deeper .deeper-body{font-size:.8125rem;color:var(--text-dim);margin-top:.5rem;padding-left:.5rem;border-left:2px solid var(--border)}
+    .opts-label{font-size:.6875rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);margin-bottom:.5rem}
+    .opts{display:flex;flex-direction:column;gap:.5rem;margin-bottom:1rem}
+    .opt-btn{text-align:left;background:var(--surface-elev);border:1px solid var(--border);color:var(--text-dim);padding:.625rem .875rem;border-radius:var(--radius-sm);font-size:.875rem;cursor:pointer;font-family:inherit;transition:all .15s}
+    .opt-btn:hover{background:var(--surface-hover);color:var(--text)}
+    .opt-btn .ob-label{font-weight:600;color:var(--text)}
+    .opt-btn .ob-rec{font-size:.6875rem;color:var(--success);font-weight:700;margin-left:.4rem}
+    .opt-btn .ob-desc{display:block;font-size:.8125rem;color:var(--text-muted);margin-top:.2rem}
+    .opt-btn.active{border-color:var(--success);background:var(--success-bg)}
+    .opt-btn.active .ob-label{color:var(--success)}
+    .notes-label{font-size:.6875rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);margin-bottom:.375rem;display:flex;justify-content:space-between}
+    .notes{width:100%;min-height:58px;background:var(--code-bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:.625rem .75rem;color:var(--text);font-family:inherit;font-size:.875rem;resize:vertical}
+    .notes:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(122,162,247,.15)}
+    .controls{display:flex;gap:.5rem;margin-top:.75rem}
+    .ping-btn{margin-left:auto;background:var(--accent);color:#fff;border:1px solid var(--accent);padding:.4rem .875rem;border-radius:var(--radius-sm);font-size:.8125rem;font-weight:600;cursor:pointer;font-family:inherit}
+    .ping-btn:hover:not(:disabled){background:var(--accent-strong)} .ping-btn:disabled{cursor:wait;opacity:.75}
+    .replies{display:flex;flex-direction:column;gap:.5rem;margin-bottom:.75rem}.replies:empty{display:none}
+    .reply{background:var(--info-bg);border-left:3px solid var(--accent);border-radius:0 var(--radius-sm) var(--radius-sm) 0;padding:.625rem .875rem;font-size:.875rem;animation:slide .25s ease-out}
+    .reply[data-level="success"]{background:var(--success-bg);border-color:var(--success)} .reply[data-level="warn"]{background:var(--warn-bg);border-color:var(--warn)} .reply[data-level="question"]{background:var(--info-bg);border-color:var(--accent)}
+    .reply-meta{font-size:.6875rem;text-transform:uppercase;letter-spacing:.05em;font-weight:700;margin-bottom:.375rem;color:var(--accent);display:flex;gap:.5rem}
+    .reply-time{color:var(--text-muted);font-weight:400;text-transform:none}
+    .reply-text code{background:var(--code-bg);padding:.0625rem .375rem;border-radius:4px;font-family:'SF Mono',Monaco,monospace;font-size:.8125rem;color:var(--warn)}
+    @keyframes slide{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+    .actions{position:sticky;bottom:1rem;background:var(--surface-elev);border:1px solid var(--border-strong);border-radius:var(--radius);padding:.875rem 1.125rem;display:flex;gap:.75rem;align-items:center;box-shadow:var(--shadow-lg);margin-top:1.5rem;backdrop-filter:blur(8px)}
+    .actions .spacer{flex:1}
+    .action-btn{background:var(--accent);color:#fff;border:none;padding:.5rem 1rem;border-radius:var(--radius-sm);font-size:.875rem;font-weight:500;cursor:pointer;font-family:inherit}
+    .action-btn.ghost{background:transparent;color:var(--text-dim);border:1px solid var(--border)}
+    .toast{position:fixed;bottom:5rem;left:50%;transform:translateX(-50%) translateY(20px);background:var(--surface-elev);color:var(--text);border:1px solid var(--success);padding:.625rem 1rem;border-radius:var(--radius-sm);font-size:.875rem;box-shadow:var(--shadow-lg);opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;z-index:100}
+    .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+    .group-label{font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);margin:1.5rem 0 .6rem}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="top">
+      <div class="eyebrow">Planning · Phase 4 (final phase)</div>
+      <h1>Reconcile Wizard Redesign — decisions to settle</h1>
+      <p class="lede">Work through each decision top-to-bottom: read the plain-language explanation, pick an option (✅ = my recommendation), add notes if you like, and hit <b>💬 Ask Claude</b> on any card you want me to expand. Your picks sync to me live — when you're done I'll turn them into the spec(s). Closes #57 + #59.</p>
+    </header>
+    <div class="progress">
+      <div class="progress-text"><strong id="p-done">0</strong> / <strong id="p-total">0</strong> decided</div>
+      <div class="progress-bar"><div class="progress-fill" id="p-fill"></div></div>
+      <div class="conn-status" id="conn"><span class="dot"></span><span class="conn-text">connecting</span></div>
+    </div>
+    <div id="setup-banner"><strong>Server not running.</strong> Run <code>QA_HTML=docs/manual-qa/2026-05-25-phase-4-planning.html python3 docs/manual-qa/qa-server.py</code> then open <code>http://localhost:8765/</code>.</div>
+    <div id="global-replies"></div>
+
+    <div class="group-label">Shape of the work</div>
+    <!-- cards injected by JS -->
+    <div id="cards"></div>
+
+    <div class="actions">
+      <button class="action-btn" onclick="copyReport()">📋 Copy decisions</button>
+      <button class="action-btn ghost" onclick="exportJSON()">⬇ Download JSON</button>
+      <div class="spacer"></div>
+      <button class="action-btn ghost" onclick="resetAll()">Reset</button>
+    </div>
+  </div>
+  <div class="toast" id="toast"></div>
+
+  <script>
+  // ---- Decision content ---------------------------------------------------
+  const DECISIONS = [
+    { id:'d1-split', group:'Shape of the work', title:'How to split Phase 4',
+      simple:"Phase 4 is the biggest phase. We can build it as <b>one big change</b>, or break it into smaller pieces that each ship on their own. The two natural halves line up with the two GitHub issues.",
+      why:"Smaller pieces = smaller reviews, value shipped sooner, shorter runs — at the cost of a bit more overhead.",
+      illus:"4a  Renames + Adds  (the 'something new/changed' side)   → Closes #57\n4b  Removes → keep the data ('unlinked' pool) + reassign  → Closes #59",
+      options:[
+        {v:'two',label:'Two specs (4a #57, 4b #59)',rec:true,desc:"Build 4a first (renames + adds), then 4b (the recoverable-removal pool). Each is its own spec → plan → PR."},
+        {v:'three',label:'Three specs',desc:"Renames / Adds / Removes split finer. More PRs, more overhead."},
+        {v:'one',label:'One big spec',desc:"Design + build all of Phase 4 at once. Most cohesive, biggest PR + longest run."},
+      ] },
+
+    { id:'d2-softdelete', group:'The big idea', title:'Soft-delete: stop losing shelf data on removal',
+      simple:"Today, if you remove a shelf during reconcile, its <b>library info is deleted forever</b> — the collection ranges, descriptions, everything. The core #59 fix: instead of deleting, <b>set the row aside in a recoverable holding area</b> (an 'unlinked entries' pool) so you can reassign it to another shelf later. Nothing is destroyed by accident.",
+      why:"This is the heart of Phase 4 — it's why a 'remove' becomes safe. Most other decisions hang off this.",
+      illus:"Today:   remove shelf CC_1  →  ❌ its CSV row (ranges, descriptions) gone\nProposed: remove shelf CC_1  →  📦 row moved to 'unlinked' pool  →  reassign later to CC_9",
+      options:[
+        {v:'soft-pool',label:'Yes — soft-delete into a recoverable pool',rec:true,desc:"Removed rows go to an 'unlinked entries' pool, reassignable later. Safe + recoverable."},
+        {v:'soft-flag',label:'Soft, but simpler (flag rows, no separate pool)',desc:"Mark rows 'unlinked' in place rather than a separate store. Less new storage, but clutters the main data."},
+        {v:'hard',label:'Keep hard delete',desc:"Simplest, but a wrong removal permanently loses library data. (Not recommended.)"},
+      ] },
+
+    { id:'d3-storage', group:'The big idea', title:'Where the set-aside (unlinked) rows live',
+      simple:"When a row is set aside, it has to be stored somewhere. All options keep the same data — they differ in how easy it is to <b>list</b> them, <b>reassign</b> one, and <b>auto-expire</b> old ones.",
+      why:"Picks the storage shape the reassign panel + cleanup build on. Only matters if D2 = soft-delete.",
+      illus:"A) one file per row:  versions/unlinked/2026-05-25T..._CC_1.csv   (one row each)\nB) one shared file:    versions/unlinked.json                       (all rows together)\nC) flag in main CSV:   add 'unlinked=true' column to mapping.csv",
+      options:[
+        {v:'perfile',label:'One small file per removed row',rec:true,desc:"Matches the existing versions/ pattern; each entry can auto-expire on its own via an S3 lifecycle rule (free 90-day cleanup). Easy to add/remove one."},
+        {v:'json',label:'One shared JSON file',desc:"Simplest to read+list as a whole, but can't expire individual rows by age via S3 lifecycle; concurrent edits need care."},
+        {v:'flag',label:'A flag column in the main CSV',desc:"No new files, but mixes 'live' and 'set-aside' rows in one place + complicates the bundle invariant."},
+      ] },
+
+    { id:'d4-cleanup', group:'The big idea', title:'Auto-cleanup of the pool',
+      simple:"Set-aside rows shouldn't pile up forever. Auto-expire them after ~90 days. We already do exactly this for the 7-day staging area — with a built-in <b>S3 lifecycle rule</b>, no code.",
+      why:"Keeps the pool tidy without new infrastructure to maintain.",
+      illus:"Existing: 'expire-staging-after-7-days' lifecycle rule on staging/\nProposed: 'expire-unlinked-after-90-days' lifecycle rule on versions/unlinked/",
+      options:[
+        {v:'lifecycle',label:'S3 lifecycle rule (90 days)',rec:true,desc:"Same mechanism as the staging cleanup. Zero new code/infra. (Best with the per-file storage in D3.)"},
+        {v:'scheduled',label:'Scheduled cleanup Lambda',desc:"A daily job. More flexible, but new infra to build + monitor."},
+        {v:'none',label:'No auto-cleanup',desc:"Pool grows until someone clears it manually."},
+      ] },
+
+    { id:'d5-reassign', group:'Recovery flow', title:'How a librarian gets a set-aside row back',
+      simple:"To recover an unlinked entry, the plan adds a panel in the <b>CSV editor</b>: <i>“Unlinked entries (N)”</i>, each with a <b>“Reassign to shelf …”</b> action that checks the new shelf id actually exists on the map before saving.",
+      why:"Decides where recovery happens and keeps a reassigned row valid (bundle invariant).",
+      options:[
+        {v:'csv-panel',label:'A panel in the CSV editor + validated reassign',rec:true,desc:"List the pool, reassign each to an existing shelf id (validated). Lives where librarians already edit mappings."},
+        {v:'wizard-only',label:'Only from the reconcile wizard',desc:"Recover during a future reconcile. Less discoverable outside that flow."},
+        {v:'manual',label:'No recovery UI (file only)',desc:"The data is saved but recovery is manual/by an admin. Minimal build."},
+      ] },
+
+    { id:'d6-adds', group:'Wizard behavior', title:'New shelves with no library data (the “adds” side, #57)',
+      simple:"When an upload adds a brand-new shelf that has no library row yet, the wizard offers <b>three choices per shelf</b>:",
+      illus:"• Add library info now  — inline form, prefilled with floor + map-code\n• Leave unmapped        — it's decorative or you'll map it later\n• Remove from the map    — undo the addition before promote",
+      why:"Replaces today's silent 'promote accepts unmapped shelves' gap (#57).",
+      options:[
+        {v:'three',label:'All three actions',rec:true,desc:"Add now / leave unmapped / remove from SVG — full control, non-destructive."},
+        {v:'addleave',label:'Just add-now / leave-unmapped',desc:"Drop the 'remove from SVG' action (simpler; can't undo an addition from the wizard)."},
+        {v:'strict',label:'Block promote until every new shelf is mapped',desc:"Strictest; forces mapping but can be annoying for decorative shapes."},
+      ] },
+
+    { id:'d7-renames', group:'Wizard behavior', title:'Renames in the wizard',
+      simple:"Phase 3 already detects renames. In the wizard, a confident rename shows as <b>“CC_1-4 → CC_X-Y”</b> with <b>[Confirm]</b> / <b>[Treat as separate add + remove]</b>. If it's ambiguous (more than one candidate), show previews and let you pick.",
+      why:"Turns the scary add+remove into one reassuring, confirmable line — and applies it to the CSV.",
+      options:[
+        {v:'confirm',label:'Show + confirm (and pick when ambiguous)',rec:true,desc:"You stay in control; one click confirms the rename, applying old→new to the CSV."},
+        {v:'auto',label:'Auto-apply confident renames',desc:"Less clicking; the system applies an unambiguous rename without asking. Faster, less oversight."},
+        {v:'manual',label:'Always manual (no preselection)',desc:"Detection only informs; you still map by hand each time."},
+      ] },
+
+    { id:'d8-flow', group:'Wizard behavior', title:'Overall wizard structure',
+      simple:"The wizard becomes <b>shelf-centric and non-destructive by default</b> — grouped by what changed, with safe actions and nothing destructive unless you explicitly choose it.",
+      illus:"┌ Renamed (2) ─ confirm each ──────────┐\n├ Added (1)   ─ add / leave / remove ──┤\n└ Removed (1) ─ unlink (keep data) / cancel ┘",
+      why:"The mental-model fix: read top-to-bottom and answer 'what changed and what do I want to do about it?'",
+      options:[
+        {v:'grouped',label:'Grouped by change type (Renamed / Added / Removed)',rec:true,desc:"Each group lists its shelves with the relevant actions. Clear overview."},
+        {v:'stepwise',label:'Step-by-step, one shelf at a time',desc:"A guided wizard; less overwhelming but more clicking for big diffs."},
+        {v:'table',label:'Single table of all changes',desc:"Dense, power-user view; less hand-holding."},
+      ] },
+  ];
+
+  // ---- State + render -----------------------------------------------------
+  const STORAGE_KEY='phase-4-planning-v1';
+  function load(){try{return JSON.parse(localStorage.getItem(STORAGE_KEY))||{}}catch{return {}}}
+  function save(s){localStorage.setItem(STORAGE_KEY,JSON.stringify(s));scheduleSync()}
+  function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+
+  function renderCards(){
+    const host=document.getElementById('cards');
+    let lastGroup=null; let html='';
+    DECISIONS.forEach((d,i)=>{
+      if(d.group!==lastGroup){ if(i>0) html+=`</div>`; html+=`<div class="group-label">${esc(d.group)}</div><div>`; lastGroup=d.group; }
+      const opts=d.options.map(o=>`<button class="opt-btn" data-value="${o.v}" onclick="choose(this)"><span class="ob-label">${o.label}${o.rec?'<span class="ob-rec">✅ recommended</span>':''}</span><span class="ob-desc">${o.desc}</span></button>`).join('');
+      html+=`
+      <article class="decision" data-id="${d.id}" data-status="pending" ${i===0?'data-expanded="true"':''}>
+        <div class="d-head" onclick="toggle(this)">
+          <div class="d-num">${i+1}</div>
+          <div class="d-title-block">
+            <div class="d-title">${esc(d.title)}</div>
+            <div class="d-meta"><span class="d-chosen" data-chosen></span></div>
+          </div>
+          <svg class="d-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="d-body"><div class="d-inner">
+          <div class="replies"></div>
+          <div class="simple">${d.simple}</div>
+          ${d.illus?`<div class="illus">${esc(d.illus)}</div>`:''}
+          <div class="why">Why it matters: ${esc(d.why)}</div>
+          <div class="opts-label">Options</div>
+          <div class="opts">${opts}</div>
+          <div class="notes-label">Notes / your reasoning</div>
+          <textarea class="notes" placeholder="Anything you want me to factor in…"></textarea>
+          <div class="controls"><button class="ping-btn" onclick="pingClaude(this)">💬 Ask Claude</button></div>
+        </div></div>
+      </article>`;
+    });
+    html+=`</div>`;
+    host.innerHTML=html;
+  }
+
+  function choose(btn){
+    const card=btn.closest('.decision'); const id=card.dataset.id; const val=btn.dataset.value;
+    const s=load(); s[id]=s[id]||{}; s[id].choice=val; save(s);
+    card.dataset.status='decided';
+    card.querySelectorAll('.opt-btn').forEach(b=>b.classList.toggle('active',b.dataset.value===val));
+    const label=btn.querySelector('.ob-label').textContent.replace('✅ recommended','').trim();
+    card.querySelector('[data-chosen]').textContent='✓ '+label;
+    refreshProgress();
+  }
+  function toggle(head){const c=head.closest('.decision');c.dataset.expanded=c.dataset.expanded==='true'?'false':'true'}
+  function refreshProgress(){
+    const cards=document.querySelectorAll('.decision');let done=0;cards.forEach(c=>{if(c.dataset.status==='decided')done++});
+    document.getElementById('p-done').textContent=done;document.getElementById('p-total').textContent=cards.length;
+    document.getElementById('p-fill').style.width=(done/cards.length*100)+'%';
+  }
+  function showToast(m,e){const t=document.getElementById('toast');t.textContent=m;t.style.borderColor=e?'var(--danger)':'var(--success)';t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2400)}
+
+  function buildReport(){
+    const s=load();const lines=['# Phase 4 — Planning decisions','',`Date: ${new Date().toISOString().split('T')[0]}`,''];
+    DECISIONS.forEach((d,i)=>{const e=s[d.id]||{};const opt=d.options.find(o=>o.v===e.choice);
+      lines.push(`### ${i+1}. ${d.title}`);lines.push(`Decision: ${opt?opt.label:'(undecided)'}`);
+      if(e.notes)lines.push(`Notes: ${e.notes}`);lines.push('')});
+    return lines.join('\n');
+  }
+  async function copyReport(){try{await navigator.clipboard.writeText(buildReport());showToast('Decisions copied.')}catch{showToast('Copy failed',true)}}
+  function exportJSON(){const blob=new Blob([JSON.stringify({decisions:load(),at:Date.now()},null,2)],{type:'application/json'});const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download='phase-4-planning.json';a.click();URL.revokeObjectURL(u);showToast('JSON downloaded.')}
+  function resetAll(){if(!confirm('Reset all decisions?'))return;localStorage.removeItem(STORAGE_KEY);document.querySelectorAll('.decision').forEach(c=>{c.dataset.status='pending';c.querySelectorAll('.opt-btn').forEach(b=>b.classList.remove('active'));c.querySelector('[data-chosen]').textContent='';const n=c.querySelector('.notes');if(n)n.value=''});refreshProgress();showToast('Reset.')}
+
+  function hydrate(){
+    const s=load();
+    document.querySelectorAll('.decision').forEach(c=>{
+      const id=c.dataset.id;const e=s[id]||{};
+      if(e.choice){c.dataset.status='decided';c.querySelectorAll('.opt-btn').forEach(b=>b.classList.toggle('active',b.dataset.value===e.choice));const ab=c.querySelector(`.opt-btn[data-value="${e.choice}"]`);if(ab)c.querySelector('[data-chosen]').textContent='✓ '+ab.querySelector('.ob-label').textContent.replace('✅ recommended','').trim()}
+      const ta=c.querySelector('.notes');if(ta){if(e.notes)ta.value=e.notes;ta.addEventListener('input',()=>{const x=load();x[id]=x[id]||{};x[id].notes=ta.value;save(x)})}
+    });
+    refreshProgress();
+  }
+
+  // ---- Collaboration bridge (same as the QA dashboard) --------------------
+  const SERVER_ACTIVE=location.protocol.startsWith('http');
+  let lastReplyId='0',_syncTimer=null,_inFlight=false,_conn=null;
+  function setConn(st,t){const el=document.getElementById('conn');if(!el)return;el.className='conn-status '+st;el.querySelector('.conn-text').textContent=t||st;_conn=st}
+  async function postState(){if(!SERVER_ACTIVE||_inFlight)return;_inFlight=true;setConn('syncing','syncing');try{const r=await fetch('/state',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(load())});if(!r.ok)throw 0;setConn('online','in sync')}catch{setConn('offline','offline')}finally{_inFlight=false}}
+  function scheduleSync(){if(!SERVER_ACTIVE)return;clearTimeout(_syncTimer);_syncTimer=setTimeout(postState,500)}
+  function mdLite(s){let h=esc(s);h=h.replace(/`([^`]+)`/g,'<code>$1</code>').replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>');return h}
+  function renderReply(rep){const id=String(rep.id||Date.now());let host=null,card=null;if(rep.testId){card=document.querySelector(`.decision[data-id="${rep.testId}"]`);if(card)host=card.querySelector('.replies')}if(!host)host=document.getElementById('global-replies');if(!host||host.querySelector(`[data-rid="${id}"]`))return;const d=document.createElement('div');d.className='reply';d.dataset.rid=id;d.dataset.level=rep.level||'info';const lbl={info:'Claude',success:'Looks good',warn:'Heads up',question:'Need input'}[rep.level]||'Claude';d.innerHTML=`<div class="reply-meta"><span>${esc(lbl)}</span><span class="reply-time">${new Date((rep.ts||Date.now()/1000)*1000).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</span></div><div class="reply-text">${mdLite(rep.text||'')}</div>`;host.appendChild(d);if(card){card.dataset.expanded='true';const pb=card.querySelector('.ping-btn');if(pb){pb.disabled=false;pb.textContent='💬 Ask Claude'}d.scrollIntoView({behavior:'smooth',block:'center'})}}
+  async function pollReplies(){if(!SERVER_ACTIVE)return;try{const r=await fetch('/replies/since/'+encodeURIComponent(lastReplyId));if(!r.ok)throw 0;(await r.json()).forEach(rp=>{renderReply(rp);if(String(rp.id)>lastReplyId)lastReplyId=String(rp.id)});if(_conn==='offline')setConn('online','online')}catch{setConn('offline','offline')}}
+  async function pingClaude(btn){if(!SERVER_ACTIVE){showToast('Ping needs the server (see banner).',true);return}const card=btn.closest('.decision');const id=card.dataset.id;const title=card.querySelector('.d-title').textContent.trim();const s=load();const e=s[id]||{};btn.disabled=true;btn.textContent='⏳ Waiting…';try{await postState();const r=await fetch('/ping',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({testId:id,title,status:e.choice||'undecided',notes:(e.notes||'').slice(0,2000)})});if(!r.ok)throw 0;showToast('Asked Claude — reply will appear in this card.')}catch{btn.disabled=false;btn.textContent='💬 Ask Claude';showToast('Ping failed',true)}}
+
+  renderCards();hydrate();
+  if(SERVER_ACTIVE){setConn('syncing','connecting');postState();pollReplies();setInterval(pollReplies,2000)}
+  else{document.getElementById('setup-banner').classList.add('show');const c=document.getElementById('conn');if(c){c.className='conn-status offline';c.querySelector('.conn-text').textContent='local only'}}
+  </script>
+</body>
+</html>
