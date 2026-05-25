@@ -1,6 +1,13 @@
 const CLOUDFRONT_URL = 'https://d3h8i7y9p8lyw7.cloudfront.net';
 
-export async function loadFloorSvg(floorNumber, container) {
+// Per-floor record of the ETag last served for a rendered floor SVG. Used by
+// the #50 poll-until-fresh refresh: after a promote, pollUntilFresh compares
+// the served ETag to this baseline to detect when the CloudFront invalidation
+// has propagated, then re-renders.
+const _renderedEtag = {};
+export function getRenderedEtag(floorNumber) { return _renderedEtag[floorNumber]; }
+
+export async function loadFloorSvg(floorNumber, container, cacheBust) {
   // cache: 'no-cache' forces the browser to revalidate with the origin
   // (sends If-None-Match / If-Modified-Since). When the SVG hasn't changed,
   // the server returns 304 and the cached body is reused — no extra bandwidth.
@@ -8,11 +15,21 @@ export async function loadFloorSvg(floorNumber, container) {
   // Plain fetch() would let the browser serve a stale cached body across
   // sessions, which surfaced as a recurring "floor 2 shelves unclickable +
   // '210 unassigned' badge" bug whenever someone re-uploaded a floor SVG.
-  const resp = await fetch(`${CLOUDFRONT_URL}/maps/floor_${floorNumber}.svg`, { cache: 'no-cache' });
+  //
+  // cache: 'no-cache' revalidates the *browser* cache. It does NOT defeat the
+  // CloudFront edge — so right after a promote (when CloudFront still holds the
+  // pre-promote object) callers pass a unique `cacheBust` to append ?v=<token>.
+  // The /maps/* cache behavior keys on `v`, so a new token is a cache miss and
+  // CloudFront fetches fresh from S3. See issue #50 + the 2026-05-25 plan.
+  const base = `${CLOUDFRONT_URL}/maps/floor_${floorNumber}.svg`;
+  const url = cacheBust ? `${base}?v=${encodeURIComponent(cacheBust)}` : base;
+  const resp = await fetch(url, { cache: 'no-cache' });
   if (!resp.ok) {
     container.innerHTML = `<p class="text-red-600 p-4">Could not load floor map.</p>`;
     throw new Error(`SVG load failed: floor ${floorNumber} (${resp.status})`);
   }
+  const etag = resp.headers && resp.headers.get ? resp.headers.get('etag') : null;
+  if (etag) _renderedEtag[floorNumber] = etag;
   const text = await resp.text();
   // Preserve any non-SVG element children (e.g. the orphan-panel host)
   // across reloads. innerHTML replacement would otherwise detach them.

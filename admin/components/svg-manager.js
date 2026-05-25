@@ -6,6 +6,7 @@ import { applyRoleBasedUI } from '../auth-guard.js?v=5';
 import { renderStagingPanel } from './svg-manager/staging-panel.js?v=5';
 import { renderReconcileWizard } from './svg-manager/reconcile-wizard.js?v=5';
 import { showStagingProgressModal } from './staging-progress-modal.js?v=5';
+import { pollUntilFresh } from './map-editor/promote-refresh.js?v=5';
 
 // Fallback translations if i18n hasn't loaded yet
 const FALLBACKS = {
@@ -46,6 +47,39 @@ function t(key) {
 const API_ENDPOINT = 'https://tt3xt4tr09.execute-api.us-east-1.amazonaws.com/prod';
 const CLOUDFRONT_URL = 'https://d3h8i7y9p8lyw7.cloudfront.net';
 const STAGING_API_BASE = `${API_ENDPOINT}/api/staging`;
+
+// Per-file cache-buster for map asset URLs, bumped after a promote so the
+// Replace-tab thumbnails/preview/download refetch the new bytes. An <img> does
+// not honor cache:'no-cache', so a fresh ?v= is the only way to refresh it.
+//
+// Issue #50 (Free-plan path): the bump is no longer done synchronously on the
+// promote. The /maps/* CloudFront behavior is on the Free plan and cannot key
+// on `v`, so a fresh ?v= on its own would still serve the stale edge object.
+// Instead we poll the bare URL until the promote's invalidation propagates
+// (ETag changes), THEN bump and re-render. The bare URL keeps serving Primo;
+// the ?v= here is only a browser-side bust to force the <img> to refetch.
+const mapCacheBusters = {};
+function mapAssetUrl(filename) {
+  const bust = mapCacheBusters[filename];
+  const base = `${CLOUDFRONT_URL}/maps/${encodeURIComponent(filename)}`;
+  return bust ? `${base}?v=${bust}` : base;
+}
+
+/**
+ * Read the current ETag served for a map's bare CloudFront URL. Used as the
+ * baseline before a promote so pollUntilFresh can detect when the new bytes
+ * have propagated. Returns null on any error (poll then treats the first
+ * non-null ETag it sees as "fresh", which is acceptable for the worst case).
+ */
+async function fetchMapEtag(filename) {
+  try {
+    const url = `${CLOUDFRONT_URL}/maps/${encodeURIComponent(filename)}`;
+    const resp = await fetch(`${url}?_=${Date.now()}`, { cache: 'reload' });
+    return resp && resp.headers && resp.headers.get ? resp.headers.get('etag') : null;
+  } catch (_) {
+    return null;
+  }
+}
 // Feature flag: read from window for ease of A/B testing. Defaults to false.
 // Once Task 16 cutover runs, this constant flips to true.
 const USE_STAGING_FLOW = window.__USE_STAGING_FLOW__ === true;
@@ -230,6 +264,17 @@ function wireStagingActions() {
     // can't dismiss or trigger duplicate actions while it's in flight.
     const sequence = beginStagingSequence('promote');
     sequence.setStep('uploading');
+    // Issue #50 (Free-plan path): capture each displayed map's CURRENT
+    // (pre-promote) ETag BEFORE the promote POST, while production still serves
+    // the OLD bytes. Capturing after the POST risks reading the already-
+    // propagated NEW etag on a fast invalidation, so pollUntilFresh would wait
+    // for a change that already happened and never re-render the thumbnail
+    // (observed 2026-05-25). We don't yet know which files will be promoted, so
+    // baseline every map currently in the grid; the poll below uses the relevant ones.
+    const baselineEtags = {};
+    await Promise.all((svgFiles || []).map(async f => {
+      baselineEtags[f.name] = await fetchMapEtag(f.name);
+    }));
     try {
       const resp = await fetch(`${STAGING_API_BASE}/promote`, {
         method: 'POST',
@@ -241,11 +286,47 @@ function wireStagingActions() {
         showToast(`${t('svg.staging.promoteFailed')}: ${err.error}`);
         return;
       }
+      // Capture promotedVersions BEFORE the panel refresh — its KEYS name the
+      // production files that changed, which map-editor uses to decide whether
+      // to refresh the current floor (issue #50). Value is a placeholder; the
+      // consumer generates its own cache-buster.
+      let promotedVersions = {};
+      try {
+        const body = await resp.json();
+        promotedVersions = body?.promotedVersions || {};
+      } catch (_) {
+        // Tolerate missing/non-JSON body — dispatch still goes out (empty map).
+      }
+      // Issue #50 (Free-plan path): poll the bare URL until the promote's
+      // CloudFront invalidation propagates (served ETag differs from the
+      // pre-promote baseline captured above), then bump the buster + re-render
+      // the grid so the thumbnail refetches the promoted bytes. The bare
+      // thumbnail keeps serving Primo throughout; the ?v= bust is purely a
+      // browser-side refetch trigger for the Replace-tab <img>.
+      const changedMapNames = Object.keys(promotedVersions).map(key => key.split('/').pop());
       sequence.setStep('validating');
       await refreshStagingPanel();
       sequence.setStep('refreshing');
       await loadFiles();  // existing function that re-fetches the production file grid
       showToast(t('svg.staging.promoted'));
+      // Start one poll per changed map. On freshness, bump that file's buster and
+      // re-render the grid so its thumbnail refetches the promoted bytes.
+      for (const name of changedMapNames) {
+        pollUntilFresh({
+          url: `${CLOUDFRONT_URL}/maps/${encodeURIComponent(name)}`,
+          baselineEtag: baselineEtags[name],
+          onFresh: () => {
+            mapCacheBusters[name] = Date.now().toString(36);
+            renderGrid();
+          },
+        });
+      }
+      // Issue #50: tell the Map Editor production SVG bytes changed so it can
+      // re-render the affected floor. Dispatched only on a successful promote
+      // (the !resp.ok branch returns early above).
+      document.dispatchEvent(new CustomEvent('svg-promoted', {
+        detail: { promotedVersions, ts: Date.now() },
+      }));
     } catch (err) {
       console.error('Failed to promote staging:', err);
       showToast(t('svg.staging.promoteFailed'));
@@ -336,7 +417,7 @@ function renderGrid() {
 
   gridContainer.innerHTML = svgFiles.map(file => {
     const filename = file.name;
-    const thumbnailUrl = `${CLOUDFRONT_URL}/maps/${file.name}`;
+    const thumbnailUrl = mapAssetUrl(file.name);
     const formattedSize = formatSize(file.size);
 
     return `
@@ -459,7 +540,7 @@ function setupManagerEvents() {
     if (downloadBtn) {
       const filename = downloadBtn.dataset.name;
       const a = document.createElement('a');
-      a.href = `${CLOUDFRONT_URL}/maps/${encodeURIComponent(filename)}`;
+      a.href = mapAssetUrl(filename);
       a.download = filename;
       document.body.appendChild(a);
       a.click();
@@ -770,7 +851,7 @@ function showPreview(name) {
   if (!previewModal || !previewTitle || !previewContent) return;
 
   const filename = name;
-  const imageUrl = `${CLOUDFRONT_URL}/maps/${name}`;
+  const imageUrl = mapAssetUrl(name);
 
   previewTitle.textContent = filename;
   previewContent.innerHTML = `
