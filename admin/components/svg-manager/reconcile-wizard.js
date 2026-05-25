@@ -9,22 +9,34 @@
  * @param {{
  *   floor: number,
  *   removedRefs: Array<{svgCode: string, affectedRowCount: number}>,
- *   addedShelves: Array<{svgCode: string}>
+ *   candidateTargets?: Array<{svgCode: string}>,
+ *   renames?: Array<{fromCode: string, toCode: string}>,
+ *   addedShelves?: Array<{svgCode: string}>
  * }} diff
  * @param {(floor: number, reconcileMap: object) => void} [onSubmit]
  */
 export function renderReconcileWizard(host, diff, onSubmit) {
+  const detected = {};
+  (diff.renames || []).forEach(r => { detected[r.fromCode] = r.toCode; });
+  const candidates = (diff.candidateTargets || diff.addedShelves || []).map(c => c.svgCode);
+
   const rowsHtml = diff.removedRefs.map(removed => {
+    const det = detected[removed.svgCode];                 // detected new code, or undefined
+    const targetCodes = [...candidates];
+    if (det && !targetCodes.includes(det)) targetCodes.unshift(det); // ensure the detected target is selectable
     const options = [
-      `<option value="">-- choose --</option>`,
-      ...diff.addedShelves.map(added =>
-        `<option value="rename:${escapeAttr(added.svgCode)}">Rename to ${escapeHtml(added.svgCode)}</option>`
+      det ? '' : `<option value="">-- choose --</option>`, // detected rows start pre-selected
+      ...targetCodes.map(code =>
+        `<option value="rename:${escapeAttr(code)}"${code === det ? ' selected' : ''}>Rename to ${escapeHtml(code)}${code === det ? ' (detected)' : ''}</option>`
       ),
-      `<option value="delete">Delete ${removed.affectedRowCount} CSV row${removed.affectedRowCount === 1 ? '' : 's'}</option>`,
+      `<option value="delete">Treat as separate / delete ${removed.affectedRowCount} CSV row${removed.affectedRowCount === 1 ? '' : 's'}</option>`,
     ].join('');
+    const hint = det
+      ? `<span class="ml-2 text-xs text-green-700">↺ detected rename → ${escapeHtml(det)}</span>`
+      : '';
     return `
       <tr data-reconcile-row data-svg-code="${escapeAttr(removed.svgCode)}">
-        <td class="px-3 py-2 font-mono text-xs">${escapeHtml(removed.svgCode)}</td>
+        <td class="px-3 py-2 font-mono text-xs">${escapeHtml(removed.svgCode)}${hint}</td>
         <td class="px-3 py-2 text-xs">${removed.affectedRowCount}</td>
         <td class="px-3 py-2">
           <select class="border rounded px-2 py-1 text-sm">${options}</select>
@@ -62,6 +74,7 @@ export function renderReconcileWizard(host, diff, onSubmit) {
   host.querySelectorAll('[data-reconcile-row] select').forEach(sel => {
     sel.addEventListener('change', updateSubmitState);
   });
+  updateSubmitState(); // pre-selected detected rows enable submit on initial render
 
   host.querySelector('[data-action="submit-reconcile"]').addEventListener('click', () => {
     const map = {};

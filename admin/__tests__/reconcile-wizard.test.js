@@ -76,4 +76,41 @@ describe('reconcile-wizard', () => {
 
     confirmSpy.mockRestore();
   });
+
+  test('a detected rename is pre-selected with a hint, and submit yields rename old->new', () => {
+    const h = document.getElementById('wizard-host');
+    let submitted = null;
+    renderReconcileWizard(h, {
+      floor: 1,
+      removedRefs: [{ svgCode: 'CC_1-4', affectedRowCount: 2 }],
+      candidateTargets: [{ svgCode: 'CC_X-Y' }],
+      renames: [{ fromCode: 'CC_1-4', toCode: 'CC_X-Y' }],
+    }, (floor, map) => { submitted = { floor, map }; });
+    const row = h.querySelector('[data-reconcile-row][data-svg-code="CC_1-4"]');
+    expect(row.querySelector('select').value).toBe('rename:CC_X-Y');           // pre-selected
+    expect(row.textContent).toMatch(/detected/i);                              // hint shown
+    expect(h.querySelector('[data-action="submit-reconcile"]').disabled).toBe(false); // pre-selected ⇒ ready
+    h.querySelector('[data-action="submit-reconcile"]').click();
+    expect(submitted.map).toEqual({ 'CC_1-4': { action: 'rename', to: 'CC_X-Y' } });
+  });
+
+  test('treat-as-separate: switching a detected row to delete yields a delete action', () => {
+    const h = document.getElementById('wizard-host'); let submitted = null;
+    window.confirm = () => true;
+    renderReconcileWizard(h, { floor: 1, removedRefs:[{svgCode:'CC_1-4',affectedRowCount:1}], candidateTargets:[{svgCode:'CC_X-Y'}], renames:[{fromCode:'CC_1-4',toCode:'CC_X-Y'}] }, (f,m)=>{submitted={f,m}});
+    const sel = h.querySelector('[data-reconcile-row] select'); sel.value='delete'; sel.dispatchEvent(new Event('change'));
+    h.querySelector('[data-action="submit-reconcile"]').click();
+    expect(submitted.m).toEqual({ 'CC_1-4': { action: 'delete' } });
+  });
+
+  test('un-detected removed ref can be renamed to any candidate target', () => {
+    const h = document.getElementById('wizard-host'); let submitted=null;
+    renderReconcileWizard(h, { floor:1, removedRefs:[{svgCode:'OLD',affectedRowCount:1}], candidateTargets:[{svgCode:'NEW_A'},{svgCode:'NEW_B'}], renames:[] }, (f,m)=>{submitted={f,m}});
+    const row=h.querySelector('[data-reconcile-row]');
+    expect(row.querySelector('select').value).toBe('');                        // not pre-selected
+    expect([...row.querySelectorAll('option')].some(o=>o.value==='rename:NEW_B')).toBe(true);
+    row.querySelector('select').value='rename:NEW_B'; row.querySelector('select').dispatchEvent(new Event('change'));
+    h.querySelector('[data-action="submit-reconcile"]').click();
+    expect(submitted.m).toEqual({ 'OLD': { action: 'rename', to: 'NEW_B' } });
+  });
 });
