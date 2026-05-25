@@ -87,6 +87,46 @@ describe('staging-panel', () => {
     expect(host.querySelector('[data-action="promote-staging"]')).not.toBeNull();
   });
 
+  test('GREEN state surfaces detected renames as one "same shelf" line, not add+remove', () => {
+    renderStagingPanel(document.getElementById('staging-panel-host'), {
+      locked: true,
+      owner: 'alice',
+      files: ['maps/floor_1.svg'],
+      lastValidated: {
+        ok: true,
+        errors: [],
+        summary: {
+          renames: [{ fromCode: 'CC_1-4', toCode: 'CC_X-Y', floor: 1, via: 'uid' }],
+          newlyAddedShelves: [{ svgCode: 'NEW_ADD', floor: 2 }],
+          removedShelves: [{ svgCode: 'GONE', floor: 0 }],
+          removedRefs: [],
+          unmappedShelves: [],
+        },
+      },
+    });
+    const host = document.getElementById('staging-panel-host');
+    const text = host.textContent;
+
+    // The renamed pair renders as a single floor-led "old → new" line.
+    expect(text).toContain('CC_1-4 → CC_X-Y');
+    expect(text).toContain('Floor 1:');
+
+    // A reassuring "same shelf" note distinguishes it from a real add/remove.
+    expect(text).toMatch(/same shelf/i);
+
+    // The renamed codes must NOT also appear under newly-added/removed sections.
+    // Locate the renamed line, then scope the search to the rest of the panel.
+    expect(text.match(/CC_1-4/g)).toHaveLength(1);
+    expect(text.match(/CC_X-Y/g)).toHaveLength(1);
+
+    // Genuine add/remove still render alongside the rename section.
+    expect(text).toContain('NEW_ADD');
+    expect(text).toContain('GONE');
+
+    // Promote still available.
+    expect(host.querySelector('[data-action="promote-staging"]')).not.toBeNull();
+  });
+
   test('renders RED state with reconcile wizard CTA', () => {
     renderStagingPanel(document.getElementById('staging-panel-host'), {
       locked: true,

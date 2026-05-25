@@ -22,6 +22,9 @@ const FALLBACKS = {
   'svg.staging.validate.unlinked':        { en: '{count} library entries will be unlinked', he: '{count} רשומות ספרייה ינותקו' },
   'svg.staging.validate.preExisting':     { en: '{count} pre-existing unmapped shelf(s) (unchanged by this upload)', he: '{count} מדפים לא ממופים מקודם (לא הושפעו מהעלאה זו)' },
   'svg.staging.validate.preExistingHint': { en: "On the map but missing library data (unchanged by this upload) — patrons can't find these in search until each map-code is mapped to a CSV row.", he: 'מופיעות במפה אך חסרות נתוני ספרייה (לא הושפעו מהעלאה זו) — משתמשים לא ימצאו אותן בחיפוש עד שכל קוד-מפה ימופה לשורת CSV.' },
+  'svg.staging.validate.renamed':         { en: '{count} renamed shelf(s)', he: '{count} מדפים ששמם שונה' },
+  'svg.staging.validate.renamedNote':     { en: '(renamed — same shelf)', he: '(שונה השם — אותו מדף)' },
+  'svg.staging.validate.renamedHint':     { en: 'These shelves were relabeled, not added or removed — the same physical shelf kept its place on the map. No patron-facing links break.', he: 'מדפים אלה קיבלו תווית חדשה, לא נוספו ולא הוסרו — אותו מדף פיזי שמר על מקומו במפה. אף קישור הפונה למשתמשים אינו נשבר.' },
   'svg.staging.validate.shelfFloor':      { en: 'Floor {floor}:', he: 'קומה {floor}:' },
 };
 
@@ -71,6 +74,7 @@ export function renderStagingPanel(host, status, opts = {}) {
     `;
   } else if (validated.ok) {
     const summary = validated.summary || {};
+    const renames = summary.renames || [];
     const newlyAdded = summary.newlyAddedShelves || [];
     const removed = summary.removedShelves || [];
     const removedRefs = summary.removedRefs || [];
@@ -100,8 +104,27 @@ export function renderStagingPanel(host, status, opts = {}) {
       ? `<div class="text-xs text-amber-700 mt-0.5">${escapeHtml(t('svg.staging.validate.preExistingHint'))}</div>`
       : '';
 
+    // Renamed shelves are the most reassuring outcome (same physical shelf, just
+    // relabeled), so they lead. Each pair is floor-led like the other lists:
+    // `Floor N: fromCode → toCode (renamed — same shelf)`.
+    const renameNote = escapeHtml(t('svg.staging.validate.renamedNote'));
+    const renameList = renames.length
+      ? `<ul class="list-disc pl-6 text-xs text-gray-600 mt-0.5">${renames
+          .map(r => {
+            const floorLabel = escapeHtml(t('svg.staging.validate.shelfFloor').replace('{floor}', r.floor));
+            return `<li>${floorLabel} <span class="font-mono">${escapeHtml(r.fromCode)} → ${escapeHtml(r.toCode)}</span> <span class="text-green-700">${renameNote}</span></li>`;
+          })
+          .join('')}</ul>`
+      : '';
+    const renameBlock = renames.length
+      ? `<div class="text-xs text-gray-700 mt-2">${escapeHtml(t('svg.staging.validate.renamed').replace('{count}', renames.length))}</div>
+      ${renameList}
+      <div class="text-xs text-green-700 mt-0.5">${escapeHtml(t('svg.staging.validate.renamedHint'))}</div>`
+      : '';
+
     stateBlock = `
       <div class="text-sm text-green-700">${escapeHtml(t('svg.staging.validate.passed'))}</div>
+      ${renameBlock}
       <div class="text-xs text-gray-700 mt-2">${escapeHtml(t('svg.staging.validate.newlyAdded').replace('{count}', newlyAdded.length))}</div>
       ${idList(newlyAdded)}
       ${newlyAddedHint}
