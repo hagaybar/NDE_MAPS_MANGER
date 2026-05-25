@@ -55,3 +55,6 @@ archive/
 
 # Local deploy script (per-developer, may carry env-var hints)
 redeploy.sh
+
+# Personal AWS SSO login helper (contains account-specific profile)
+aws-login.sh

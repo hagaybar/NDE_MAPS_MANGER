@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
-# qa-reply.sh — post a reply that the HTML will render inline in a test card.
+# qa-reply.sh — post a reply that the HTML renders inline in a test card.
+#
+# Posts to the running qa-server.py via its /reply endpoint. The server decides
+# which on-disk replies file to append to based on whichever QA page it is
+# serving, so this script never needs to know the file path.
 #
 # Usage:
 #   qa-reply.sh <testId|->  <level>  "<message text>"
@@ -8,13 +12,16 @@
 #   level    info | success | warn | error | question
 #   message  the body text; supports `code` and **bold** and \n linebreaks
 #
+# Env:
+#   QA_SERVER   base URL of the server (default http://localhost:8765)
+#
 # Examples:
-#   qa-reply.sh preflight-1 question "Paste the full network response for /api/staging/status please."
-#   qa-reply.sh core-3 success "Confirmed reconcile applied. Promote should succeed now."
-#   qa-reply.sh - info "I'm pushing a fix for the path bug, give me 30s."
+#   qa-reply.sh core-2 question "Did the card shake when you clicked the backdrop?"
+#   qa-reply.sh core-4 success "Confirmed the auto GET fired at promote — #50 verified."
+#   qa-reply.sh - info "Pushing a small tweak, give me 30s."
 set -euo pipefail
 
-REPLIES_FILE="${QA_REPLIES_FILE:-/tmp/plan-b-qa-replies.json}"
+SERVER="${QA_SERVER:-http://localhost:8765}"
 
 if [[ $# -lt 3 ]]; then
   echo "usage: $0 <testId|-> <level> <text>" >&2
@@ -25,25 +32,17 @@ test_id="$1"
 level="$2"
 text="$3"
 
-# Init if missing
-if [[ ! -f "$REPLIES_FILE" ]]; then
-  echo "[]" > "$REPLIES_FILE"
-fi
-
-# Build the new reply object and append via jq
-id="$(date +%s%3N)"
-ts="$(date +%s)"
-
-jq_args=(--arg id "$id" --argjson ts "$ts" --arg level "$level" --arg text "$text")
 if [[ "$test_id" == "-" ]]; then
-  filter='. += [{id: $id, ts: $ts, level: $level, text: $text}]'
+  payload="$(jq -n --arg level "$level" --arg text "$text" \
+    '{level: $level, text: $text}')"
 else
-  jq_args+=(--arg testId "$test_id")
-  filter='. += [{id: $id, testId: $testId, ts: $ts, level: $level, text: $text}]'
+  payload="$(jq -n --arg testId "$test_id" --arg level "$level" --arg text "$text" \
+    '{testId: $testId, level: $level, text: $text}')"
 fi
 
-tmp="$(mktemp)"
-jq "${jq_args[@]}" "$filter" "$REPLIES_FILE" > "$tmp"
-mv "$tmp" "$REPLIES_FILE"
+printf '%s' "$payload" | curl -sf -X POST "$SERVER/reply" \
+  -H 'Content-Type: application/json' --data-binary @- \
+  || { echo "reply failed — is qa-server.py running on $SERVER?" >&2; exit 1; }
 
-echo "posted reply id=$id testId=$test_id level=$level"
+echo
+echo "posted reply testId=$test_id level=$level"

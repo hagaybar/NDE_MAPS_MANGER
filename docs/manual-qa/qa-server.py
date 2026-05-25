@@ -51,10 +51,26 @@ def redact_jwts(value):
 
 HOST = "127.0.0.1"
 PORT = int(os.environ.get("QA_PORT", "8765"))
-HTML_PATH = Path(__file__).parent / "2026-05-19-plan-b-staging-qa.html"
-STATE_FILE = Path(os.environ.get("QA_STATE_FILE", "/tmp/plan-b-qa-state.json"))
-REPLIES_FILE = Path(os.environ.get("QA_REPLIES_FILE", "/tmp/plan-b-qa-replies.json"))
-PING_FILE = Path(os.environ.get("QA_PING_FILE", "/tmp/plan-b-qa-ping.json"))
+
+
+def _pick_html() -> Path:
+    """Serve the explicitly-requested QA page, else the newest dated
+    *-qa.html in this directory (date-prefixed names sort chronologically)."""
+    override = os.environ.get("QA_HTML")
+    if override:
+        return Path(override)
+    here = Path(__file__).parent
+    candidates = sorted(here.glob("*-qa.html"))
+    return candidates[-1] if candidates else here / "2026-05-19-plan-b-staging-qa.html"
+
+
+HTML_PATH = _pick_html()
+# Per-page state files, derived from the served page's name, so different QA
+# sessions never collide in /tmp (e.g. Plan B vs. Phase 1 keep separate state).
+_STEM = HTML_PATH.stem
+STATE_FILE = Path(os.environ.get("QA_STATE_FILE", f"/tmp/qa-{_STEM}-state.json"))
+REPLIES_FILE = Path(os.environ.get("QA_REPLIES_FILE", f"/tmp/qa-{_STEM}-replies.json"))
+PING_FILE = Path(os.environ.get("QA_PING_FILE", f"/tmp/qa-{_STEM}-ping.json"))
 
 
 def read_json(path: Path, default):
