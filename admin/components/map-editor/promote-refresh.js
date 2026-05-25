@@ -5,6 +5,10 @@
 // caller's full reload (loadFloor) — not the low-level loadFloorSvg that the
 // first #50 attempt used (which dropped shelf interactivity).
 
+import { getRenderedEtag } from './svg-loader.js';
+
+const CLOUDFRONT_URL = 'https://d3h8i7y9p8lyw7.cloudfront.net';
+
 let _seq = 0;
 const _floorCacheBust = {};
 
@@ -26,7 +30,37 @@ export function floorChangedInPromote(promotedVersions, floor) {
 }
 
 /**
+ * Poll a URL until its ETag differs from baseline (CloudFront invalidation has
+ * propagated), then fire onFresh once. Free-plan path for #50 (no ?v= edge key).
+ * @returns {() => void} cancel — stops further polling.
+ */
+export function pollUntilFresh({ url, baselineEtag, onFresh, intervalMs = 3000, timeoutMs = 60000 }) {
+  const started = Date.now();
+  let stopped = false;
+  const tick = async () => {
+    if (stopped) return;
+    try {
+      const bust = `${url}${url.includes('?') ? '&' : '?'}_=${Date.now()}`; // browser-cache bust only
+      const resp = await fetch(bust, { cache: 'reload' });
+      const etag = resp && resp.headers && resp.headers.get ? resp.headers.get('etag') : null;
+      if (etag && etag !== baselineEtag) { stopped = true; onFresh(); return; }
+    } catch (_) { /* transient; keep polling */ }
+    if (Date.now() - started >= timeoutMs) { stopped = true; return; }
+    setTimeout(tick, intervalMs);
+  };
+  setTimeout(tick, intervalMs);
+  return () => { stopped = true; };
+}
+
+/**
  * Install the 'svg-promoted' listener.
+ *
+ * When the current floor's SVG was part of the promote, poll the bare
+ * CloudFront URL until the served ETag differs from the one last rendered
+ * (i.e. the promote's invalidation has propagated), then reload the floor with
+ * a fresh per-promote cache-buster. The reload happens AFTER the poll detects
+ * fresh bytes — not synchronously on the event — so we never re-render the
+ * stale edge object.
  * @param {{ getCurrentFloor: () => (number|string|null), reloadFloor: (floor) => any }} deps
  * @returns {() => void} dispose
  */
@@ -36,8 +70,15 @@ export function installPromoteRefreshListener({ getCurrentFloor, reloadFloor }) 
     if (floor == null) return; // Map Editor never opened — nothing to refresh.
     const promotedVersions = (e.detail && e.detail.promotedVersions) || {};
     if (!floorChangedInPromote(promotedVersions, floor)) return;
-    _floorCacheBust[floor] = nextCacheBust();
-    reloadFloor(floor);
+    const url = `${CLOUDFRONT_URL}/maps/floor_${floor}.svg`;
+    pollUntilFresh({
+      url,
+      baselineEtag: getRenderedEtag(floor),
+      onFresh: () => {
+        _floorCacheBust[floor] = nextCacheBust();
+        reloadFloor(floor);
+      },
+    });
   };
   document.addEventListener('svg-promoted', handler);
   return () => document.removeEventListener('svg-promoted', handler);
