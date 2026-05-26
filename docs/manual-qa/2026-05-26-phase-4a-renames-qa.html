@@ -1,0 +1,1500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Phase 4a — Reconcile Wizard Renames Manual QA</title>
+  <style>
+    :root {
+      --bg: #0b1220;
+      --bg-grad: radial-gradient(ellipse at top, #1a2540 0%, #0b1220 70%);
+      --surface: #131c33;
+      --surface-elev: #1c2742;
+      --surface-hover: #243254;
+      --border: #2a3858;
+      --border-strong: #3d4f7a;
+      --text: #e8edf7;
+      --text-dim: #9aa6c2;
+      --text-muted: #6b7898;
+      --accent: #7aa2f7;
+      --accent-strong: #4a7fde;
+      --success: #6cc395;
+      --success-bg: rgba(108, 195, 149, 0.12);
+      --warn: #e0af68;
+      --warn-bg: rgba(224, 175, 104, 0.12);
+      --danger: #e06c75;
+      --danger-bg: rgba(224, 108, 117, 0.12);
+      --neutral: #545c75;
+      --neutral-bg: rgba(84, 92, 117, 0.18);
+      --info-bg: rgba(122, 162, 247, 0.10);
+      --code-bg: #0a101d;
+      --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+      --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+      --radius: 10px;
+      --radius-sm: 6px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 15px; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      background-image: var(--bg-grad);
+      background-attachment: fixed;
+      color: var(--text);
+      line-height: 1.55;
+      min-height: 100vh;
+      padding: 2rem 1rem 4rem;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    header {
+      margin-bottom: 1.5rem;
+    }
+    .eyebrow {
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 0.5rem;
+    }
+    h1 {
+      font-size: 1.875rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.5rem;
+    }
+    .lede {
+      color: var(--text-dim);
+      font-size: 0.95rem;
+      margin-bottom: 1rem;
+    }
+    .lede a { color: var(--accent); text-decoration: none; border-bottom: 1px dotted var(--accent); }
+    .lede a:hover { color: var(--accent-strong); }
+
+    /* Progress bar */
+    .progress {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.875rem 1.125rem;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .progress-text {
+      font-size: 0.875rem;
+      color: var(--text-dim);
+      white-space: nowrap;
+    }
+    .progress-text strong { color: var(--text); font-variant-numeric: tabular-nums; }
+    .progress-bar {
+      flex: 1;
+      height: 8px;
+      background: var(--code-bg);
+      border-radius: 999px;
+      overflow: hidden;
+      position: relative;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent) 0%, var(--success) 100%);
+      width: 0%;
+      transition: width 0.3s ease;
+      border-radius: 999px;
+    }
+    .timer {
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    /* Rollback card — always visible, prominent */
+    .rollback {
+      background: var(--danger-bg);
+      border: 1px solid rgba(224, 108, 117, 0.3);
+      border-left: 4px solid var(--danger);
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+    .rollback-title {
+      font-size: 0.8125rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--danger);
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .rollback p { font-size: 0.875rem; color: var(--text); margin-bottom: 0.5rem; }
+    .rollback code {
+      background: var(--code-bg);
+      padding: 0.125rem 0.4rem;
+      border-radius: 4px;
+      font-family: 'SF Mono', 'Monaco', 'Cascadia Code', monospace;
+      font-size: 0.8125rem;
+      color: var(--warn);
+    }
+
+    /* Quick reference grid */
+    .ref-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 0.5rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+      margin-bottom: 2rem;
+      font-size: 0.8125rem;
+    }
+    .ref-grid dt {
+      color: var(--text-muted);
+      font-size: 0.6875rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 0.125rem;
+    }
+    .ref-grid dd {
+      color: var(--text);
+      font-family: 'SF Mono', 'Monaco', monospace;
+      font-size: 0.8125rem;
+      word-break: break-all;
+    }
+    .ref-grid dd a { color: var(--accent); text-decoration: none; }
+    .ref-grid dd a:hover { text-decoration: underline; }
+
+    /* Section header */
+    h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    h2 .count {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      background: var(--surface);
+      padding: 0.125rem 0.5rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+    }
+
+    /* Test cards */
+    .test {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 0.875rem;
+      transition: border-color 0.2s, background 0.2s;
+      overflow: hidden;
+    }
+    .test[data-status="pass"]    { border-color: rgba(108, 195, 149, 0.4); background: linear-gradient(180deg, var(--success-bg) 0%, var(--surface) 80%); }
+    .test[data-status="fail"]    { border-color: rgba(224, 108, 117, 0.4); background: linear-gradient(180deg, var(--danger-bg) 0%, var(--surface) 80%); }
+    .test[data-status="blocked"] { border-color: rgba(224, 175, 104, 0.4); background: linear-gradient(180deg, var(--warn-bg) 0%, var(--surface) 80%); }
+    .test[data-status="skip"]    { border-color: var(--border); opacity: 0.55; }
+
+    .test-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.875rem;
+      padding: 1rem 1.25rem;
+      cursor: pointer;
+      user-select: none;
+    }
+    .test-header:hover { background: rgba(255, 255, 255, 0.02); }
+    .test-num {
+      flex-shrink: 0;
+      width: 28px;
+      height: 28px;
+      background: var(--surface-elev);
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--text-dim);
+    }
+    .test[data-status="pass"]    .test-num { background: var(--success); border-color: var(--success); color: white; }
+    .test[data-status="fail"]    .test-num { background: var(--danger); border-color: var(--danger); color: white; }
+    .test[data-status="blocked"] .test-num { background: var(--warn); border-color: var(--warn); color: var(--code-bg); }
+
+    .test-title-block { flex: 1; min-width: 0; }
+    .test-title {
+      font-size: 0.9375rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 0.125rem;
+    }
+    .test-meta {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      display: flex;
+      gap: 0.875rem;
+      flex-wrap: wrap;
+    }
+    .test-meta .priority {
+      font-weight: 500;
+    }
+    .test-meta .priority-must  { color: var(--danger); }
+    .test-meta .priority-high  { color: var(--warn); }
+    .test-meta .priority-nice  { color: var(--text-muted); }
+
+    .test-chevron {
+      flex-shrink: 0;
+      width: 18px;
+      height: 18px;
+      align-self: center;
+      color: var(--text-muted);
+      transition: transform 0.2s;
+    }
+    .test[data-expanded="true"] .test-chevron { transform: rotate(180deg); }
+
+    .test-body {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+    .test[data-expanded="true"] .test-body { max-height: 3000px; }
+
+    .test-body-inner {
+      padding: 0 1.25rem 1.25rem;
+      border-top: 1px solid var(--border);
+      padding-top: 1.25rem;
+    }
+
+    .steps { margin-bottom: 1rem; }
+    .steps-label {
+      font-size: 0.6875rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+    .steps ol {
+      padding-left: 1.25rem;
+      font-size: 0.875rem;
+      color: var(--text);
+    }
+    .steps li { margin-bottom: 0.4rem; }
+    .steps li::marker { color: var(--accent); font-weight: 600; }
+    .steps code, .expected code {
+      background: var(--code-bg);
+      padding: 0.0625rem 0.375rem;
+      border-radius: 4px;
+      font-family: 'SF Mono', 'Monaco', monospace;
+      font-size: 0.8125rem;
+      color: var(--warn);
+    }
+    .expected {
+      background: var(--info-bg);
+      border-left: 3px solid var(--accent);
+      padding: 0.625rem 0.875rem;
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      margin-bottom: 1rem;
+      font-size: 0.875rem;
+    }
+    .expected strong { color: var(--accent); font-weight: 600; }
+
+    .tip {
+      background: var(--warn-bg);
+      border-left: 3px solid var(--warn);
+      padding: 0.625rem 0.875rem;
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      margin-bottom: 1rem;
+      font-size: 0.8125rem;
+      color: var(--text);
+    }
+    .tip strong { color: var(--warn); font-weight: 600; }
+    .tip code {
+      background: var(--code-bg);
+      padding: 0.0625rem 0.375rem;
+      border-radius: 4px;
+      font-family: 'SF Mono', 'Monaco', monospace;
+      font-size: 0.8125rem;
+      color: var(--warn);
+    }
+
+    .why {
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+      font-style: italic;
+    }
+
+    .controls {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+    .status-btn {
+      background: var(--surface-elev);
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      padding: 0.4rem 0.875rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.8125rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+      font-family: inherit;
+    }
+    .status-btn:hover { background: var(--surface-hover); color: var(--text); }
+    .status-btn.active {
+      color: var(--text);
+      border-color: currentColor;
+    }
+    .status-btn.active[data-status="pass"]    { background: var(--success-bg); color: var(--success); border-color: var(--success); }
+    .status-btn.active[data-status="fail"]    { background: var(--danger-bg); color: var(--danger); border-color: var(--danger); }
+    .status-btn.active[data-status="blocked"] { background: var(--warn-bg); color: var(--warn); border-color: var(--warn); }
+    .status-btn.active[data-status="skip"]    { background: var(--neutral-bg); color: var(--text-dim); border-color: var(--neutral); }
+
+    .notes-label {
+      font-size: 0.6875rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 0.375rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .notes-label .char-count { color: var(--text-muted); font-weight: 400; letter-spacing: 0; text-transform: none; font-size: 0.6875rem; }
+    .notes {
+      width: 100%;
+      min-height: 70px;
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 0.625rem 0.75rem;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.875rem;
+      line-height: 1.5;
+      resize: vertical;
+      transition: border-color 0.15s;
+    }
+    .notes:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(122, 162, 247, 0.15);
+    }
+
+    /* Bottom action bar */
+    .actions {
+      position: sticky;
+      bottom: 1rem;
+      background: var(--surface-elev);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius);
+      padding: 0.875rem 1.125rem;
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+      flex-wrap: wrap;
+      box-shadow: var(--shadow-lg);
+      margin-top: 2rem;
+      backdrop-filter: blur(8px);
+    }
+    .actions .spacer { flex: 1; }
+    .action-btn {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.15s, transform 0.05s;
+    }
+    .action-btn:hover { background: var(--accent-strong); }
+    .action-btn:active { transform: translateY(1px); }
+    .action-btn.ghost {
+      background: transparent;
+      color: var(--text-dim);
+      border: 1px solid var(--border);
+    }
+    .action-btn.ghost:hover { background: var(--surface-hover); color: var(--text); }
+    .action-btn.danger { background: var(--danger); }
+    .action-btn.danger:hover { background: #cc5d68; }
+
+    .toast {
+      position: fixed;
+      bottom: 5rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--surface-elev);
+      color: var(--text);
+      border: 1px solid var(--success);
+      padding: 0.625rem 1rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.875rem;
+      box-shadow: var(--shadow-lg);
+      opacity: 0;
+      transition: opacity 0.2s, transform 0.2s;
+      pointer-events: none;
+      z-index: 100;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    @media (max-width: 600px) {
+      body { padding: 1rem 0.5rem 4rem; }
+      h1 { font-size: 1.5rem; }
+      .test-header { padding: 0.875rem 1rem; }
+      .test-body-inner { padding: 0 1rem 1rem; padding-top: 1rem; }
+      .ref-grid { padding: 0.875rem 1rem; }
+    }
+
+    /* ── Collaboration layer (server sync + Claude replies) ───────────── */
+    .conn-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+      font-size: 0.75rem;
+      padding: 0.25rem 0.625rem;
+      border-radius: 999px;
+      background: var(--surface-elev);
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+    .conn-status .dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--neutral);
+      transition: background 0.2s;
+    }
+    .conn-status.online  .dot { background: var(--success); box-shadow: 0 0 6px var(--success); }
+    .conn-status.offline .dot { background: var(--danger); }
+    .conn-status.syncing .dot { background: var(--accent); animation: pulse 1s infinite; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+    /* Ping button — sits on the right side of .controls */
+    .ping-btn {
+      margin-left: auto;
+      background: var(--accent);
+      color: white;
+      border: 1px solid var(--accent);
+      padding: 0.4rem 0.875rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.8125rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+      font-family: inherit;
+      transition: background 0.15s, opacity 0.15s;
+    }
+    .ping-btn:hover:not(:disabled) { background: var(--accent-strong); }
+    .ping-btn:disabled { cursor: wait; opacity: 0.75; }
+    .ping-btn.pinged {
+      background: var(--surface-elev);
+      color: var(--text-dim);
+      border-color: var(--border);
+    }
+
+    /* Replies — rendered inline at the top of each test body, also globally docked at the top */
+    .replies, #global-replies {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .replies { margin-bottom: 1rem; }
+    .replies:empty { display: none; }
+    #global-replies { margin-bottom: 1.5rem; }
+    #global-replies:empty { display: none; }
+
+    .reply {
+      background: var(--info-bg);
+      border-left: 3px solid var(--accent);
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      padding: 0.625rem 0.875rem;
+      font-size: 0.875rem;
+      animation: slide-in 0.25s ease-out;
+    }
+    .reply[data-level="success"]  { background: var(--success-bg); border-color: var(--success); }
+    .reply[data-level="warn"]     { background: var(--warn-bg);    border-color: var(--warn); }
+    .reply[data-level="error"]    { background: var(--danger-bg);  border-color: var(--danger); }
+    .reply[data-level="question"] { background: var(--info-bg);    border-color: var(--accent); }
+    .reply-meta {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.6875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 700;
+      margin-bottom: 0.375rem;
+      color: var(--accent);
+    }
+    .reply[data-level="success"] .reply-meta { color: var(--success); }
+    .reply[data-level="warn"]    .reply-meta { color: var(--warn); }
+    .reply[data-level="error"]   .reply-meta { color: var(--danger); }
+    .reply-time {
+      color: var(--text-muted);
+      font-weight: 400;
+      letter-spacing: 0;
+      text-transform: none;
+    }
+    .reply-text { color: var(--text); line-height: 1.55; }
+    .reply-text code {
+      background: var(--code-bg);
+      padding: 0.0625rem 0.375rem;
+      border-radius: 4px;
+      font-family: 'SF Mono', 'Monaco', monospace;
+      font-size: 0.8125rem;
+      color: var(--warn);
+    }
+    @keyframes slide-in {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Unread-reply badge on test header */
+    .test-badge {
+      display: none;
+      flex-shrink: 0;
+      min-width: 22px;
+      height: 22px;
+      padding: 0 0.4rem;
+      background: var(--accent);
+      color: white;
+      border-radius: 999px;
+      font-size: 0.6875rem;
+      font-weight: 700;
+      align-items: center;
+      justify-content: center;
+      align-self: center;
+      margin-right: 0.5rem;
+    }
+    .test-badge.show { display: inline-flex; }
+
+    /* Setup banner shown when server isn't running */
+    #setup-banner {
+      display: none;
+      background: var(--warn-bg);
+      border: 1px solid rgba(224, 175, 104, 0.4);
+      border-left: 4px solid var(--warn);
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.5rem;
+      font-size: 0.875rem;
+    }
+    #setup-banner.show { display: block; }
+    #setup-banner code {
+      background: var(--code-bg);
+      padding: 0.0625rem 0.4rem;
+      border-radius: 4px;
+      font-family: 'SF Mono', 'Monaco', monospace;
+      font-size: 0.8125rem;
+      color: var(--warn);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <header>
+      <div class="eyebrow">Manual QA · Phase 4a · Reconcile Wizard Renames</div>
+      <h1>Phase 4a — Verify the redesigned reconcile wizard before opening the PR</h1>
+      <p class="lede">
+        Live admin SPA: <a href="https://d3h8i7y9p8lyw7.cloudfront.net/admin/" target="_blank" rel="noopener">d3h8i7y9p8lyw7.cloudfront.net/admin/</a>.
+        The 4a code (plain-language reconcile <strong>cards</strong>, pre-filled detected renames, working <strong>Cancel</strong>) is <strong>already deployed to production</strong> (client-only — no Lambda change).
+        These checks gate opening + merging the PR for branch <code>feat/phase-4a-renames</code> (rename half of
+        <a href="https://github.com/hagaybar/NDE_MAPS_MANGER/issues/59" target="_blank" rel="noopener">#59</a>, part of meta
+        <a href="https://github.com/hagaybar/NDE_MAPS_MANGER/issues/71" target="_blank" rel="noopener">#71</a>).
+        The headline question is the one that triggered the redesign: <em>does the wizard now make sense to a librarian?</em>
+        Sign in as an admin, hard-refresh (Ctrl/Cmd+Shift+R), then work through the checks. State + notes persist in this browser — close and reopen freely.
+      </p>
+    </header>
+
+    <div class="progress">
+      <div class="progress-text"><strong id="progress-done">0</strong> / <strong id="progress-total">0</strong> complete</div>
+      <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+      <div class="timer" id="timer">—</div>
+      <div class="conn-status" id="conn-status" title="Live link to Claude Code"><span class="dot"></span><span class="conn-text">connecting</span></div>
+    </div>
+
+    <div id="setup-banner">
+      <strong>Server not running.</strong> This page only mirrors to <code>localStorage</code> without it. To enable the live link to Claude Code, run from the project root:
+      <p style="margin-top:0.5rem;"><code>python3 docs/manual-qa/qa-server.py</code></p>
+      <p style="margin-top:0.25rem;font-size:0.8125rem;color:var(--text-dim);">Then open <code>http://localhost:8765/</code> instead of this file:// URL.</p>
+    </div>
+
+    <div id="global-replies"></div>
+
+    <aside class="rollback">
+      <div class="rollback-title">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z"/></svg>
+        Production data + how to undo
+      </div>
+      <p>These tests rename a <strong>real, CSV-referenced</strong> shelf code on <code>floor_1</code> and promote it. This is <strong>low-risk and reversible</strong>: patron highlighting matches by shelf geometry/UID, not the code string, and the rename keeps the CSV ↔ SVG bundle consistent. Test #5 renames it straight back to baseline.</p>
+      <p><strong>Safety net:</strong> every promote snapshots the prior prod files under <code>versions/maps/</code> (#60). To hard-restore <code>floor_1</code> from a backup: <code>aws s3 cp s3://tau-cenlib-primo-assets-hagay-3602/versions/maps/&lt;backup&gt; s3://tau-cenlib-primo-assets-hagay-3602/maps/floor_1.svg</code>, then invalidate.</p>
+      <p><strong>Roll back the 4a wizard code</strong> (if the UI itself is broken): <code>git checkout pre-phase-4a-2026-05-25 -- admin/</code>, then <code>bash redeploy.sh</code>. 4a is admin-SPA-only; <code>validateStaging</code>/<code>promoteStaging</code> are unchanged.</p>
+    </aside>
+
+    <dl class="ref-grid">
+      <div><dt>CloudFront SPA</dt><dd><a href="https://d3h8i7y9p8lyw7.cloudfront.net/admin/" target="_blank">…/admin/</a></dd></div>
+      <div><dt>Branch under test</dt><dd>feat/phase-4a-renames</dd></div>
+      <div><dt>Issues</dt><dd>#59 · meta #71</dd></div>
+      <div><dt>Rollback tag (code)</dt><dd>pre-phase-4a-2026-05-25</dd></div>
+      <div><dt>Example shelf</dt><dd>cb1_108_b → cb1_108_b_QA</dd></div>
+      <div><dt>Its UID (keep it!)</dt><dd>4af9265a-9dc4-46df-…</dd></div>
+      <div><dt>Maps</dt><dd>/maps/floor_1.svg</dd></div>
+      <div><dt>Backups path</dt><dd>versions/maps/</dd></div>
+    </dl>
+
+    <h2>Pre-flight <span class="count">1 check</span></h2>
+
+    <article class="test" data-test-id="preflight-0" data-status="pending" data-expanded="true">
+      <div class="test-header" onclick="toggleTest(this)">
+        <div class="test-num">0</div>
+        <div class="test-title-block">
+          <div class="test-title">New bundle live + admin session + floor has UIDs</div>
+          <div class="test-meta">
+            <span class="priority priority-must">Required first</span>
+            <span>~2 minutes</span>
+          </div>
+        </div>
+        <span class="test-badge">0</span>
+        <svg class="test-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="test-body"><div class="test-body-inner">
+        <div class="replies"></div>
+        <p class="why">If the browser serves a stale SPA bundle, you'll see the old table+dropdown wizard, not the new cards — and every check below is invalid. Rename <em>detection</em> also requires the prod SVG shelves to carry <code>data-shelf-uid</code> (stamped on promote since Phase 3).</p>
+        <div class="steps">
+          <div class="steps-label">Steps</div>
+          <ol>
+            <li>Open the admin SPA, sign in as an <strong>admin</strong>, hard-refresh: <code>Ctrl+Shift+R</code> / <code>Cmd+Shift+R</code>.</li>
+            <li>Go to the SVG Manager tab. Confirm the Staging panel renders ("No active staging") and the 3 floor maps appear. Zero red console errors.</li>
+            <li>Confirm <code>floor_1.svg</code> shelves carry UIDs (already verified live: 201/201 do). To re-check yourself: in a shell, <code>curl -s https://d3h8i7y9p8lyw7.cloudfront.net/maps/floor_1.svg | grep -c data-shelf-uid</code> → should be <code>201</code> (&gt; 0).</li>
+          </ol>
+        </div>
+        <div class="expected">
+          <strong>Expected:</strong> Staging panel present, no console errors, and <code>data-shelf-uid</code> count &gt; 0. (If the count were 0, rename detection would not pre-fill — promote any floor_1 change once to stamp UIDs first.)
+        </div>
+        <div class="controls">
+          <button class="status-btn" data-status="pass"    onclick="setStatus(this)">✓ Pass</button>
+          <button class="status-btn" data-status="fail"    onclick="setStatus(this)">✗ Fail</button>
+          <button class="status-btn" data-status="blocked" onclick="setStatus(this)">⚠ Blocked</button>
+          <button class="status-btn" data-status="skip"    onclick="setStatus(this)">— Skip</button>
+          <button class="ping-btn" onclick="pingClaude(this)" title="Ping Claude to look at this test now">💬 Ping Claude</button>
+        </div>
+        <div class="notes-label">Notes <span class="char-count" data-counter></span></div>
+        <textarea class="notes" placeholder="Browser, build, uid count, anything odd…"></textarea>
+      </div></div>
+    </article>
+
+    <h2>Setup <span class="count">1 step</span></h2>
+
+    <article class="test" data-test-id="setup-1" data-status="pending">
+      <div class="test-header" onclick="toggleTest(this)">
+        <div class="test-num">1</div>
+        <div class="test-title-block">
+          <div class="test-title">Prepare the renamed-shelf SVG (keep the UID)</div>
+          <div class="test-meta">
+            <span class="priority priority-must">Required</span>
+            <span>~3 minutes (or 10s — let Claude generate it)</span>
+          </div>
+        </div>
+        <span class="test-badge">0</span>
+        <svg class="test-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="test-body"><div class="test-body-inner">
+        <div class="replies"></div>
+        <p class="why">The whole flow needs a floor SVG where a CSV-referenced shelf was <em>renamed</em>: its <code>id</code> changes but its <code>data-shelf-uid</code> stays. The matching UID is exactly how Phase 3 detects "same shelf, new code".</p>
+        <div class="tip">
+          <strong>Fastest path:</strong> Ping Claude on this card (or just ask in chat) — Claude will fetch the live <code>floor_1.svg</code>, rename <code>cb1_108_b</code> → <code>cb1_108_b_QA</code> (keeping the UID), and hand you a ready-to-upload file. Then skip to Test 2.
+        </div>
+        <div class="steps">
+          <div class="steps-label">Manual recipe (if you prefer to do it yourself)</div>
+          <ol>
+            <li>Download the current map: <code>curl -s https://d3h8i7y9p8lyw7.cloudfront.net/maps/floor_1.svg -o floor_1.svg</code></li>
+            <li>Open it in a text editor. Find the shelf element with <code>id="cb1_108_b"</code> — it also has <code>data-shelf-uid="4af9265a-9dc4-46df-8cf1-87daf77d9079"</code>.</li>
+            <li>Change <strong>only the id</strong>: <code>id="cb1_108_b"</code> → <code>id="cb1_108_b_QA"</code>. <strong>Leave the <code>data-shelf-uid</code> untouched.</strong></li>
+            <li>Save. This is your upload file. (<code>cb1_108_b</code> is referenced by exactly 1 CSV row, so the wizard will report "1 library entry".)</li>
+          </ol>
+        </div>
+        <div class="expected">
+          <strong>Expected:</strong> A <code>floor_1.svg</code> identical to prod except the one shelf's <code>id</code> reads <code>cb1_108_b_QA</code> while its <code>data-shelf-uid</code> is unchanged.
+        </div>
+        <div class="controls">
+          <button class="status-btn" data-status="pass"    onclick="setStatus(this)">✓ Pass</button>
+          <button class="status-btn" data-status="fail"    onclick="setStatus(this)">✗ Fail</button>
+          <button class="status-btn" data-status="blocked" onclick="setStatus(this)">⚠ Blocked</button>
+          <button class="status-btn" data-status="skip"    onclick="setStatus(this)">— Skip</button>
+          <button class="ping-btn" onclick="pingClaude(this)" title="Ask Claude to generate the fixture file">💬 Ping Claude</button>
+        </div>
+        <div class="notes-label">Notes <span class="char-count" data-counter></span></div>
+        <textarea class="notes" placeholder="Which shelf you renamed, old→new code…"></textarea>
+      </div></div>
+    </article>
+
+    <h2>Core scenarios <span class="count">4 checks</span></h2>
+
+    <article class="test" data-test-id="core-validate" data-status="pending">
+      <div class="test-header" onclick="toggleTest(this)">
+        <div class="test-num">2</div>
+        <div class="test-title-block">
+          <div class="test-title">Validate flags the change + the reconcile entry point appears</div>
+          <div class="test-meta">
+            <span class="priority priority-must">Critical</span>
+            <span>~2 minutes</span>
+          </div>
+        </div>
+        <span class="test-badge">0</span>
+        <svg class="test-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="test-body"><div class="test-body-inner">
+        <div class="replies"></div>
+        <p class="why">Renaming a CSV-referenced shelf leaves the CSV pointing at the old code, which no longer exists on the map. Validate must surface this as an unresolved reference and offer the reconcile wizard — not just block silently.</p>
+        <div class="steps">
+          <div class="steps-label">Steps</div>
+          <ol>
+            <li>SVG Manager → <strong>Replace</strong> <code>floor_1.svg</code> with your prepared file. Let the upload/modal finish.</li>
+            <li>Click <strong>Validate</strong>.</li>
+            <li>Read the result. It should list the unresolved reference (<code>cb1_108_b</code>, 1 row) and the renamed-shelf summary.</li>
+            <li>Confirm a <strong>Start reconcile wizard</strong> button (amber) appears alongside <strong>Discard</strong>.</li>
+          </ol>
+        </div>
+        <div class="expected">
+          <strong>Expected:</strong> Validation reports <code>cb1_108_b (1 row)</code> as an unlinked/removed reference, and the <strong>Start reconcile wizard</strong> button is shown. (A "renamed shelf" summary line may also appear — that's Phase 3 detection working.)
+        </div>
+        <div class="controls">
+          <button class="status-btn" data-status="pass"    onclick="setStatus(this)">✓ Pass</button>
+          <button class="status-btn" data-status="fail"    onclick="setStatus(this)">✗ Fail</button>
+          <button class="status-btn" data-status="blocked" onclick="setStatus(this)">⚠ Blocked</button>
+          <button class="status-btn" data-status="skip"    onclick="setStatus(this)">— Skip</button>
+          <button class="ping-btn" onclick="pingClaude(this)" title="Ping Claude to look at this test now">💬 Ping Claude</button>
+        </div>
+        <div class="notes-label">Notes <span class="char-count" data-counter></span></div>
+        <textarea class="notes" placeholder="Exact validate text, did the button appear?…"></textarea>
+      </div></div>
+    </article>
+
+    <article class="test" data-test-id="core-cards" data-status="pending">
+      <div class="test-header" onclick="toggleTest(this)">
+        <div class="test-num">3</div>
+        <div class="test-title-block">
+          <div class="test-title">⭐ The wizard is understandable + the rename is pre-filled</div>
+          <div class="test-meta">
+            <span class="priority priority-must">Critical · the whole point of 4a</span>
+            <span>~3 minutes</span>
+          </div>
+        </div>
+        <span class="test-badge">0</span>
+        <svg class="test-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="test-body"><div class="test-body-inner">
+        <div class="replies"></div>
+        <p class="why">This is the check that triggered the redesign. The old wizard showed <code>cb1_108_b ↺ detected rename → … </code> in a table with a dropdown — you said you couldn't even explain it to a user. The new wizard should be a plain-language card you can read at a glance.</p>
+        <div class="steps">
+          <div class="steps-label">Steps</div>
+          <ol>
+            <li>Click <strong>Start reconcile wizard</strong>.</li>
+            <li>Read the header: <em>"Confirm what changed on floor 1 before you promote"</em>.</li>
+            <li>Find the card for <code>cb1_108_b</code>. It should read: <strong>"↺ Looks like a rename"</strong>, then <code>cb1_108_b → cb1_108_b_QA</code> (old grey chip, new green chip), then <em>"Same shelf on the map — just a new code."</em> and <em>"1 library entry currently points to cb1_108_b."</em></li>
+            <li>Confirm the three radio choices, with the first <strong>pre-selected</strong>: <strong>(•) Yes — apply this rename</strong> · ( ) No, it's not a rename — remove that 1 entry · ( ) It was renamed to a different shelf: [dropdown].</li>
+            <li>Confirm the <strong>Apply</strong> button is enabled immediately (because the rename is pre-selected).</li>
+          </ol>
+        </div>
+        <div class="expected">
+          <strong>Expected:</strong> A readable card with the rename pre-selected and Apply enabled on first render. <strong>The real bar: could you explain this card to a librarian in one sentence?</strong> Use the notes box to record that judgment — it's the acceptance criterion for 4a.
+        </div>
+        <div class="controls">
+          <button class="status-btn" data-status="pass"    onclick="setStatus(this)">✓ Pass</button>
+          <button class="status-btn" data-status="fail"    onclick="setStatus(this)">✗ Fail</button>
+          <button class="status-btn" data-status="blocked" onclick="setStatus(this)">⚠ Blocked</button>
+          <button class="status-btn" data-status="skip"    onclick="setStatus(this)">— Skip</button>
+          <button class="ping-btn" onclick="pingClaude(this)" title="Ping Claude to look at this test now">💬 Ping Claude</button>
+        </div>
+        <div class="notes-label">Notes <span class="char-count" data-counter></span></div>
+        <textarea class="notes" placeholder="Does it read clearly? Wording you'd change? Could you explain it to a user?…"></textarea>
+      </div></div>
+    </article>
+
+    <article class="test" data-test-id="core-cancel" data-status="pending">
+      <div class="test-header" onclick="toggleTest(this)">
+        <div class="test-num">4</div>
+        <div class="test-title-block">
+          <div class="test-title">Cancel dismisses the wizard cleanly (the dead-button fix)</div>
+          <div class="test-meta">
+            <span class="priority priority-must">Critical · regression</span>
+            <span>~1 minute</span>
+          </div>
+        </div>
+        <span class="test-badge">0</span>
+        <svg class="test-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="test-body"><div class="test-body-inner">
+        <div class="replies"></div>
+        <p class="why">You reported the old Cancel button did nothing — clicking it left the wizard (and the staged change) on screen with no way back. Commit <code>864506a</code> wired it to dismiss the wizard and return to the staging panel.</p>
+        <div class="steps">
+          <div class="steps-label">Steps (do this while the wizard from Test 3 is open)</div>
+          <ol>
+            <li>Click <strong>Cancel</strong> in the wizard.</li>
+            <li>Confirm the wizard disappears and you're back at the staging panel (still showing the validate result with the <strong>Start reconcile wizard</strong> button) — <em>nothing was applied</em>.</li>
+            <li>Confirm no console errors, and the staged SVG is still present (not discarded).</li>
+          </ol>
+        </div>
+        <div class="expected">
+          <strong>Expected:</strong> Cancel removes the wizard and returns to the staging panel with the staged change intact and no reconcile applied. (Re-open the wizard for Test 5.)
+        </div>
+        <div class="controls">
+          <button class="status-btn" data-status="pass"    onclick="setStatus(this)">✓ Pass</button>
+          <button class="status-btn" data-status="fail"    onclick="setStatus(this)">✗ Fail</button>
+          <button class="status-btn" data-status="blocked" onclick="setStatus(this)">⚠ Blocked</button>
+          <button class="status-btn" data-status="skip"    onclick="setStatus(this)">— Skip</button>
+          <button class="ping-btn" onclick="pingClaude(this)" title="Ping Claude to look at this test now">💬 Ping Claude</button>
+        </div>
+        <div class="notes-label">Notes <span class="char-count" data-counter></span></div>
+        <textarea class="notes" placeholder="Did Cancel work? Back at the panel? Anything left behind?…"></textarea>
+      </div></div>
+    </article>
+
+    <article class="test" data-test-id="core-apply" data-status="pending">
+      <div class="test-header" onclick="toggleTest(this)">
+        <div class="test-num">5</div>
+        <div class="test-title-block">
+          <div class="test-title">Apply rename → re-validate passes → promote → CSV updated</div>
+          <div class="test-meta">
+            <span class="priority priority-must">Critical · end-to-end</span>
+            <span>~4 minutes</span>
+          </div>
+        </div>
+        <span class="test-badge">0</span>
+        <svg class="test-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="test-body"><div class="test-body-inner">
+        <div class="replies"></div>
+        <p class="why">Applying the rename must rewrite the staged CSV row's <code>svgCode</code> from <code>cb1_108_b</code> to <code>cb1_108_b_QA</code> so the bundle is consistent again — then validation passes and you can promote. This is the payoff the wizard exists for.</p>
+        <div class="steps">
+          <div class="steps-label">Steps</div>
+          <ol>
+            <li>With the wizard open and <strong>(•) Yes — apply this rename</strong> selected, click <strong>Apply</strong>.</li>
+            <li>The wizard applies the rename and re-validates automatically. Confirm validation now <strong>passes</strong> (no unresolved references) and a <strong>Promote to production</strong> button is available.</li>
+            <li>Click <strong>Promote to production</strong> and confirm. Wait for success.</li>
+            <li>Verify the live CSV now uses the new code: <code>curl -s https://d3h8i7y9p8lyw7.cloudfront.net/data/mapping.csv | grep cb1_108_b</code> → should show <code>cb1_108_b_QA</code> and <strong>not</strong> a bare <code>cb1_108_b</code> row.</li>
+            <li>Verify the live SVG: <code>curl -s https://d3h8i7y9p8lyw7.cloudfront.net/maps/floor_1.svg | grep -c 'id="cb1_108_b_QA"'</code> → <code>1</code>.</li>
+          </ol>
+        </div>
+        <div class="expected">
+          <strong>Expected:</strong> Apply succeeds, re-validation passes, promote completes. On the CDN, the CSV row now references <code>cb1_108_b_QA</code> and the SVG shelf id is <code>cb1_108_b_QA</code> — the same physical shelf, renamed end-to-end. (CDN may take a few seconds to reflect.)
+        </div>
+        <div class="controls">
+          <button class="status-btn" data-status="pass"    onclick="setStatus(this)">✓ Pass</button>
+          <button class="status-btn" data-status="fail"    onclick="setStatus(this)">✗ Fail</button>
+          <button class="status-btn" data-status="blocked" onclick="setStatus(this)">⚠ Blocked</button>
+          <button class="status-btn" data-status="skip"    onclick="setStatus(this)">— Skip</button>
+          <button class="ping-btn" onclick="pingClaude(this)" title="Ping Claude to look at this test now">💬 Ping Claude</button>
+        </div>
+        <div class="notes-label">Notes <span class="char-count" data-counter></span></div>
+        <textarea class="notes" placeholder="Did re-validate pass? Promote OK? CSV/SVG on CDN updated?…"></textarea>
+      </div></div>
+    </article>
+
+    <h2>Cleanup <span class="count">1 step</span></h2>
+
+    <article class="test" data-test-id="core-cleanup" data-status="pending">
+      <div class="test-header" onclick="toggleTest(this)">
+        <div class="test-num">6</div>
+        <div class="test-title-block">
+          <div class="test-title">Restore floor_1 + CSV to baseline (rename back)</div>
+          <div class="test-meta">
+            <span class="priority priority-must">Required</span>
+            <span>~4 minutes</span>
+          </div>
+        </div>
+        <span class="test-badge">0</span>
+        <svg class="test-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="test-body"><div class="test-body-inner">
+        <div class="replies"></div>
+        <p class="why">Production should end exactly where it started. Renaming back also doubles as a second pass through the wizard (this time <code>cb1_108_b_QA → cb1_108_b</code>), confirming the flow is symmetric.</p>
+        <div class="tip">
+          <strong>Two ways — pick one.</strong> (a) <em>Rename back via the wizard:</em> upload the original <code>floor_1.svg</code> (with <code>id="cb1_108_b"</code>), Validate → it detects the reverse rename → Apply → Promote. (b) <em>Hard-restore from backup:</em> use the <code>aws s3 cp</code> from the rollback note for both <code>maps/floor_1.svg</code> and <code>data/mapping.csv</code>, then invalidate. Claude can do either for you — just ping.
+        </div>
+        <div class="steps">
+          <div class="steps-label">Steps (wizard path)</div>
+          <ol>
+            <li>Replace <code>floor_1.svg</code> with the <strong>original</strong> file (the one with <code>id="cb1_108_b"</code>, before your edit).</li>
+            <li>Validate → confirm it detects the reverse rename (<code>cb1_108_b_QA → cb1_108_b</code>), Apply, then Promote.</li>
+            <li>Verify baseline restored: <code>curl -s https://d3h8i7y9p8lyw7.cloudfront.net/data/mapping.csv | grep -c cb1_108_b_QA</code> → <code>0</code>, and <code>...| grep -c 'cb1_108_b'</code> shows the original row back.</li>
+          </ol>
+        </div>
+        <div class="expected">
+          <strong>Expected:</strong> <code>cb1_108_b_QA</code> no longer appears in either the CSV or the SVG; <code>cb1_108_b</code> is back exactly as it started. Production is clean.
+        </div>
+        <div class="controls">
+          <button class="status-btn" data-status="pass"    onclick="setStatus(this)">✓ Pass</button>
+          <button class="status-btn" data-status="fail"    onclick="setStatus(this)">✗ Fail</button>
+          <button class="status-btn" data-status="blocked" onclick="setStatus(this)">⚠ Blocked</button>
+          <button class="status-btn" data-status="skip"    onclick="setStatus(this)">— Skip</button>
+          <button class="ping-btn" onclick="pingClaude(this)" title="Ping Claude to look at this test now">💬 Ping Claude</button>
+        </div>
+        <div class="notes-label">Notes <span class="char-count" data-counter></span></div>
+        <textarea class="notes" placeholder="Restored cleanly? Reverse rename detected too?…"></textarea>
+      </div></div>
+    </article>
+
+    <h2>Follow-up (optional) <span class="count">2 checks</span></h2>
+
+    <article class="test" data-test-id="followup-delete" data-status="pending">
+      <div class="test-header" onclick="toggleTest(this)">
+        <div class="test-num">7</div>
+        <div class="test-title-block">
+          <div class="test-title">"It's not a rename — remove" shows the delete confirm</div>
+          <div class="test-meta">
+            <span class="priority priority-high">Important · don't actually delete</span>
+            <span>~2 minutes</span>
+          </div>
+        </div>
+        <span class="test-badge">0</span>
+        <svg class="test-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="test-body"><div class="test-body-inner">
+        <div class="replies"></div>
+        <p class="why">The wizard must let an operator reject a detected rename and remove the orphaned CSV entries instead — but only behind an explicit confirm, so a mis-click can't silently drop patron data.</p>
+        <div class="tip">
+          <strong>Verify the guard, then back out — do NOT promote a delete on prod.</strong> Re-create the staged rename (Test 1 + Replace + Validate + open wizard) if needed.
+        </div>
+        <div class="steps">
+          <div class="steps-label">Steps</div>
+          <ol>
+            <li>In the wizard card for <code>cb1_108_b</code>, select <strong>( ) No, it's not a rename — remove that 1 entry</strong>.</li>
+            <li>Click <strong>Apply</strong>.</li>
+            <li>Confirm a browser confirm dialog appears: <em>"You are about to delete 1 CSV reference… Continue?"</em></li>
+            <li>Click <strong>Cancel</strong> on that dialog → nothing is applied. (Then Discard the staged change or proceed to cleanup.)</li>
+          </ol>
+        </div>
+        <div class="expected">
+          <strong>Expected:</strong> Choosing remove + Apply triggers a confirm dialog naming the correct count (1). Cancelling the dialog applies nothing.
+        </div>
+        <div class="controls">
+          <button class="status-btn" data-status="pass"    onclick="setStatus(this)">✓ Pass</button>
+          <button class="status-btn" data-status="fail"    onclick="setStatus(this)">✗ Fail</button>
+          <button class="status-btn" data-status="blocked" onclick="setStatus(this)">⚠ Blocked</button>
+          <button class="status-btn" data-status="skip"    onclick="setStatus(this)">— Skip</button>
+          <button class="ping-btn" onclick="pingClaude(this)" title="Ping Claude to look at this test now">💬 Ping Claude</button>
+        </div>
+        <div class="notes-label">Notes <span class="char-count" data-counter></span></div>
+        <textarea class="notes" placeholder="Did the confirm appear with the right count?…"></textarea>
+      </div></div>
+    </article>
+
+    <article class="test" data-test-id="followup-undetected" data-status="pending">
+      <div class="test-header" onclick="toggleTest(this)">
+        <div class="test-num">8</div>
+        <div class="test-title-block">
+          <div class="test-title">Un-detected removed ref → pick any candidate target</div>
+          <div class="test-meta">
+            <span class="priority priority-high">Important · broadened targets</span>
+            <span>~4 minutes</span>
+          </div>
+        </div>
+        <span class="test-badge">0</span>
+        <svg class="test-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="test-body"><div class="test-body-inner">
+        <div class="replies"></div>
+        <p class="why">4a also removed the old "rename target must be an existing orphan" limit. When the system can't auto-detect a rename, the operator should still be able to pick the new shelf from a dropdown of all candidate targets (newly-added ∪ unmapped).</p>
+        <div class="tip">
+          <strong>This needs a fixture where detection can't fire</strong> — i.e. a CSV-referenced shelf whose id <em>and</em> UID <em>and</em> position all change (so neither UID-join nor geometry matches). It's fiddly to build by hand — <strong>ping Claude to generate it</strong>, or skip this card if short on time (Test 5 already proves the rename path; this only proves the manual-pick fallback).
+        </div>
+        <div class="steps">
+          <div class="steps-label">Steps</div>
+          <ol>
+            <li>Upload the un-detected fixture, Validate, open the wizard.</li>
+            <li>Find the card titled <em>"&lt;code&gt; is gone from the map"</em> (not "Looks like a rename"). It offers: <strong>( ) It was renamed to: [dropdown]</strong> and <strong>( ) Remove those N library entries</strong> — nothing pre-selected.</li>
+            <li>Select "It was renamed to:" and confirm the dropdown lists candidate target shelves (including the new id). Pick the intended target.</li>
+            <li>Apply → re-validate passes. (Discard / clean up afterward — don't leave it promoted.)</li>
+          </ol>
+        </div>
+        <div class="expected">
+          <strong>Expected:</strong> A non-pre-selected card with a target dropdown; choosing a target + Apply resolves the reference and re-validation passes.
+        </div>
+        <div class="controls">
+          <button class="status-btn" data-status="pass"    onclick="setStatus(this)">✓ Pass</button>
+          <button class="status-btn" data-status="fail"    onclick="setStatus(this)">✗ Fail</button>
+          <button class="status-btn" data-status="blocked" onclick="setStatus(this)">⚠ Blocked</button>
+          <button class="status-btn" data-status="skip"    onclick="setStatus(this)">— Skip</button>
+          <button class="ping-btn" onclick="pingClaude(this)" title="Ping Claude to look at this test now">💬 Ping Claude</button>
+        </div>
+        <div class="notes-label">Notes <span class="char-count" data-counter></span></div>
+        <textarea class="notes" placeholder="Dropdown populated? Manual pick resolved the ref?…"></textarea>
+      </div></div>
+    </article>
+
+    <div class="actions">
+      <button class="action-btn" onclick="copyReport()">📋 Copy report to clipboard</button>
+      <button class="action-btn ghost" onclick="exportJSON()">⬇ Download JSON</button>
+      <div class="spacer"></div>
+      <button class="action-btn ghost danger" onclick="resetAll()">Reset all</button>
+    </div>
+
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const STORAGE_KEY = 'phase-4a-qa-state-v1';
+    const TIMER_KEY = 'phase-4a-qa-started-at';
+
+    function load() {
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
+      catch { return {}; }
+    }
+    function save(state) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      scheduleStateSync();
+    }
+    function markStarted() {
+      if (!localStorage.getItem(TIMER_KEY)) {
+        localStorage.setItem(TIMER_KEY, Date.now().toString());
+      }
+    }
+    function getStarted() {
+      const v = localStorage.getItem(TIMER_KEY);
+      return v ? parseInt(v, 10) : null;
+    }
+
+    function setStatus(btn) {
+      markStarted();
+      const test = btn.closest('.test');
+      const status = btn.dataset.status;
+      const id = test.dataset.testId;
+      const current = test.dataset.status;
+      const next = current === status ? 'pending' : status;
+      test.dataset.status = next;
+
+      const state = load();
+      state[id] = state[id] || {};
+      state[id].status = next;
+      save(state);
+
+      refreshStatusButtons(test);
+      refreshProgress();
+    }
+
+    function refreshStatusButtons(test) {
+      const status = test.dataset.status;
+      test.querySelectorAll('.status-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.status === status);
+      });
+    }
+
+    function toggleTest(header) {
+      const test = header.closest('.test');
+      const expanded = test.dataset.expanded === 'true';
+      test.dataset.expanded = expanded ? 'false' : 'true';
+    }
+
+    function refreshProgress() {
+      const tests = document.querySelectorAll('.test');
+      const total = tests.length;
+      let done = 0;
+      tests.forEach(t => {
+        const s = t.dataset.status;
+        if (s === 'pass' || s === 'fail' || s === 'skip') done++;
+      });
+      document.getElementById('progress-done').textContent = done;
+      document.getElementById('progress-total').textContent = total;
+      document.getElementById('progress-fill').style.width = (done / total * 100) + '%';
+    }
+
+    function updateTimer() {
+      const started = getStarted();
+      const el = document.getElementById('timer');
+      if (!started) { el.textContent = 'not started'; return; }
+      const elapsed = Math.floor((Date.now() - started) / 1000);
+      const m = Math.floor(elapsed / 60);
+      const s = elapsed % 60;
+      el.textContent = `elapsed ${m}m ${s.toString().padStart(2, '0')}s`;
+    }
+
+    function showToast(msg, isError) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.style.borderColor = isError ? 'var(--danger)' : 'var(--success)';
+      t.classList.add('show');
+      clearTimeout(t._timer);
+      t._timer = setTimeout(() => t.classList.remove('show'), 2400);
+    }
+
+    function buildReport() {
+      const state = load();
+      const tests = Array.from(document.querySelectorAll('.test'));
+      const started = getStarted();
+      const elapsed = started ? Math.floor((Date.now() - started) / 60000) : 0;
+
+      const counts = { pass: 0, fail: 0, blocked: 0, skip: 0, pending: 0 };
+      tests.forEach(t => { counts[t.dataset.status]++; });
+
+      const lines = [];
+      lines.push('# Phase 4a — Reconcile Wizard Renames — Manual QA Report');
+      lines.push('');
+      lines.push(`**Date:** ${new Date().toISOString().split('T')[0]}`);
+      lines.push(`**Elapsed:** ${elapsed} min`);
+      lines.push('');
+      lines.push(`**Summary:** ${counts.pass} pass, ${counts.fail} fail, ${counts.blocked} blocked, ${counts.skip} skipped, ${counts.pending} pending (of ${tests.length} total)`);
+      lines.push('');
+      lines.push('## Context');
+      lines.push('- Branch under test: feat/phase-4a-renames (rename half of #59, part of meta #71)');
+      lines.push('- SPA: https://d3h8i7y9p8lyw7.cloudfront.net/admin/');
+      lines.push('- Rollback tag (code): pre-phase-4a-2026-05-25');
+      lines.push('- Example shelf: cb1_108_b → cb1_108_b_QA (UID 4af9265a-…)');
+      lines.push('- Backups: versions/maps/');
+      lines.push('');
+      lines.push('## Results');
+      lines.push('');
+
+      tests.forEach(t => {
+        const id = t.dataset.testId;
+        const title = t.querySelector('.test-title').textContent.trim();
+        const status = t.dataset.status;
+        const notes = (t.querySelector('.notes')?.value || '').trim();
+        const icon = ({ pass: '✅', fail: '❌', blocked: '⚠️', skip: '➖', pending: '⏳' })[status] || '⏳';
+        lines.push(`### ${icon} ${title}`);
+        lines.push(`**Status:** ${status}`);
+        if (notes) {
+          lines.push('**Notes:**');
+          notes.split('\n').forEach(line => lines.push('> ' + line));
+        }
+        lines.push('');
+      });
+
+      if (counts.fail > 0) {
+        lines.push('## Action required');
+        lines.push('One or more checks failed. Do NOT open/merge the 4a PR yet — investigate, and use the rollback note at the top of the QA page if the wizard itself is broken.');
+      } else if (counts.pending > 0) {
+        lines.push('## Incomplete');
+        lines.push(`${counts.pending} test(s) still pending. Re-open the QA page to continue.`);
+      } else {
+        lines.push('## All clear');
+        lines.push('All checks passed. Phase 4a is verified — open + merge the PR for feat/phase-4a-renames.');
+      }
+
+      return lines.join('\n');
+    }
+
+    async function copyReport() {
+      const report = buildReport();
+      try {
+        await navigator.clipboard.writeText(report);
+        showToast('Report copied to clipboard.');
+      } catch (err) {
+        // Fallback for older browsers
+        const ta = document.createElement('textarea');
+        ta.value = report;
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); showToast('Report copied (fallback).'); }
+        catch { showToast('Copy failed — see console.', true); console.log(report); }
+        document.body.removeChild(ta);
+      }
+    }
+
+    function exportJSON() {
+      const state = load();
+      const started = getStarted();
+      const payload = { startedAt: started, exportedAt: Date.now(), tests: state };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `phase-4a-qa-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('JSON downloaded.');
+    }
+
+    function resetAll() {
+      if (!confirm('Reset all QA state? This clears every checkbox and note.')) return;
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(TIMER_KEY);
+      document.querySelectorAll('.test').forEach(t => {
+        t.dataset.status = 'pending';
+        const n = t.querySelector('.notes');
+        if (n) n.value = '';
+        refreshStatusButtons(t);
+        const c = t.querySelector('[data-counter]');
+        if (c) c.textContent = '';
+      });
+      refreshProgress();
+      updateTimer();
+      showToast('QA state reset.');
+    }
+
+    // Hydrate from localStorage on load
+    function hydrate() {
+      const state = load();
+      document.querySelectorAll('.test').forEach(t => {
+        const id = t.dataset.testId;
+        const data = state[id];
+        if (data) {
+          if (data.status) t.dataset.status = data.status;
+          if (data.notes) {
+            const ta = t.querySelector('.notes');
+            if (ta) ta.value = data.notes;
+          }
+        }
+        refreshStatusButtons(t);
+        // wire notes
+        const ta = t.querySelector('.notes');
+        if (ta) {
+          const counter = t.querySelector('[data-counter]');
+          const updateCount = () => { if (counter) counter.textContent = ta.value.length ? `${ta.value.length} chars` : ''; };
+          updateCount();
+          ta.addEventListener('input', () => {
+            markStarted();
+            const s = load();
+            s[id] = s[id] || {};
+            s[id].notes = ta.value;
+            save(s);
+            updateCount();
+          });
+        }
+      });
+      refreshProgress();
+      updateTimer();
+      setInterval(updateTimer, 1000);
+    }
+
+    hydrate();
+
+    // Keyboard shortcut: Alt+C to copy report
+    document.addEventListener('keydown', (e) => {
+      if (e.altKey && e.key.toLowerCase() === 'c') {
+        e.preventDefault();
+        copyReport();
+      }
+    });
+
+    /* ── Collaboration layer ───────────────────────────────────────────
+       Only active when the page is served from qa-server.py (not file://).
+       Detects this by checking if location.protocol is http.
+    ─────────────────────────────────────────────────────────────────── */
+
+    const SERVER_ACTIVE = location.protocol.startsWith('http');
+    const POLL_INTERVAL_MS = 2000;
+    const SYNC_DEBOUNCE_MS = 500;
+    let lastReplyId = '0';
+    let _syncTimer = null;
+    let _syncInFlight = false;
+    let _connKnown = null;
+
+    function setConn(status, text) {
+      const el = document.getElementById('conn-status');
+      if (!el) return;
+      el.className = 'conn-status ' + status;
+      el.querySelector('.conn-text').textContent = text || status;
+      _connKnown = status;
+    }
+
+    async function postState() {
+      if (!SERVER_ACTIVE) return;
+      if (_syncInFlight) return;
+      _syncInFlight = true;
+      setConn('syncing', 'syncing');
+      const state = load();
+      try {
+        const r = await fetch('/state', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(state),
+        });
+        if (!r.ok) throw new Error('http ' + r.status);
+        setConn('online', 'in sync');
+      } catch (e) {
+        setConn('offline', 'offline');
+      } finally {
+        _syncInFlight = false;
+      }
+    }
+
+    function scheduleStateSync() {
+      if (!SERVER_ACTIVE) return;
+      clearTimeout(_syncTimer);
+      _syncTimer = setTimeout(postState, SYNC_DEBOUNCE_MS);
+    }
+
+    async function pollReplies() {
+      if (!SERVER_ACTIVE) return;
+      try {
+        const r = await fetch('/replies/since/' + encodeURIComponent(lastReplyId));
+        if (!r.ok) throw new Error('http ' + r.status);
+        const replies = await r.json();
+        replies.forEach(reply => {
+          renderReply(reply);
+          if (String(reply.id) > lastReplyId) lastReplyId = String(reply.id);
+        });
+        if (_connKnown === 'offline') setConn('online', 'online');
+      } catch (e) {
+        setConn('offline', 'offline');
+      }
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+      })[c]);
+    }
+
+    function renderMarkdownLite(s) {
+      let html = escapeHtml(s);
+      // Inline code first (so we don't double-process inside)
+      html = html.replace(/`([^`]+)`/g, (_, code) => '<code>' + code + '</code>');
+      // Bold
+      html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+      // Newlines to <br>
+      html = html.replace(/\n/g, '<br>');
+      return html;
+    }
+
+    function renderReply(reply) {
+      const id = String(reply.id || Date.now());
+      const testId = reply.testId;
+      let host = null;
+      let testEl = null;
+
+      if (testId) {
+        testEl = document.querySelector(`.test[data-test-id="${testId}"]`);
+        if (testEl) host = testEl.querySelector('.replies');
+      }
+      if (!host) host = document.getElementById('global-replies');
+      if (!host) return;
+
+      if (host.querySelector(`[data-reply-id="${id}"]`)) return; // dedupe
+
+      const div = document.createElement('div');
+      div.className = 'reply';
+      div.dataset.replyId = id;
+      div.dataset.level = reply.level || 'info';
+
+      const tsMs = (reply.ts || Date.now() / 1000) * 1000;
+      const timeStr = new Date(tsMs).toLocaleTimeString([], {
+        hour: '2-digit', minute: '2-digit',
+      });
+
+      const labelMap = { info: 'Claude', success: 'Looks good', warn: 'Heads up', error: 'Blocker', question: 'Need input' };
+      const label = labelMap[reply.level] || 'Claude';
+
+      div.innerHTML = `
+        <div class="reply-meta">
+          <span>${escapeHtml(label)}</span>
+          <span class="reply-time">${escapeHtml(timeStr)}</span>
+        </div>
+        <div class="reply-text">${renderMarkdownLite(reply.text || '')}</div>
+      `;
+      host.appendChild(div);
+
+      // Auto-expand the target test so the user sees it
+      if (testEl) {
+        testEl.dataset.expanded = 'true';
+        // Reset ping button on this card
+        const btn = testEl.querySelector('.ping-btn');
+        if (btn) {
+          btn.classList.remove('pinged');
+          btn.disabled = false;
+          btn.innerHTML = '💬 Ping Claude';
+        }
+        // Bump the badge briefly so user notices even when card was already open
+        const badge = testEl.querySelector('.test-badge');
+        if (badge) {
+          badge.textContent = '!';
+          badge.classList.add('show');
+          setTimeout(() => badge.classList.remove('show'), 6000);
+        }
+        // Scroll into view if it's not visible
+        const rect = div.getBoundingClientRect();
+        if (rect.top < 0 || rect.bottom > window.innerHeight) {
+          div.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }
+    }
+
+    async function pingClaude(btn) {
+      if (!SERVER_ACTIVE) {
+        showToast('Ping needs the local server. See the yellow banner above.', true);
+        return;
+      }
+      const test = btn.closest('.test');
+      const id = test.dataset.testId;
+      const title = test.querySelector('.test-title').textContent.trim();
+      const status = test.dataset.status;
+      const notes = (test.querySelector('.notes')?.value || '').trim();
+
+      const origLabel = btn.innerHTML;
+      btn.classList.add('pinged');
+      btn.disabled = true;
+      btn.innerHTML = '⏳ Waiting for Claude…';
+
+      try {
+        await postState(); // flush latest state first
+        const r = await fetch('/ping', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            testId: id,
+            title,
+            status,
+            notes: notes.slice(0, 2000),
+          }),
+        });
+        if (!r.ok) throw new Error('http ' + r.status);
+        showToast('Ping sent. Claude will reply inside this card.');
+      } catch (e) {
+        btn.classList.remove('pinged');
+        btn.disabled = false;
+        btn.innerHTML = origLabel;
+        showToast('Ping failed: ' + e.message, true);
+      }
+    }
+
+    // Bootstrap the collaboration layer (only if served by qa-server.py)
+    if (SERVER_ACTIVE) {
+      setConn('syncing', 'connecting');
+      postState();
+      pollReplies();
+      setInterval(pollReplies, POLL_INTERVAL_MS);
+    } else {
+      // file:// mode — show setup banner
+      document.getElementById('setup-banner').classList.add('show');
+      const conn = document.getElementById('conn-status');
+      if (conn) {
+        conn.className = 'conn-status offline';
+        conn.querySelector('.conn-text').textContent = 'local only';
+        conn.title = 'No live link. Run qa-server.py and reload at http://localhost:8765/';
+      }
+    }
+  </script>
+</body>
+</html>
