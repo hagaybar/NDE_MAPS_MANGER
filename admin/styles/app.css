@@ -2679,7 +2679,26 @@ textarea:focus-visible,
 #map-canvas {
   flex: 1;
   min-height: 0;
-  overflow: auto;
+  /* The map fills the canvas width (it letterboxes via viewBox), so it never
+   * needs a horizontal scrollbar. The closed orphan panel parks off-canvas to
+   * the right (transform: translateX(100%)); clip the x-axis so that parked
+   * position doesn't grow the scroll region and reintroduce the #70 overflow.
+   * Keep y-axis scrollable for short-viewport / drawer-open edge cases. */
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+/* Issue #70 — fit the floor map to the canvas at default zoom (no scrolling).
+ * svg-loader gives the injected root <svg> a viewBox and strips its native
+ * width/height; here we size it to fill the canvas. With the default
+ * preserveAspectRatio="xMidYMid meet" the map scales down to fit and centers,
+ * so the whole floor is visible without scrollbars. Manual browser zoom-in
+ * still scrolls (the canvas keeps its computed height). Scoped to the direct
+ * child so orphan-panel icons nested deeper in #map-canvas are untouched. */
+#map-canvas > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 /* The Map Editor canvas hosts an SVG floor map authored in LTR coordinate

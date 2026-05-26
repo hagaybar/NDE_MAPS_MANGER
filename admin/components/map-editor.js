@@ -301,6 +301,24 @@ async function loadFloor(floorNumber) {
   }
 }
 
+// Issue #70: the Map Editor must show the whole floor map without scrolling at
+// default zoom. The view sits below the page header, nav, and <main> padding,
+// so a flat `height: 100vh` (the CSS fallback) overflowed the viewport and
+// produced a body scrollbar. Size the view to the space actually left below
+// the chrome — innerHeight minus the view's distance from the top minus
+// <main>'s bottom padding — so it fits exactly. The map itself then scales to
+// the canvas via the `#map-canvas > svg` CSS rule. Reapplies on resize.
+function fitMapEditorViewport() {
+  const view = document.getElementById('map-editor-view');
+  if (!view || !view.offsetParent) return; // not mounted / not visible
+  const top = view.getBoundingClientRect().top;
+  const main = view.closest('main');
+  const bottomGap = main ? (parseFloat(getComputedStyle(main).paddingBottom) || 0) : 0;
+  const available = window.innerHeight - top - bottomGap;
+  view.style.height = `${Math.max(available, 320)}px`;
+}
+
+window.addEventListener('resize', fitMapEditorViewport);
 window.addEventListener('mapeditor:floor-changed', e => loadFloor(e.detail.floor));
 
 // Issue #50 redo: a successful staging promote (svg-manager dispatches
@@ -511,7 +529,10 @@ async function saveCsv() {
 let initialized = false;
 
 export async function initMapEditor() {
-  if (initialized) return;
+  // Re-fit on every entry (showView calls this each time the tab is opened) so
+  // the view re-measures if the window changed size while it was hidden — the
+  // resize listener bails while the view is not visible (issue #70).
+  if (initialized) { fitMapEditorViewport(); return; }
   initialized = true;
   const container = document.getElementById('map-editor');
   container.innerHTML = `
@@ -540,6 +561,7 @@ export async function initMapEditor() {
   container.prepend(defs);
   renderFloorTabs(loadActiveFloor());
   applyRoleBasedUI(container);
+  fitMapEditorViewport();
 
   try {
     const rows = await loadMappingCsv();

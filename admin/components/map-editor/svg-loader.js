@@ -40,7 +40,35 @@ export async function loadFloorSvg(floorNumber, container, cacheBust) {
   for (const el of preserved) {
     container.appendChild(el);
   }
-  return container.querySelector('svg');
+  const svgRoot = container.querySelector('svg');
+  makeSvgResponsive(svgRoot);
+  return svgRoot;
+}
+
+/**
+ * Make the injected floor SVG fit its container instead of rendering at its
+ * native fixed size (issue #70). Production floor SVGs are Inkscape exports
+ * with `width="1040" height="720"` and NO root `viewBox`, so the browser
+ * renders them at 1040×720 and #map-canvas scrolls once the floor tabs/header
+ * take their space.
+ *
+ * We give the root a `viewBox` (derived from width/height when missing) and
+ * strip the hardcoded width/height so the CSS rule `#map-canvas > svg { width:
+ * 100%; height: 100% }` can scale the map to fit while preserving aspect ratio
+ * (default `preserveAspectRatio="xMidYMid meet"` centers + letterboxes it).
+ * Runs on every load, so it reapplies after a #50 post-promote re-injection.
+ * Hit-testing/selection still line up because viewBox scaling maps pointer
+ * coordinates through the same transform.
+ */
+function makeSvgResponsive(svgRoot) {
+  if (!svgRoot) return;
+  if (!svgRoot.getAttribute('viewBox')) {
+    const w = parseFloat(svgRoot.getAttribute('width'));
+    const h = parseFloat(svgRoot.getAttribute('height'));
+    if (w > 0 && h > 0) svgRoot.setAttribute('viewBox', `0 0 ${w} ${h}`);
+  }
+  svgRoot.removeAttribute('width');
+  svgRoot.removeAttribute('height');
 }
 
 /**

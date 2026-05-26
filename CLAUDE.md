@@ -127,6 +127,32 @@ All Lambda functions must return CORS headers in responses, including error resp
 ### Floor SVG and `mapping.csv` fetches must use `cache: 'no-cache'`
 `loadFloorSvg` (`admin/components/map-editor/svg-loader.js`), `fetchAndParseSvg` (`admin/services/svg-parser.js`), and `loadCSV` (`admin/components/csv-editor.js`) all pass `{ cache: 'no-cache' }` to `fetch()`. This is a sticky fix for a recurring stale-cache bug: after any re-upload of `maps/floor_N.svg` or `data/mapping.csv`, browsers held the previous body in cache and the UI showed wrong state — Map Editor showed a wrong "N unassigned" badge with no clickable shelves; CSV Editor showed pre-save data after reload, making users think their save didn't take. Conditional fetches let CloudFront return 304 when unchanged (no extra bandwidth) and the new body when changed. Full investigation: `docs/audits/2026-05-13-floor-svg-stale-cache.md`. Regression-guarded by `admin/__tests__/svg-loader.test.js`, `admin/__tests__/svg-parser.test.js`, and `admin/__tests__/csv-editor-cache.test.js`.
 
+### Map Editor floor map must fit the viewport (no scrolling at default zoom)
+
+Issue #70. The production floor SVGs are Inkscape exports with a fixed root
+size (`width="1040" height="720"`) and NO root `viewBox`, so they'd render at
+native size and scroll. Three pieces keep the whole map visible without
+scrollbars at default zoom:
+
+1. `makeSvgResponsive()` in `svg-loader.js` (called by `loadFloorSvg` on every
+   load, incl. the #50 post-promote re-injection): derives a `viewBox` from
+   `width`/`height` when missing, then **strips `width`/`height`** so CSS sizes
+   the map. **Do not re-add `width`/`height` to the root `<svg>`.**
+2. `#map-canvas > svg { width:100%; height:100% }` in `app.css` scales the map
+   to fit (default `preserveAspectRatio="xMidYMid meet"` centers + letterboxes).
+   viewBox scaling preserves hit-geometry, so shelves stay clickable.
+3. `fitMapEditorViewport()` in `map-editor.js` sizes `#map-editor-view` to the
+   space left below the page chrome (it sits under header+nav+`main` padding, so
+   a flat `height:100vh` overflowed the body). Runs on init + window resize.
+
+`#map-canvas` uses `overflow-x: hidden` (not `auto`): the closed orphan panel
+parks off-canvas-right via `transform: translateX(100%)`, which would otherwise
+add a horizontal scrollbar. Regression-guarded by
+`admin/__tests__/svg-loader-responsive.test.js` (unit) and
+`e2e/tests/map-editor-fit-viewport.spec.ts` (LTR+RTL fit, floor switch,
+scaled-shelf click). Run e2e against a repo-root static server, e.g.
+`npx http-server . -p 8123` then `E2E_BASE_URL=http://localhost:8123 npx playwright test`.
+
 ### Bundle invariant (CSV ↔ SVG consistency)
 
 Every CSV row's `svgCode` must resolve to a shelf in the corresponding floor's
