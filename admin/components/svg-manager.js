@@ -6,7 +6,7 @@ import { applyRoleBasedUI } from '../auth-guard.js?v=5';
 import { renderStagingPanel } from './svg-manager/staging-panel.js?v=5';
 import { renderReconcileWizard } from './svg-manager/reconcile-wizard.js?v=5';
 import { showStagingProgressModal } from './staging-progress-modal.js?v=5';
-import { pollUntilFresh } from './map-editor/promote-refresh.js?v=5';
+import { pollUntilFresh, changedMapFiles } from './map-editor/promote-refresh.js?v=5';
 
 // Fallback translations if i18n hasn't loaded yet
 const FALLBACKS = {
@@ -357,7 +357,10 @@ function wireStagingActions() {
       // the grid so the thumbnail refetches the promoted bytes. The bare
       // thumbnail keeps serving Primo throughout; the ?v= bust is purely a
       // browser-side refetch trigger for the Replace-tab <img>.
-      const changedMapNames = Object.keys(promotedVersions).map(key => key.split('/').pop());
+      // Only map files have a thumbnail to refetch; excluding non-maps/ files
+      // (e.g. data/mapping.csv, staged by a reconcile) avoids polling
+      // /maps/mapping.csv, which 403s forever (the CSV lives at /data/).
+      const changedMapNames = changedMapFiles(promotedVersions);
       sequence.setStep('validating');
       await refreshStagingPanel();
       sequence.setStep('refreshing');
@@ -433,14 +436,15 @@ function wireStagingActions() {
     if (!validated || validated.ok) return;
     // For v1, assume reconcile is for a single floor; pick the floor with the most removedRefs
     const byFloor = {};
-    for (const r of validated.summary.removedRefs) {
-      byFloor[r.floor] = byFloor[r.floor] || { floor: r.floor, removedRefs: [], addedShelves: [] };
-      byFloor[r.floor].removedRefs.push(r);
+    const ensure = f => (byFloor[f] = byFloor[f] || { floor: f, removedRefs: [], candidateTargets: [], renames: [] });
+    for (const r of validated.summary.removedRefs || []) ensure(r.floor).removedRefs.push(r);
+    // candidate rename targets = shelves present in the staged SVG but unmapped (newly-added ∪ orphans)
+    for (const a of validated.summary.newlyAddedShelves || []) ensure(a.floor).candidateTargets.push({ svgCode: a.svgCode });
+    for (const u of validated.summary.unmappedShelves || []) {
+      const f = ensure(u.floor);
+      if (!f.candidateTargets.some(c => c.svgCode === u.svgCode)) f.candidateTargets.push({ svgCode: u.svgCode });
     }
-    for (const a of validated.summary.addedShelves) {
-      byFloor[a.floor] = byFloor[a.floor] || { floor: a.floor, removedRefs: [], addedShelves: [] };
-      byFloor[a.floor].addedShelves.push(a);
-    }
+    for (const rn of validated.summary.renames || []) ensure(rn.floor).renames.push(rn);
     const firstFloor = Object.values(byFloor)[0];
     renderReconcileWizard(
       document.getElementById('staging-panel-host'),
@@ -462,7 +466,8 @@ function wireStagingActions() {
           body: '{}',
         });
         await refreshStagingPanel();
-      }
+      },
+      () => refreshStagingPanel()
     );
   });
 }

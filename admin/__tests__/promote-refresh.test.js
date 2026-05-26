@@ -6,12 +6,12 @@ function promote(promotedVersions) {
 }
 
 describe('promote-refresh', () => {
-  let nextCacheBust, floorChangedInPromote, getFloorCacheBust, installPromoteRefreshListener, pollUntilFresh;
+  let nextCacheBust, floorChangedInPromote, getFloorCacheBust, installPromoteRefreshListener, pollUntilFresh, changedMapFiles;
 
   beforeEach(async () => {
     jest.resetModules();
     ({
-      nextCacheBust, floorChangedInPromote, getFloorCacheBust, installPromoteRefreshListener, pollUntilFresh,
+      nextCacheBust, floorChangedInPromote, getFloorCacheBust, installPromoteRefreshListener, pollUntilFresh, changedMapFiles,
     } = await import('../components/map-editor/promote-refresh.js'));
   });
 
@@ -29,6 +29,28 @@ describe('promote-refresh', () => {
     expect(floorChangedInPromote({ 'maps/floor_2.svg': 'updated' }, 1)).toBe(false);
     expect(floorChangedInPromote({ 'data/mapping.csv': 'updated' }, 1)).toBe(false);
     expect(floorChangedInPromote({}, null)).toBe(false);
+  });
+
+  describe('changedMapFiles', () => {
+    // Regression for the /maps/mapping.csv 403 spam: a reconcile promote stages
+    // the CSV, so promotedVersions includes data/mapping.csv. The thumbnail
+    // refresh must poll ONLY map files (under maps/), never the CSV — the CSV
+    // has no thumbnail and lives at /data/, so /maps/mapping.csv 403s forever.
+    test('returns base names of maps/ files only, excluding the CSV', () => {
+      expect(changedMapFiles({ 'maps/floor_1.svg': 'x', 'data/mapping.csv': 'x' })).toEqual(['floor_1.svg']);
+    });
+    test('keeps multiple maps, drops any non-maps/ key', () => {
+      expect(changedMapFiles({ 'maps/floor_0.svg': 'x', 'data/mapping.csv': 'x', 'maps/floor_2.svg': 'x' }))
+        .toEqual(['floor_0.svg', 'floor_2.svg']);
+    });
+    test('a CSV-only promote yields no map polls', () => {
+      expect(changedMapFiles({ 'data/mapping.csv': 'x' })).toEqual([]);
+    });
+    test('empty / nullish input → []', () => {
+      expect(changedMapFiles({})).toEqual([]);
+      expect(changedMapFiles(null)).toEqual([]);
+      expect(changedMapFiles(undefined)).toEqual([]);
+    });
   });
 
   describe('pollUntilFresh', () => {
