@@ -172,13 +172,24 @@ export async function process(inputs, ctx) {
     keepRecentDays,
   });
 
+  // Phase 2.5: Human approval before any destructive removal (interactive
+  // show-before-remove). On rejection, fall back to dry-run so nothing is
+  // deleted. Never auto-approve.
+  const approval = await ctx.breakpoint({
+    question: `Cleanup is about to remove terminal (completed/failed) runs older than ${keepRecentDays} days plus orphaned process files. Insights have been written to docs/run-history-insights.md. Review the scan summary above, then approve the deletion?`,
+    options: ["Approve removal", "Cancel (dry-run only — delete nothing)"],
+    expert: "owner",
+    tags: ["cleanup", "destructive"],
+  });
+  const effectiveDryRun = dryRun || !approval.approved;
+
   // Phase 3: Clean up
-  ctx.log("Phase 3: Cleaning up old data...");
+  ctx.log(`Phase 3: Cleaning up old data... (dryRun=${effectiveDryRun})`);
   const cleanup = await ctx.task(cleanupOldData, {
     repoRoot,
     scan,
     aggregation,
-    dryRun,
+    dryRun: effectiveDryRun,
     keepRecentDays,
     processesDir,
   });
