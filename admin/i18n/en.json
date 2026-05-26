@@ -62,17 +62,29 @@
         "forceClose": "Force close"
       },
       "validate": {
-        "passed": "✓ Validation passed — ready to promote.",
-        "newlyAdded": "{count} newly added shelf(s)",
-        "newlyAddedHint": "On the uploaded map but not yet linked to library data — patrons won't find these in search until each map-code is mapped to a CSV row.",
-        "removed": "{count} shelf(s) removed from the map",
-        "unlinked": "{count} library entries will be unlinked",
-        "preExisting": "{count} pre-existing unmapped shelf(s) (unchanged by this upload)",
-        "preExistingHint": "On the map but missing library data (unchanged by this upload) — patrons can't find these in search until each map-code is mapped to a CSV row.",
-        "renamed": "{count} renamed shelf(s)",
-        "renamedNote": "(renamed — same shelf)",
-        "renamedHint": "These shelves were relabeled, not added or removed — the same physical shelf kept its place on the map. No patron-facing links break.",
+        "passed": "The map you sent looks fine — it passed my checks and matches your shelf information. Want to start using it?",
+        "renamed": "{count} shelf(s) were renamed — same physical shelf, new label:",
+        "renamedNote": "(same shelf)",
+        "renamedHint": "Same spot on the map — no patron-facing links break.",
+        "newlyAdded": "This map has {count} new shelf(s) I don't have library info for yet — patrons won't find them in search until you add them:",
+        "newlyAddedHint": "Each one needs a library entry (a CSV row) before patrons can find it in search.",
+        "removed": "{count} shelf(s) from the old map aren't on this one anymore:",
+        "unlinked": "Heads up: {count} library entr(y/ies) point to shelves that aren't on this map anymore — they'll stop showing up in search until you re-link them:",
+        "preExisting": "{count} shelf(s) on the map still have no library info (already like this) — patrons can't find them until you add them:",
+        "preExistingHint": "These were already unmapped before this upload.",
+        "failed": "I checked the map and found {count} thing(s) that don't match your shelf data yet. Let's fix them together.",
+        "failedItem": "Floor {floor}: {code} — {rows} affected",
         "shelfFloor": "Floor {floor}:"
+      },
+      "awaiting": "I haven't checked this map yet. Press \"Check the map\" when you're ready.",
+      "noStaging": "No map is waiting for review. Upload a new map to start.",
+      "lockedByOther": "{owner} is working on a map right now — wait for them to finish or ask them to discard it.",
+      "header": "Map waiting for review (uploaded by {owner})",
+      "actions": {
+        "validate": "Check the map",
+        "promote": "Start using this map",
+        "reconcile": "Fix the mismatches",
+        "discard": "Discard"
       }
     }
   },
