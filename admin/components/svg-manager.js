@@ -6,7 +6,7 @@ import { applyRoleBasedUI } from '../auth-guard.js?v=5';
 import { renderStagingPanel } from './svg-manager/staging-panel.js?v=5';
 import { renderReconcileWizard } from './svg-manager/reconcile-wizard.js?v=5';
 import { showStagingProgressModal } from './staging-progress-modal.js?v=5';
-import { pollUntilFresh } from './map-editor/promote-refresh.js?v=5';
+import { pollUntilFresh, changedMapFiles } from './map-editor/promote-refresh.js?v=5';
 
 // Fallback translations if i18n hasn't loaded yet
 const FALLBACKS = {
@@ -357,7 +357,10 @@ function wireStagingActions() {
       // the grid so the thumbnail refetches the promoted bytes. The bare
       // thumbnail keeps serving Primo throughout; the ?v= bust is purely a
       // browser-side refetch trigger for the Replace-tab <img>.
-      const changedMapNames = Object.keys(promotedVersions).map(key => key.split('/').pop());
+      // Only map files have a thumbnail to refetch; excluding non-maps/ files
+      // (e.g. data/mapping.csv, staged by a reconcile) avoids polling
+      // /maps/mapping.csv, which 403s forever (the CSV lives at /data/).
+      const changedMapNames = changedMapFiles(promotedVersions);
       sequence.setStep('validating');
       await refreshStagingPanel();
       sequence.setStep('refreshing');

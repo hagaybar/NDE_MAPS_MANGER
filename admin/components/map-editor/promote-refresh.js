@@ -22,6 +22,22 @@ export function getFloorCacheBust(floor) {
   return _floorCacheBust[floor];
 }
 
+/**
+ * Base filenames of the MAP files in a promote, for the SVG Manager thumbnail
+ * refresh. `promotedVersions` keys look like `maps/floor_1.svg` and
+ * `data/mapping.csv`; only the former have a thumbnail to refetch. Excluding
+ * non-`maps/` keys avoids polling `/maps/mapping.csv` (a reconcile promote
+ * stages the CSV), which 403s — the CSV lives at `/data/`, not `/maps/`.
+ * @param {Object} promotedVersions
+ * @returns {string[]} e.g. ['floor_1.svg']
+ */
+export function changedMapFiles(promotedVersions) {
+  if (!promotedVersions) return [];
+  return Object.keys(promotedVersions)
+    .filter(key => key.startsWith('maps/'))
+    .map(key => key.split('/').pop());
+}
+
 /** Did this promote change the given floor's SVG? Keys look like `maps/floor_1.svg`. */
 export function floorChangedInPromote(promotedVersions, floor) {
   if (!promotedVersions || floor == null) return false;
