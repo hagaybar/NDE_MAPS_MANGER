@@ -257,8 +257,10 @@ In `admin/__tests__/staging-panel.test.js`:
     expect(text).toContain('X');   // newly added shelf listed
     expect(text).toContain('ORPH'); // pre-existing unmapped listed
     expect(text).toContain('Floor 1:');
-    // Zero-count sections are HIDDEN now (#73): no "unlinked" line when 0.
-    expect(text).not.toMatch(/library entr/i);
+    // Zero-count sections are HIDDEN now (#73): the "unlinked" line must not
+    // appear when removedRefs is empty. Target the unlinked line's distinctive
+    // phrase (NOT /library entr/, which also matches the newlyAdded hint copy).
+    expect(text).not.toContain("point to shelves that aren't on this map anymore");
     // Promote button present with the new label + unchanged data-action.
     expect(host.querySelector('[data-action="promote-staging"]').textContent)
       .toContain('Start using this map');
