@@ -20,8 +20,8 @@ describe('staging-panel', () => {
     renderStagingPanel(document.getElementById('staging-panel-host'), {
       locked: false, owner: null, files: [], lastValidated: null,
     });
-    const host = document.getElementById('staging-panel-host');
-    expect(host.textContent).toMatch(/no staging/i);
+    expect(document.getElementById('staging-panel-host').textContent)
+      .toContain('No map is waiting for review');
   });
 
   test('renders active staging with GREEN state and Promote button', () => {
@@ -57,34 +57,18 @@ describe('staging-panel', () => {
     });
     const host = document.getElementById('staging-panel-host');
     const text = host.textContent;
-
-    // The misleading legacy string must be gone.
     expect(host.innerHTML).not.toContain('no CSV changes needed');
-
-    // Newly added: count 1 + the id X.
-    expect(text).toMatch(/1/);
-    expect(text).toContain('X');
-
-    // Removed shelves: count 1 + the id Y.
-    expect(text).toContain('Y');
-
-    // Library entries unlinked: explicit zero.
-    expect(text).toMatch(/0 library entries will be unlinked/i);
-
-    // Pre-existing unmapped = unmapped minus newly-added = ORPH (count 1).
-    expect(text).toContain('ORPH');
-
-    // Listed shelves now lead with a human-readable floor label.
+    expect(text).toContain('The map you sent looks fine'); // plain passed headline
+    expect(text).toContain('X');   // newly added shelf listed
+    expect(text).toContain('ORPH'); // pre-existing unmapped listed
     expect(text).toContain('Floor 1:');
-
-    // Newly-added explanation copy (distinctive substring).
-    expect(text).toContain('not yet linked to library data');
-
-    // Pre-existing explanation copy (distinctive substring).
-    expect(text).toContain('missing library data');
-
-    // Promote still available.
-    expect(host.querySelector('[data-action="promote-staging"]')).not.toBeNull();
+    // Zero-count sections are HIDDEN now (#73): the "unlinked" line must not
+    // appear when removedRefs is empty. Target the unlinked line's distinctive
+    // phrase (NOT /library entr/, which also matches the newlyAdded hint copy).
+    expect(text).not.toContain("point to shelves that aren't on this map anymore");
+    // Promote button present with the new label + unchanged data-action.
+    expect(host.querySelector('[data-action="promote-staging"]').textContent)
+      .toContain('Start using this map');
   });
 
   test('GREEN state surfaces detected renames as one "same shelf" line, not add+remove', () => {
@@ -112,7 +96,7 @@ describe('staging-panel', () => {
     expect(text).toContain('Floor 1:');
 
     // A reassuring "same shelf" note distinguishes it from a real add/remove.
-    expect(text).toMatch(/same shelf/i);
+    expect(text).toContain('same shelf');
 
     // The renamed codes must NOT also appear under newly-added/removed sections.
     // Locate the renamed line, then scope the search to the rest of the panel.
@@ -142,7 +126,9 @@ describe('staging-panel', () => {
       },
     });
     const host = document.getElementById('staging-panel-host');
-    expect(host.querySelector('[data-action="open-reconcile-wizard"]')).not.toBeNull();
+    expect(host.textContent).toContain("don't match your shelf data");
+    expect(host.querySelector('[data-action="open-reconcile-wizard"]').textContent)
+      .toContain('Fix the mismatches');
     expect(host.querySelector('[data-action="discard-staging"]')).not.toBeNull();
   });
 
@@ -153,8 +139,15 @@ describe('staging-panel', () => {
       files: ['maps/floor_1.svg'],
       lastValidated: null,
     }, { currentUser: 'alice' });
+    expect(document.getElementById('staging-panel-host').textContent)
+      .toMatch(/is working on a map right now/);
+    expect(document.getElementById('staging-panel-host').querySelector('[data-action="promote-staging"]')).toBeNull();
+  });
+
+  test('renders awaiting state with the Check-the-map button', () => {
     const host = document.getElementById('staging-panel-host');
-    expect(host.textContent).toMatch(/in use by bob/i);
-    expect(host.querySelector('[data-action="promote-staging"]')).toBeNull();
+    renderStagingPanel(host, { locked: true, owner: 'alice', files: ['maps/floor_1.svg'], lastValidated: null });
+    expect(host.textContent).toContain("I haven't checked this map yet");
+    expect(host.querySelector('[data-action="validate-staging"]').textContent).toContain('Check the map');
   });
 });
