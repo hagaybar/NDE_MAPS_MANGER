@@ -308,4 +308,47 @@ Lib,LibHe,Coll,CollHe,000,999,CC_OLD,,,1,,,,
     expect(body.summary.removedShelves).toEqual([]);
     expect(body.summary.newlyAddedShelves).toEqual([]);
   });
+
+  test('after reconcile, a renamed shelf is NOT reported as unlinked/unmapped (#73)', async () => {
+    // Staged floor-1 SVG: the shelf was renamed CB_OLD -> CB_NEW.
+    s3Mock.on(GetObjectCommand, { Key: 'staging/maps/floor_1.svg' }).resolves(
+      streamFromString('<svg><rect id="CB_NEW" data-map-object="shelf"/></svg>')
+    );
+    s3Mock.on(GetObjectCommand, { Key: 'staging/maps/floor_0.svg' }).rejects(
+      Object.assign(new Error('NoSuchKey'), { name: 'NoSuchKey' })
+    );
+    s3Mock.on(GetObjectCommand, { Key: 'staging/maps/floor_2.svg' }).rejects(
+      Object.assign(new Error('NoSuchKey'), { name: 'NoSuchKey' })
+    );
+    // Prod SVG (floor 1) still has the OLD code; floors 0/2 empty.
+    s3Mock.on(GetObjectCommand, { Key: 'maps/floor_1.svg' }).resolves(
+      streamFromString('<svg><rect id="CB_OLD" data-map-object="shelf"/></svg>')
+    );
+    s3Mock.on(GetObjectCommand, { Key: 'maps/floor_0.svg' }).resolves(streamFromString('<svg/>'));
+    s3Mock.on(GetObjectCommand, { Key: 'maps/floor_2.svg' }).resolves(streamFromString('<svg/>'));
+    // Prod CSV still points at the OLD code.
+    s3Mock.on(GetObjectCommand, { Key: 'data/mapping.csv' }).resolves(streamFromString(
+`libraryName,libraryNameHe,collectionName,collectionNameHe,rangeStart,rangeEnd,svgCode,description,descriptionHe,floor,shelfLabel,shelfLabelHe,notes,notesHe
+Lib,LibHe,Coll,CollHe,000,999,CB_OLD,,,1,,,,
+`));
+    // Staged CSV was reconciled to the NEW code.
+    s3Mock.on(GetObjectCommand, { Key: 'staging/data/mapping.csv' }).resolves(streamFromString(
+`libraryName,libraryNameHe,collectionName,collectionNameHe,rangeStart,rangeEnd,svgCode,description,descriptionHe,floor,shelfLabel,shelfLabelHe,notes,notesHe
+Lib,LibHe,Coll,CollHe,000,999,CB_NEW,,,1,,,,
+`));
+    s3Mock.on(GetObjectCommand, { Key: 'staging/.meta.json' }).resolves(
+      streamFromString(JSON.stringify({ locked: true, owner: 'alice', files: ['maps/floor_1.svg', 'data/mapping.csv'] }))
+    );
+
+    const resp = await handler(event());
+    expect(resp.statusCode).toBe(200);
+    const body = JSON.parse(resp.body);
+    expect(body.ok).toBe(true);
+    const flagged = [
+      ...body.summary.removedRefs.map(r => r.svgCode),
+      ...body.summary.unmappedShelves.map(s => s.svgCode),
+    ];
+    expect(flagged).not.toContain('CB_NEW'); // would be unmapped vs prod CSV (the bug)
+    expect(flagged).not.toContain('CB_OLD'); // would be "unlinked" vs prod CSV (the bug)
+  });
 });

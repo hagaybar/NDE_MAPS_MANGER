@@ -53,13 +53,16 @@ export const handler = async (event) => {
   }));
   const result = validateBundle(csvRowsForValidation, svgShelfIdsByFloor);
 
-  // Compute summary diff vs production (informational)
-  const { rows: prodCsvRows } = parseCsvContent(await fetchObject('data/mapping.csv'));
-  const prodRefsByFloor = {};
-  for (const r of prodCsvRows) {
+  // Compute the summary diff against the STAGED CSV (the same `rows` already
+  // parsed for result.ok) — NOT the prod CSV. After a reconcile writes
+  // staging/data/mapping.csv, the prod CSV is stale and would flag the
+  // just-reconciled shelf as "unlinked"/"unmapped" (#73). Before any reconcile
+  // the staged CSV falls back to prod, so this is identical to the old behavior.
+  const csvRefsByFloor = {};
+  for (const r of rows) {
     const f = Number(r.floor);
-    prodRefsByFloor[f] = prodRefsByFloor[f] || new Set();
-    prodRefsByFloor[f].add(String(r.svgCode));
+    csvRefsByFloor[f] = csvRefsByFloor[f] || new Set();
+    csvRefsByFloor[f].add(String(r.svgCode));
   }
 
   // Production SVG shelves (always prod, never staged) — lets us tell shelves
@@ -80,7 +83,7 @@ export const handler = async (event) => {
   const unmappedShelves = [];
   const renames = [];
   for (const floor of [0, 1, 2]) {
-    const prodRefs = prodRefsByFloor[floor] || new Set();
+    const csvRefs = csvRefsByFloor[floor] || new Set();
     const stagedShelves = svgShelfIdsByFloor[floor];
     const prodShelves = prodSvgShelfIdsByFloor[floor] || new Set();
 
@@ -89,15 +92,15 @@ export const handler = async (event) => {
       detectRenames(prodSvgByFloor[floor], stagedSvgByFloor[floor], floor);
     renames.push(...floorRenames);
 
-    for (const ref of prodRefs) {
+    for (const ref of csvRefs) {
       if (!stagedShelves.has(ref)) {
-        const affectedRowCount = prodCsvRows.filter(r => Number(r.floor) === floor && String(r.svgCode) === ref).length;
+        const affectedRowCount = rows.filter(r => Number(r.floor) === floor && String(r.svgCode) === ref).length;
         removedRefs.push({ svgCode: ref, floor, affectedRowCount });
       }
     }
     for (const id of stagedShelves) {
-      if (!prodRefs.has(id)) addedShelves.push({ svgCode: id, floor });
-      if (!prodRefs.has(id)) unmappedShelves.push({ svgCode: id, floor });   // orphan OR new (== addedShelves)
+      if (!csvRefs.has(id)) addedShelves.push({ svgCode: id, floor });
+      if (!csvRefs.has(id)) unmappedShelves.push({ svgCode: id, floor });   // orphan OR new (== addedShelves)
       // new in THIS upload, unless it's the target of a detected rename
       if (!prodShelves.has(id) && !renamedToCodes.has(id)) newlyAddedShelves.push({ svgCode: id, floor });
     }
