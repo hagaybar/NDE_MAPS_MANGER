@@ -39,6 +39,9 @@ describe('svg-manager — replace + download (issue #35)', () => {
 
     // Import the module under test AFTER mocks are in place.
     mod = await import('../components/svg-manager.js');
+    // Toast/confirm copy assertions below are written against the English copy.
+    const i18n = (await import('../i18n.js?v=5')).default;
+    i18n.locale = 'en';
   });
 
   afterEach(() => {
@@ -60,6 +63,10 @@ describe('svg-manager — replace + download (issue #35)', () => {
       expect(body.filename).not.toBe('coworker-edit-floor_2-v3.svg');
       expect(typeof body.content).toBe('string');
       expect(body.content).toContain('<svg');
+
+      // Success toast names the floor derived from the target filename.
+      const toastContainer = document.getElementById('toast-container');
+      expect(toastContainer.textContent).toMatch(/the Floor 2 map is updated/i);
     });
 
     test('rejects non-SVG files without calling fetch', async () => {

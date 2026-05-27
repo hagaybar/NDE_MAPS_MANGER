@@ -7,7 +7,7 @@
  * with no UI feedback, leaving a multi-second silent wait. The handler now:
  *   - disables the clicked button (defense in depth) AND replaces the panel's
  *     state/actions region with a prominent animated-spinner overlay carrying
- *     the "Discarding staging…" text, the instant Discard is confirmed,
+ *     the "Throwing it away…" text, the instant Discard is confirmed,
  *   - on success lets refreshStagingPanel() re-render (panel reset to idle) and
  *     shows a success toast,
  *   - on error re-renders the panel (restore) and shows an error toast.
@@ -88,7 +88,7 @@ describe('svg-manager staging Discard progress indicator', () => {
     // await), not after the round-trip completes.
     const indicator = document.querySelector('[data-discard-indicator]');
     expect(indicator).not.toBeNull();
-    expect(indicator.textContent).toMatch(/Discarding staging/i);
+    expect(indicator.textContent).toMatch(/Throwing it away/i);
     // Animated spinner element present inside the indicator.
     expect(indicator.querySelector('[data-discard-spinner]')).not.toBeNull();
 
@@ -108,7 +108,7 @@ describe('svg-manager staging Discard progress indicator', () => {
     expect(document.querySelector('[data-discard-indicator]')).toBeNull();
     // Success toast surfaced.
     const toastContainer = document.getElementById('toast-container');
-    expect(toastContainer.textContent).toMatch(/Staging discarded/i);
+    expect(toastContainer.textContent).toMatch(/Discarded — nothing was published/i);
   });
 
   test('on /clear failure: restores the panel (Discard button back) and shows an error toast', async () => {
@@ -132,6 +132,6 @@ describe('svg-manager staging Discard progress indicator', () => {
     expect(document.querySelector('[data-discard-indicator]')).toBeNull();
     // Error toast surfaced.
     const toastContainer = document.getElementById('toast-container');
-    expect(toastContainer.textContent).toMatch(/Discard failed/i);
+    expect(toastContainer.textContent).toMatch(/I couldn't discard it/i);
   });
 });
