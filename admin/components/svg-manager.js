@@ -14,25 +14,24 @@ const FALLBACKS = {
   'svg.upload': { en: 'Upload New Map', he: 'העלה מפה חדשה' },
   'svg.delete': { en: 'Delete', he: 'מחק' },
   'svg.preview': { en: 'Preview', he: 'תצוגה מקדימה' },
-  'svg.confirmDelete': { en: 'Are you sure you want to delete this file?', he: 'האם אתה בטוח שברצונך למחוק קובץ זה?' },
+  'svg.confirmDelete':      { en: "Delete this map? Patrons won't see it anymore.", he: 'למחוק את המפה הזו? משתמשים לא יראו אותה יותר.' },
   'svg.download': { en: 'Download', he: 'הורד' },
   'svg.replace': { en: 'Replace', he: 'החלף' },
-  'svg.confirmReplace': { en: 'Replace {filename} with the new file? The current version will be archived in Version History.', he: 'להחליף את {filename} בקובץ החדש? הגרסה הקודמת תיארכב בהיסטוריית הגרסאות.' },
-  'svg.replaceSuccess': { en: 'Replaced {filename}. Previous version archived.', he: 'הקובץ {filename} הוחלף. הגרסה הקודמת נשמרה.' },
-  'svg.replaceError': { en: 'Failed to replace file.', he: 'נכשל בהחלפת הקובץ.' },
+  'svg.confirmReplace':     { en: "Replace the Floor {floor} map with this file? I'll keep the current one in Version History so you can roll back.", he: 'להחליף את מפת קומה {floor} בקובץ הזה? אשמור את הקודמת בהיסטוריית הגרסאות כדי שתוכלו לחזור אליה.' },
+  'svg.confirmReplaceFile': { en: "Replace {filename} with this file? I'll keep the current one in Version History so you can roll back.", he: 'להחליף את {filename} בקובץ הזה? אשמור את הקודמת בהיסטוריית הגרסאות כדי שתוכלו לחזור אליה.' },
+  'svg.replaceSuccess':     { en: 'Done — the Floor {floor} map is updated. The previous one is saved in Version History.', he: 'בוצע — מפת קומה {floor} עודכנה. הקודמת נשמרה בהיסטוריית הגרסאות.' },
+  'svg.replaceSuccessFile': { en: 'Done — {filename} is updated. The previous one is saved in Version History.', he: 'בוצע — {filename} עודכן. הקודמת נשמרה בהיסטוריית הגרסאות.' },
+  'svg.replaceError':       { en: "I couldn't replace that map. Please try again.", he: 'לא הצלחתי להחליף את המפה. נסו שוב.' },
   'svg.staging.validateFailed':  { en: 'Validation request failed',                he: 'בקשת ולידציה נכשלה' },
-  'svg.staging.promoteFailed':   { en: 'Promote failed',                           he: 'קידום נכשל' },
-  'svg.staging.promoted':        { en: 'Staging promoted to production',           he: 'הסביבה קודמה לייצור' },
-  'svg.staging.uploadFailed':    { en: 'Upload to staging failed',                 he: 'העלאה לסביבת בדיקה נכשלה' },
-  'svg.staging.reconcileFailed': { en: 'Reconcile failed',                         he: 'יישוב נכשל' },
-  'svg.staging.confirmDiscard':  { en: 'Discard the staged changes?',              he: 'להשליך את השינויים בסביבת הבדיקה?' },
-  'svg.staging.discarding':      { en: 'Discarding staging…',                      he: 'מבטל את סביבת הבדיקה…' },
-  'svg.staging.discarded':       { en: 'Staging discarded',                        he: 'סביבת הבדיקה בוטלה' },
-  'svg.staging.discardFailed':   { en: 'Discard failed',                           he: 'הביטול נכשל' },
-  'svg.staging.progress.uploading':    { en: 'Uploading {filename}…',                        he: 'מעלה את {filename}…' },
-  'svg.staging.progress.validating':   { en: 'Validating staging…',                          he: 'בודק את סביבת הבדיקה…' },
-  'svg.staging.progress.refreshing':   { en: 'Updating staging panel…',                      he: 'מעדכן את לוח סביבת הבדיקה…' },
-  'svg.staging.progress.leaveWarning': { en: 'An upload is in progress. Leaving may leave staging in an inconsistent state.', he: 'העלאה מתבצעת. עזיבה כעת עלולה להשאיר את סביבת הבדיקה במצב לא עקבי.' },
+  'svg.staging.promoteFailed':   { en: "I couldn't publish the map. Please try again.", he: 'לא הצלחתי לפרסם את המפה. נסו שוב.' },
+  'svg.staging.promoted':        { en: 'Your new map is now live.',                  he: 'המפה החדשה שלך עכשיו פעילה באתר.' },
+  'svg.staging.uploadFailed':    { en: "I couldn't take that map. Please try again.",  he: 'לא הצלחתי לקבל את המפה. נסו שוב.' },
+  'svg.staging.reconcileFailed': { en: "I couldn't apply those fixes. Please try again.", he: 'לא הצלחתי להחיל את התיקונים. נסו שוב.' },
+  'svg.staging.confirmDiscard':  { en: 'Throw away this map and start over?',         he: 'להשליך את המפה הזו ולהתחיל מחדש?' },
+  'svg.staging.discarding':      { en: 'Throwing it away…',                           he: 'משליך…' },
+  'svg.staging.discarded':       { en: 'Discarded — nothing was published.',          he: 'הושלך — שום דבר לא פורסם.' },
+  'svg.staging.discardFailed':   { en: "I couldn't discard it. Please try again.",    he: 'לא הצלחתי להשליך. נסו שוב.' },
+  'svg.staging.progress.leaveWarning': { en: "I'm still working on your map — leaving now could leave it half-updated.", he: 'אני עדיין עובד על המפה שלך — יציאה עכשיו עלולה להשאיר אותה מעודכנת חלקית.' },
   'common.error': { en: 'An error occurred', he: 'אירעה שגיאה' },
   'common.loading': { en: 'Loading...', he: 'טוען...' }
 };
@@ -643,7 +642,10 @@ function setupManagerEvents() {
       picker.onchange = async () => {
         const file = picker.files?.[0];
         if (!file) return;
-        const msg = t('svg.confirmReplace').replace('{filename}', filename);
+        const fm = String(filename).match(/floor_(\d+)\.svg/);
+        const msg = fm
+          ? t('svg.confirmReplace').replace('{floor}', fm[1])
+          : t('svg.confirmReplaceFile').replace('{filename}', filename);
         if (!confirm(msg)) return;
         await replaceFile(filename, file);
       };
@@ -759,17 +761,18 @@ const STAGING_BUSY_SELECTORS = [
  * Issue #62: the modal is the primary visual; the inline status-text element
  * from #58 has been removed in favor of the modal's own step indicator.
  *
- * @param {string} filename — currently unused (modal copy is generic) but
- *   kept in the signature for future per-file telemetry.
+ * @param {string} filename — the target map filename (e.g. `floor_1.svg`);
+ *   the floor is derived from it and threaded into the progress modal heading.
  */
-function beginStagingSequence(filename) { // eslint-disable-line no-unused-vars
+function beginStagingSequence(filename) {
   const buttons = Array.from(document.querySelectorAll(STAGING_BUSY_SELECTORS.join(',')));
   for (const btn of buttons) {
     btn.disabled = true;
     btn.setAttribute('aria-busy', 'true');
   }
 
-  const modal = showStagingProgressModal();
+  const fm = String(filename || '').match(/floor_(\d+)\.svg/);
+  const modal = showStagingProgressModal(fm ? { floor: Number(fm[1]) } : {});
 
   const beforeUnloadHandler = (event) => {
     const msg = t('svg.staging.progress.leaveWarning');
@@ -876,7 +879,10 @@ async function replaceFile(targetFilename, file) {
       throw new Error(result.message || 'Replace failed');
     }
 
-    showToast(t('svg.replaceSuccess').replace('{filename}', targetFilename), 'success');
+    const fm = String(targetFilename).match(/floor_(\d+)\.svg/);
+    showToast(fm
+      ? t('svg.replaceSuccess').replace('{floor}', fm[1])
+      : t('svg.replaceSuccessFile').replace('{filename}', targetFilename), 'success');
     await loadFiles();
   } catch (err) {
     console.error('Failed to replace SVG:', err);

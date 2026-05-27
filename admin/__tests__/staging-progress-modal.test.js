@@ -48,12 +48,27 @@ describe('showStagingProgressModal — mount, ARIA, body scroll lock', () => {
     const controller = showStagingProgressModal();
     const overlay = document.querySelector('[data-testid="staging-progress-modal"]');
 
-    expect(overlay.textContent).toMatch(/Updating staged map/i);
-    // Initial step is "uploading" — the i18n template includes "Uploading"
-    expect(overlay.textContent).toMatch(/Uploading/i);
-    expect(overlay.textContent).toMatch(/Do not close this tab/i);
+    // No floor passed → generic heading.
+    expect(overlay.textContent).toMatch(/Replacing the map/i);
+    // Initial step is "uploading" — plain copy.
+    expect(overlay.textContent).toMatch(/Sending your new map/i);
+    expect(overlay.textContent).toMatch(/keep this tab open/i);
 
     controller.close();
+  });
+
+  test('heading shows the floor when a floor is passed', () => {
+    const modal = showStagingProgressModal({ floor: 1 });
+    expect(document.querySelector('[data-testid="staging-progress-modal-heading"]').textContent)
+      .toContain('Replacing the Floor 1 map');
+    modal.close();
+  });
+
+  test('heading is generic when no floor is passed', () => {
+    const modal = showStagingProgressModal();
+    expect(document.querySelector('[data-testid="staging-progress-modal-heading"]').textContent)
+      .toContain('Replacing the map');
+    modal.close();
   });
 });
 
@@ -64,15 +79,15 @@ describe('showStagingProgressModal — step transitions', () => {
 
     const stepEl = overlay.querySelector('[data-testid="staging-progress-modal-step"]');
     expect(stepEl).not.toBeNull();
-    expect(stepEl.textContent).toMatch(/Uploading/i);
+    expect(stepEl.textContent).toMatch(/Sending your new map/i);
 
     controller.updateStep('validating');
-    expect(stepEl.textContent).toMatch(/Validating/i);
-    expect(stepEl.textContent).not.toMatch(/Uploading/i);
+    expect(stepEl.textContent).toMatch(/Checking it against your shelf information/i);
+    expect(stepEl.textContent).not.toMatch(/Sending your new map/i);
 
     controller.updateStep('refreshing');
-    expect(stepEl.textContent).toMatch(/Updating staging panel/i);
-    expect(stepEl.textContent).not.toMatch(/Validating/i);
+    expect(stepEl.textContent).toMatch(/Almost done/i);
+    expect(stepEl.textContent).not.toMatch(/Checking it against your shelf information/i);
 
     controller.close();
   });
@@ -131,11 +146,11 @@ describe('showStagingProgressModal — stuck-state warning + force close', () =>
 
     warning = document.querySelector('[data-testid="staging-progress-modal-stuck"]');
     expect(warning).not.toBeNull();
-    expect(warning.textContent).toMatch(/Taking longer than expected/i);
+    expect(warning.textContent).toMatch(/taking longer than usual/i);
 
     const forceClose = document.querySelector('[data-testid="staging-progress-modal-force-close"]');
     expect(forceClose).not.toBeNull();
-    expect(forceClose.textContent).toMatch(/Force close/i);
+    expect(forceClose.textContent).toMatch(/Close anyway/i);
 
     controller.close();
   });

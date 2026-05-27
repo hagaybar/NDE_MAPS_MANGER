@@ -26,13 +26,14 @@ const STUCK_TIMEOUT_MS = 60_000;
 // i18n hasn't loaded yet (e.g., the very first replace after page load
 // occasionally races the i18n fetch on cold cache).
 const FALLBACKS = {
-  'svg.staging.progress.uploading':    { en: 'Uploading {filename}…',                                          he: 'מעלה את {filename}…' },
-  'svg.staging.progress.validating':   { en: 'Validating staging…',                                            he: 'בודק את סביבת הבדיקה…' },
-  'svg.staging.progress.refreshing':   { en: 'Updating staging panel…',                                        he: 'מעדכן את לוח סביבת הבדיקה…' },
-  'svg.staging.progress.heading':      { en: 'Updating staged map',                                            he: 'מעדכן מפה בסביבת הבדיקה' },
-  'svg.staging.progress.doNotClose':   { en: 'Do not close this tab. The operation is in progress.',           he: 'אין לסגור את הלשונית. הפעולה מתבצעת.' },
-  'svg.staging.progress.stuckWarning': { en: 'Taking longer than expected. The upload may have failed silently.', he: 'הפעולה אורכת יותר מהצפוי. ייתכן שההעלאה נכשלה בשקט.' },
-  'svg.staging.progress.forceClose':   { en: 'Force close',                                                    he: 'סגירה בכוח' },
+  'svg.staging.progress.heading':        { en: 'Replacing the Floor {floor} map', he: 'מחליף את מפת קומה {floor}' },
+  'svg.staging.progress.headingGeneric': { en: 'Replacing the map',                he: 'מחליף את המפה' },
+  'svg.staging.progress.uploading':      { en: 'Sending your new map…',            he: 'שולח את המפה החדשה…' },
+  'svg.staging.progress.validating':     { en: 'Checking it against your shelf information…', he: 'בודק מול נתוני המדפים שלך…' },
+  'svg.staging.progress.refreshing':     { en: 'Almost done…',                     he: 'כמעט סיימתי…' },
+  'svg.staging.progress.doNotClose':     { en: "Please keep this tab open — I'm still working.", he: 'נא להשאיר את הלשונית פתוחה — אני עדיין עובד על זה.' },
+  'svg.staging.progress.stuckWarning':   { en: 'This is taking longer than usual — it may not have gone through. Keep waiting, or close and try again.', he: 'זה לוקח יותר זמן מהרגיל — ייתכן שזה לא הושלם. אפשר להמשיך להמתין, או לסגור ולנסות שוב.' },
+  'svg.staging.progress.forceClose':     { en: 'Close anyway',                     he: 'סגור בכל זאת' },
 };
 
 /**
@@ -191,15 +192,12 @@ function renderStepsHtml(currentStep) {
 }
 
 /**
- * Resolve the i18n step text for the visible status line. The uploading
- * template includes a {filename} placeholder — left as-is because the
- * staged-replace sequence has no filename context here (the controller is
- * generic). svg-manager.js could pre-substitute, but for now we strip the
- * placeholder for a clean line.
+ * Resolve the i18n step text for the visible status line. The step copy is now
+ * plain librarian language with no placeholders, so we return it directly.
  */
 function resolveStepText(step) {
   const key = `svg.staging.progress.${step}`;
-  return t(key).replace(/\{filename\}/g, '').trim();
+  return t(key);
 }
 
 /**
@@ -218,8 +216,15 @@ function resolveStepText(step) {
  *   - close(): remove the overlay, restore body scroll, drop all listeners
  *     and timers. Idempotent.
  */
-export function showStagingProgressModal() {
+export function showStagingProgressModal(opts = {}) {
   ensureStyles();
+
+  // Thread the floor (from the floor_N.svg filename the replace flow has) into
+  // the heading so the librarian sees exactly which map is being replaced.
+  const floor = opts.floor;
+  const headingText = (floor !== undefined && floor !== null && !Number.isNaN(Number(floor)))
+    ? t('svg.staging.progress.heading').replace('{floor}', String(floor))
+    : t('svg.staging.progress.headingGeneric');
 
   // Preserve the prior body overflow so close() restores it exactly, instead
   // of assuming '' was the default. Some host pages may run with a
@@ -243,7 +248,7 @@ export function showStagingProgressModal() {
   overlay.innerHTML = `
     <div class="spm-card" data-testid="staging-progress-modal-card" tabindex="-1">
       <h2 class="spm-heading" id="spm-heading" data-testid="staging-progress-modal-heading">
-        ${escapeHtml(t('svg.staging.progress.heading'))}
+        ${escapeHtml(headingText)}
       </h2>
       <div class="spm-steps" aria-hidden="true">
         ${renderStepsHtml(currentStep)}
