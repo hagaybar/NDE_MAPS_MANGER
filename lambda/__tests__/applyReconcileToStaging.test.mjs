@@ -99,4 +99,120 @@ Lib,LibHe,Coll,CollHe,000,999,CC_X,,,0,,,,
     const resp = await handler(event({ floor: 1, reconcileMap: {} }));
     expect(resp.statusCode).toBe(423);
   });
+
+  test('add action appends a validated new-shelf row (#57)', async () => {
+    s3Mock.on(GetObjectCommand, { Key: 'staging/data/mapping.csv' }).resolves(
+      streamFromString(`libraryName,libraryNameHe,collectionName,collectionNameHe,rangeStart,rangeEnd,svgCode,description,descriptionHe,floor,shelfLabel,shelfLabelHe,notes,notesHe
+Lib,LibHe,Coll,CollHe,000,999,CC_X,,,1,,,,
+`)
+    );
+    s3Mock.on(GetObjectCommand, { Key: 'staging/maps/floor_1.svg' }).resolves(
+      streamFromString('<svg><rect id="CC_X" data-map-object="shelf"/><rect id="NEW_1" data-map-object="shelf"/></svg>')
+    );
+
+    const resp = await handler(event({
+      floor: 1,
+      reconcileMap: {
+        'NEW_1': { action: 'add', fields: { libraryName: 'Lib', collectionName: 'Coll', rangeStart: 'A1', rangeEnd: 'A9' } },
+      },
+    }));
+    expect(resp.statusCode).toBe(200);
+
+    const csvPut = s3Mock.commandCalls(PutObjectCommand)
+      .find(c => c.args[0].input.Key === 'staging/data/mapping.csv');
+    expect(csvPut).toBeDefined();
+    const csvBody = csvPut.args[0].input.Body;
+    expect(csvBody).toContain('NEW_1');
+    // The appended row carries the supplied fields, svgCode NEW_1, floor 1.
+    expect(csvBody).toMatch(/Lib,,Coll,,A1,A9,NEW_1,,,1,,,,/);
+  });
+
+  test('add rejects 422 when a required field is missing', async () => {
+    s3Mock.on(GetObjectCommand, { Key: 'staging/data/mapping.csv' }).resolves(
+      streamFromString(`libraryName,libraryNameHe,collectionName,collectionNameHe,rangeStart,rangeEnd,svgCode,description,descriptionHe,floor,shelfLabel,shelfLabelHe,notes,notesHe
+Lib,LibHe,Coll,CollHe,000,999,CC_X,,,1,,,,
+`)
+    );
+    s3Mock.on(GetObjectCommand, { Key: 'staging/maps/floor_1.svg' }).resolves(
+      streamFromString('<svg><rect id="NEW_1" data-map-object="shelf"/></svg>')
+    );
+
+    const resp = await handler(event({
+      floor: 1,
+      reconcileMap: {
+        // collectionName omitted
+        'NEW_1': { action: 'add', fields: { libraryName: 'Lib', rangeStart: 'A1', rangeEnd: 'A9' } },
+      },
+    }));
+    expect(resp.statusCode).toBe(422);
+    expect(JSON.parse(resp.body).svgCode).toBe('NEW_1');
+  });
+
+  test('add rejects 422 when range start>end or prefix mismatch', async () => {
+    s3Mock.on(GetObjectCommand, { Key: 'staging/data/mapping.csv' }).resolves(
+      streamFromString(`libraryName,libraryNameHe,collectionName,collectionNameHe,rangeStart,rangeEnd,svgCode,description,descriptionHe,floor,shelfLabel,shelfLabelHe,notes,notesHe
+Lib,LibHe,Coll,CollHe,000,999,CC_X,,,1,,,,
+`)
+    );
+    s3Mock.on(GetObjectCommand, { Key: 'staging/maps/floor_1.svg' }).resolves(
+      streamFromString('<svg><rect id="NEW_1" data-map-object="shelf"/></svg>')
+    );
+
+    const resp = await handler(event({
+      floor: 1,
+      reconcileMap: {
+        'NEW_1': { action: 'add', fields: { libraryName: 'Lib', collectionName: 'Coll', rangeStart: 'A9', rangeEnd: 'A1' } },
+      },
+    }));
+    expect(resp.statusCode).toBe(422);
+    expect(JSON.parse(resp.body).svgCode).toBe('NEW_1');
+  });
+
+  test('add rejects 422 when svgCode does not resolve on its floor', async () => {
+    s3Mock.on(GetObjectCommand, { Key: 'staging/data/mapping.csv' }).resolves(
+      streamFromString(`libraryName,libraryNameHe,collectionName,collectionNameHe,rangeStart,rangeEnd,svgCode,description,descriptionHe,floor,shelfLabel,shelfLabelHe,notes,notesHe
+Lib,LibHe,Coll,CollHe,000,999,CC_X,,,1,,,,
+`)
+    );
+    // SVG lacks NEW_1
+    s3Mock.on(GetObjectCommand, { Key: 'staging/maps/floor_1.svg' }).resolves(
+      streamFromString('<svg><rect id="CC_X" data-map-object="shelf"/></svg>')
+    );
+
+    const resp = await handler(event({
+      floor: 1,
+      reconcileMap: {
+        'NEW_1': { action: 'add', fields: { libraryName: 'Lib', collectionName: 'Coll', rangeStart: 'A1', rangeEnd: 'A9' } },
+      },
+    }));
+    expect(resp.statusCode).toBe(422);
+    expect(JSON.parse(resp.body).svgCode).toBe('NEW_1');
+  });
+
+  test('rename and add in one reconcileMap both apply', async () => {
+    s3Mock.on(GetObjectCommand, { Key: 'staging/data/mapping.csv' }).resolves(
+      streamFromString(`libraryName,libraryNameHe,collectionName,collectionNameHe,rangeStart,rangeEnd,svgCode,description,descriptionHe,floor,shelfLabel,shelfLabelHe,notes,notesHe
+Lib,LibHe,Coll,CollHe,000,999,CC_X,,,1,,,,
+`)
+    );
+    s3Mock.on(GetObjectCommand, { Key: 'staging/maps/floor_1.svg' }).resolves(
+      streamFromString('<svg><rect id="CC_Y" data-map-object="shelf"/><rect id="NEW_1" data-map-object="shelf"/></svg>')
+    );
+
+    const resp = await handler(event({
+      floor: 1,
+      reconcileMap: {
+        'CC_X': { action: 'rename', to: 'CC_Y' },
+        'NEW_1': { action: 'add', fields: { libraryName: 'Lib', collectionName: 'Coll', rangeStart: 'A1', rangeEnd: 'A9' } },
+      },
+    }));
+    expect(resp.statusCode).toBe(200);
+
+    const csvPut = s3Mock.commandCalls(PutObjectCommand)
+      .find(c => c.args[0].input.Key === 'staging/data/mapping.csv');
+    const csvBody = csvPut.args[0].input.Body;
+    expect(csvBody).toContain('CC_Y');
+    expect(csvBody).not.toContain('CC_X,');
+    expect(csvBody).toContain('NEW_1');
+  });
 });

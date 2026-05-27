@@ -2,10 +2,17 @@ import { S3Client, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3
 import { validateToken, createAuthResponse } from './auth-middleware.mjs';
 import { checkPermission } from './role-auth.mjs';
 import { readMeta, recordFile } from './shared/staging-meta.mjs';
-import { parseCsvContent } from './range-validation.mjs';
+import { parseCsvContent, parseCallNumber, compareCallNumbers } from './range-validation.mjs';
+import { parseSvg } from './shared/svg-shelves.mjs';
 
 const s3 = new S3Client({ region: 'us-east-1' });
 const BUCKET = 'tau-cenlib-primo-assets-hagay-3602';
+
+const COLUMNS = [
+  'libraryName', 'libraryNameHe', 'collectionName', 'collectionNameHe',
+  'rangeStart', 'rangeEnd', 'svgCode', 'description', 'descriptionHe',
+  'floor', 'shelfLabel', 'shelfLabelHe', 'notes', 'notesHe',
+];
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -85,11 +92,47 @@ export const handler = async (event) => {
       // Skip — row dropped
       affected += 1;
     } else {
-      return createAuthResponse(422, {
-        error: `Unknown action "${entry.action}"`,
-        svgCode: row.svgCode,
-      }, CORS_HEADERS);
+      newRows.push(row);
     }
+  }
+
+  // New-shelf adds: append validated rows for reconcileMap entries with action 'add'.
+  const addEntries = Object.entries(reconcileMap).filter(([, e]) => e && e.action === 'add');
+  let stagedShelfIds = null;
+  if (addEntries.length) {
+    let svg;
+    try { svg = await fetchObject(`staging/maps/floor_${Number(floor)}.svg`); }
+    catch (err) {
+      if (err.name === 'NoSuchKey' || err.Code === 'NoSuchKey') svg = await fetchObject(`maps/floor_${Number(floor)}.svg`);
+      else throw err;
+    }
+    stagedShelfIds = new Set(parseSvg(svg).shelves);
+  }
+  for (const [svgCode, entry] of addEntries) {
+    const f = entry.fields || {};
+    const required = ['libraryName', 'collectionName', 'rangeStart', 'rangeEnd'];
+    for (const k of required) {
+      if (!String(f[k] ?? '').trim()) {
+        return createAuthResponse(422, { error: `add action missing required field "${k}"`, svgCode }, CORS_HEADERS);
+      }
+    }
+    const start = parseCallNumber(String(f.rangeStart));
+    const end = parseCallNumber(String(f.rangeEnd));
+    if (start.prefix !== end.prefix) {
+      return createAuthResponse(422, { error: 'range start and end must share a prefix', svgCode }, CORS_HEADERS);
+    }
+    if (compareCallNumbers(String(f.rangeStart), String(f.rangeEnd)) > 0) {
+      return createAuthResponse(422, { error: 'range start must be ≤ range end', svgCode }, CORS_HEADERS);
+    }
+    if (!stagedShelfIds.has(svgCode)) {
+      return createAuthResponse(422, { error: 'svgCode does not resolve to a shelf on its floor', svgCode }, CORS_HEADERS);
+    }
+    const row = {};
+    for (const col of COLUMNS) row[col] = String(f[col] ?? '');
+    row.svgCode = svgCode;
+    row.floor = String(Number(floor));
+    newRows.push(row);
+    affected += 1;
   }
 
   // Serialize back to CSV
@@ -112,12 +155,6 @@ async function fetchObject(key) {
   for await (const chunk of resp.Body) chunks.push(Buffer.from(chunk));
   return Buffer.concat(chunks).toString('utf-8');
 }
-
-const COLUMNS = [
-  'libraryName', 'libraryNameHe', 'collectionName', 'collectionNameHe',
-  'rangeStart', 'rangeEnd', 'svgCode', 'description', 'descriptionHe',
-  'floor', 'shelfLabel', 'shelfLabelHe', 'notes', 'notesHe',
-];
 
 function serializeRowsToCsv(rows) {
   const header = COLUMNS.join(',');
