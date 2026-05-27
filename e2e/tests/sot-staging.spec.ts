@@ -153,10 +153,18 @@ async function mockStagingApi(page: Page, opts: StagingMockOptions): Promise<voi
   });
 }
 
-/** Enable the staging-flow feature flag before any page script runs. */
+/**
+ * Enable the staging-flow feature flag before any page script runs, and pin the
+ * UI locale to English. The staging panel copy is i18n-driven (see
+ * `staging-panel.js`); without forcing a locale, `i18n.init()` defaults to
+ * Hebrew, so the English copy assertions below would never match. Other
+ * locale-sensitive specs (e.g. `errors-report-export.spec.ts`,
+ * `map-editor.spec.ts`) inject `localStorage.locale` the same way.
+ */
 async function enableStagingFlowFlag(page: Page): Promise<void> {
   await page.addInitScript(() => {
     (window as unknown as { __USE_STAGING_FLOW__: boolean }).__USE_STAGING_FLOW__ = true;
+    window.localStorage.setItem('locale', 'en');
   });
 }
 
@@ -217,13 +225,13 @@ test.describe('SoT — staged SVG replace', () => {
       ),
     });
 
-    // After upload + validate, the panel rerenders with the "Validation passed"
-    // copy from staging-panel.js.
+    // After upload + validate, the panel rerenders with the plain-language
+    // "looks fine" passed copy from staging-panel.js.
     const panel = page.locator('#staging-panel-host');
-    await expect(panel).toContainText(/Validation passed/i, { timeout: 10000 });
+    await expect(panel).toContainText(/looks fine/i, { timeout: 10000 });
 
     await panel.locator('[data-action="promote-staging"]').click();
-    await expect(panel).toContainText(/No staging/i, { timeout: 10000 });
+    await expect(panel).toContainText(/No map is waiting for review/i, { timeout: 10000 });
   });
 
   test('removed-ref upload triggers reconcile wizard and resolves green', async ({ page }) => {
@@ -282,10 +290,10 @@ test.describe('SoT — staged SVG replace', () => {
     }
 
     await panel.locator('[data-action="submit-reconcile"]').click();
-    await expect(panel).toContainText(/Validation passed/i, { timeout: 10000 });
+    await expect(panel).toContainText(/looks fine/i, { timeout: 10000 });
 
     await panel.locator('[data-action="promote-staging"]').click();
-    await expect(panel).toContainText(/No staging/i, { timeout: 10000 });
+    await expect(panel).toContainText(/No map is waiting for review/i, { timeout: 10000 });
   });
 
   test('discard staging clears the staging area', async ({ page }) => {
@@ -318,7 +326,7 @@ test.describe('SoT — staged SVG replace', () => {
     const panel = page.locator('#staging-panel-host');
     await expect(panel.locator('[data-action="discard-staging"]')).toBeVisible({ timeout: 10000 });
     await panel.locator('[data-action="discard-staging"]').click();
-    await expect(panel).toContainText(/No staging/i, { timeout: 10000 });
+    await expect(panel).toContainText(/No map is waiting for review/i, { timeout: 10000 });
   });
 });
 
@@ -490,6 +498,7 @@ test.describe('SoT — staging lock conflict', () => {
     const pageA = await contextA.newPage();
     await pageA.addInitScript(() => {
       (window as unknown as { __USE_STAGING_FLOW__: boolean }).__USE_STAGING_FLOW__ = true;
+      window.localStorage.setItem('locale', 'en');
     });
     await injectAuthAs(pageA, operatorA);
     await mockApiResponses(pageA);
@@ -519,16 +528,17 @@ test.describe('SoT — staging lock conflict', () => {
     const pageB = await contextB.newPage();
     await pageB.addInitScript(() => {
       (window as unknown as { __USE_STAGING_FLOW__: boolean }).__USE_STAGING_FLOW__ = true;
+      window.localStorage.setItem('locale', 'en');
     });
     await injectAuthAs(pageB, operatorB);
     await mockApiResponses(pageB);
     installSharedStagingMocks(pageB, sharedState, operatorB.username);
     await openSvgManager(pageB);
 
-    // The panel must show A as the lock owner with the "in use by" copy from
-    // `staging-panel.js`.
+    // The panel must show A as the lock owner with the "in use" copy from
+    // `staging-panel.js` (now plain-language: "<owner> is working on a map …").
     const panelB = pageB.locator('#staging-panel-host');
-    await expect(panelB).toContainText(/in use by/i, { timeout: 10000 });
+    await expect(panelB).toContainText(/is working on a map right now/i, { timeout: 10000 });
     await expect(panelB).toContainText(operatorA.username);
     // And no owner-only actions render for B.
     await expect(panelB.locator('[data-action="discard-staging"]')).toHaveCount(0);
@@ -555,7 +565,7 @@ test.describe('SoT — staging lock conflict', () => {
 
     // ── Cleanup: A discards so the shared lock state ends clean. ────────────
     await pageA.locator('#staging-panel-host [data-action="discard-staging"]').click();
-    await expect(pageA.locator('#staging-panel-host')).toContainText(/No staging/i, { timeout: 10000 });
+    await expect(pageA.locator('#staging-panel-host')).toContainText(/No map is waiting for review/i, { timeout: 10000 });
 
     await contextA.close();
     await contextB.close();
