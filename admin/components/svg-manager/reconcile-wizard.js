@@ -20,6 +20,16 @@
  * @param {() => void} [onCancel]
  */
 import i18n from '../../i18n.js?v=5';
+import { parseRangeValue } from '../../services/data-model.js';
+
+// Canonical CSV column order (mirrors lambda/applyReconcileToStaging.mjs COLUMNS).
+const COLUMNS = [
+  'libraryName', 'libraryNameHe', 'collectionName', 'collectionNameHe',
+  'rangeStart', 'rangeEnd', 'svgCode', 'description', 'descriptionHe',
+  'floor', 'shelfLabel', 'shelfLabelHe', 'notes', 'notesHe',
+];
+const REQUIRED_FIELDS = ['libraryName', 'collectionName', 'rangeStart', 'rangeEnd'];
+const READONLY_FIELDS = ['svgCode', 'floor'];
 
 const FALLBACKS = {
   'svg.staging.reconcile.title':          { en: 'Before you publish: a few shelves on Floor {floor} changed — tell me what happened', he: 'לפני הפרסום: כמה מדפים בקומה {floor} השתנו — ספרו לי מה קרה' },
@@ -38,6 +48,16 @@ const FALLBACKS = {
   'svg.staging.reconcile.confirmDelete':  { en: 'This permanently removes {entries} for shelves that are gone. Continue?', he: 'פעולה זו תסיר לצמיתות {entries} עבור מדפים שאינם קיימים יותר. להמשיך?' },
   'svg.staging.reconcile.entryWord':      { en: 'library entry', he: 'רשומת ספרייה' },
   'svg.staging.reconcile.entriesWord':    { en: 'library entries', he: 'רשומות ספרייה' },
+  'svg.staging.reconcile.added.reviewButton':  { en: 'Review {count} new shelves', he: 'בדקו {count} מדפים חדשים' },
+  'svg.staging.reconcile.added.title':         { en: 'These shelves are on the new map but have no library info yet — tell me what each one is', he: 'המדפים האלה נמצאים במפה החדשה אך עדיין ללא נתוני ספרייה — ספרו לי מה כל אחד מהם' },
+  'svg.staging.reconcile.added.addNow':        { en: 'Add its library info now', he: 'הוסיפו עכשיו את נתוני הספרייה שלו' },
+  'svg.staging.reconcile.added.leaveUnmapped': { en: "Leave it unmapped (decorative / I'll map it later)", he: 'להשאיר ללא מיפוי (דקורטיבי / אמפה מאוחר יותר)' },
+  'svg.staging.reconcile.added.notReal':       { en: 'Is one of these not a real shelf?', he: 'אחד מהם אינו מדף אמיתי?' },
+  'svg.staging.reconcile.added.notRealHelp':   { en: "That's a map-editing mistake. Discard this upload, remove the element from your map file, and upload it again.", he: 'זו טעות בעריכת המפה. השליכו את ההעלאה הזו, הסירו את הרכיב מקובץ המפה, והעלו שוב.' },
+  'svg.staging.reconcile.added.formTitle':     { en: 'New shelf {svgCode} · Floor {floor}', he: 'מדף חדש {svgCode} · קומה {floor}' },
+  'svg.staging.reconcile.added.apply':         { en: 'Save these entries', he: 'שמרו את הרשומות' },
+  'svg.staging.reconcile.added.requiredHint':  { en: 'Library, collection, and range are required; the rest are optional.', he: 'ספרייה, אוסף וטווח הם שדות חובה; השאר אופציונליים.' },
+  'svg.staging.reconcile.added.discard':       { en: 'Discard this upload', he: 'השליכו את ההעלאה הזו' },
 };
 
 function t(key) {
@@ -56,6 +76,11 @@ function entriesPhrase(n) {
 }
 
 export function renderReconcileWizard(host, diff, onSubmit, onCancel) {
+  const added = diff.newlyAddedShelves || [];
+  if (added.length && !(diff.removedRefs && diff.removedRefs.length)) {
+    return renderAddedGroup(host, diff, added, onSubmit, onCancel);
+  }
+
   const detected = {};
   (diff.renames || []).forEach(r => { detected[r.fromCode] = r.toCode; });
   const candidates = (diff.candidateTargets || diff.addedShelves || []).map(c => c.svgCode);
@@ -215,6 +240,176 @@ export function renderReconcileWizard(host, diff, onSubmit, onCancel) {
   });
 
   host.querySelector('[data-action="cancel-reconcile"]').addEventListener('click', () => {
+    host.innerHTML = '';
+    if (typeof onCancel === 'function') {
+      onCancel();
+    }
+  });
+}
+
+// Client-side range check, consistent with admin/services/data-model.js
+// (parseRangeValue) and lambda/range-validation.mjs: start/end must share a
+// prefix and start must be <= end. Empty inputs are treated as "not yet valid".
+function rangeOk(rangeStart, rangeEnd) {
+  const start = String(rangeStart ?? '').trim();
+  const end = String(rangeEnd ?? '').trim();
+  if (!start || !end) return false;
+  const s = parseRangeValue(start);
+  const e = parseRangeValue(end);
+  if (s.prefix !== e.prefix) return false;
+  if (s.numeric === null || e.numeric === null) {
+    // Both unparseable-as-number but same prefix: fall back to string order.
+    return start <= end;
+  }
+  return s.numeric <= e.numeric;
+}
+
+function renderAddedGroup(host, diff, added, onSubmit, onCancel) {
+  const cardsHtml = added.map(shelf => {
+    const code = shelf.svgCode;
+    const floor = shelf.floor != null ? shelf.floor : diff.floor;
+    const name = `added-${escapeAttr(code)}`;
+    const formTitle = t('svg.staging.reconcile.added.formTitle')
+      .replace('{svgCode}', escapeHtml(code))
+      .replace('{floor}', escapeHtml(String(floor)));
+
+    const fieldRows = COLUMNS.map(col => {
+      const readOnly = READONLY_FIELDS.includes(col);
+      const required = REQUIRED_FIELDS.includes(col);
+      const label = t(`columns.${col}`);
+      const prefill = col === 'svgCode' ? code : col === 'floor' ? String(floor) : '';
+      const reqMark = required ? ' <span class="text-red-500">*</span>' : '';
+      return `
+        <label class="block text-xs text-gray-700">
+          <span class="block mb-0.5">${escapeHtml(label)}${reqMark}</span>
+          <input type="text" data-field="${escapeAttr(col)}"
+                 value="${escapeAttr(prefill)}"
+                 ${readOnly ? 'readonly' : ''} ${required ? 'data-required' : ''}
+                 class="w-full border rounded px-2 py-1 text-sm${readOnly ? ' bg-gray-100 text-gray-600' : ''}">
+        </label>`;
+    }).join('');
+
+    return `
+      <div data-added-card data-svg-code="${escapeAttr(code)}"
+           class="rounded border border-gray-200 bg-white p-4 mb-3">
+        <div class="text-sm font-semibold text-gray-800 font-mono">${escapeHtml(String(floor))}: ${escapeHtml(code)}</div>
+        <div class="mt-3 space-y-2 text-sm">
+          <label class="flex items-center gap-2">
+            <input type="radio" name="${name}" value="add-now">
+            <span>${escapeHtml(t('svg.staging.reconcile.added.addNow'))}</span>
+          </label>
+          <label class="flex items-center gap-2">
+            <input type="radio" name="${name}" value="leave">
+            <span>${escapeHtml(t('svg.staging.reconcile.added.leaveUnmapped'))}</span>
+          </label>
+        </div>
+        <div data-add-form hidden class="mt-3 border-t pt-3">
+          <div class="text-xs font-semibold text-gray-700 mb-1">${formTitle}</div>
+          <div class="text-xs text-gray-500 mb-2">${escapeHtml(t('svg.staging.reconcile.added.requiredHint'))}</div>
+          <div class="grid grid-cols-2 gap-2">
+            ${fieldRows}
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+
+  host.innerHTML = `
+    <div class="rounded border border-amber-300 bg-amber-50 p-4">
+      <div class="text-sm font-semibold mb-3">${escapeHtml(t('svg.staging.reconcile.added.title'))}</div>
+      ${cardsHtml}
+      <div class="mt-2 rounded border border-gray-200 bg-white p-3">
+        <div class="text-sm font-semibold text-gray-800">${escapeHtml(t('svg.staging.reconcile.added.notReal'))}</div>
+        <div class="mt-1 text-xs text-gray-600">${escapeHtml(t('svg.staging.reconcile.added.notRealHelp'))}</div>
+        <button data-action="discard-from-added"
+                class="mt-2 px-3 py-1.5 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200">
+          ${escapeHtml(t('svg.staging.reconcile.added.discard'))}
+        </button>
+      </div>
+      <div class="mt-3 flex gap-2 items-center">
+        <button data-action="submit-added" disabled
+                class="px-3 py-1.5 text-sm bg-amber-500 text-white rounded hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed">
+          ${escapeHtml(t('svg.staging.reconcile.added.apply'))}
+        </button>
+        <button data-action="cancel-added"
+                class="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200">
+          ${escapeHtml(t('svg.staging.reconcile.cancel'))}
+        </button>
+      </div>
+    </div>
+  `;
+
+  // Returns 'add-now' | 'leave' | null
+  function cardChoice(card) {
+    const selected = card.querySelector('input[type="radio"]:checked');
+    return selected ? selected.value : null;
+  }
+
+  function cardFields(card) {
+    const fields = {};
+    card.querySelectorAll('[data-field]').forEach(input => {
+      fields[input.dataset.field] = input.value;
+    });
+    return fields;
+  }
+
+  function cardAddValid(card) {
+    const fields = cardFields(card);
+    for (const k of REQUIRED_FIELDS) {
+      if (!String(fields[k] ?? '').trim()) return false;
+    }
+    return rangeOk(fields.rangeStart, fields.rangeEnd);
+  }
+
+  function syncCardForm(card) {
+    const form = card.querySelector('[data-add-form]');
+    if (!form) return;
+    form.hidden = cardChoice(card) !== 'add-now';
+  }
+
+  function updateSubmitState() {
+    const cards = Array.from(host.querySelectorAll('[data-added-card]'));
+    cards.forEach(syncCardForm);
+    const allOk = cards.every(card => {
+      const choice = cardChoice(card);
+      if (!choice) return false;
+      if (choice === 'leave') return true;
+      return cardAddValid(card);
+    });
+    host.querySelector('[data-action="submit-added"]').disabled = !allOk;
+  }
+
+  host.querySelectorAll('[data-added-card]').forEach(card => {
+    card.addEventListener('change', updateSubmitState);
+    card.addEventListener('input', updateSubmitState);
+  });
+  updateSubmitState();
+
+  host.querySelector('[data-action="submit-added"]').addEventListener('click', () => {
+    const map = {};
+    const leftUnmapped = [];
+    host.querySelectorAll('[data-added-card]').forEach(card => {
+      const code = card.dataset.svgCode;
+      const choice = cardChoice(card);
+      if (choice === 'leave') {
+        leftUnmapped.push(code);
+        return;
+      }
+      if (choice === 'add-now') {
+        const raw = cardFields(card);
+        const fields = {};
+        for (const col of COLUMNS) {
+          const v = String(raw[col] ?? '').trim();
+          if (v) fields[col] = v;
+        }
+        map[code] = { action: 'add', fields };
+      }
+    });
+    if (typeof onSubmit === 'function') {
+      onSubmit(diff.floor, map, { leftUnmapped });
+    }
+  });
+
+  host.querySelector('[data-action="cancel-added"]').addEventListener('click', () => {
     host.innerHTML = '';
     if (typeof onCancel === 'function') {
       onCancel();

@@ -113,7 +113,19 @@
         "cancel": "Cancel",
         "confirmDelete": "This permanently removes {entries} for shelves that are gone. Continue?",
         "entryWord": "library entry",
-        "entriesWord": "library entries"
+        "entriesWord": "library entries",
+        "added": {
+          "reviewButton": "Review {count} new shelves",
+          "title": "These shelves are on the new map but have no library info yet — tell me what each one is",
+          "addNow": "Add its library info now",
+          "leaveUnmapped": "Leave it unmapped (decorative / I'll map it later)",
+          "notReal": "Is one of these not a real shelf?",
+          "notRealHelp": "That's a map-editing mistake. Discard this upload, remove the element from your map file, and upload it again.",
+          "formTitle": "New shelf {svgCode} · Floor {floor}",
+          "apply": "Save these entries",
+          "requiredHint": "Library, collection, and range are required; the rest are optional.",
+          "discard": "Discard this upload"
+        }
       }
     }
   },
