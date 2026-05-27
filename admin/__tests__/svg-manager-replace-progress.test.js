@@ -180,24 +180,24 @@ describe('svg-manager staged-replace UX feedback (issue #58)', () => {
     let modal = document.querySelector('[data-testid="staging-progress-modal"]');
     expect(modal).not.toBeNull();
     let stepEl = modal.querySelector('[data-testid="staging-progress-modal-step"]');
-    expect(stepEl.textContent).toMatch(/Uploading/i);
+    expect(stepEl.textContent).toMatch(/Sending your new map/i);
 
-    // Step 2: Validating…
+    // Step 2: Checking it against your shelf information…
     uploadDef.resolve({ ok: true, json: async () => ({}) });
     await flush();
     modal = document.querySelector('[data-testid="staging-progress-modal"]');
     expect(modal).not.toBeNull();
     stepEl = modal.querySelector('[data-testid="staging-progress-modal-step"]');
-    expect(stepEl.textContent).toMatch(/Validating/i);
-    expect(stepEl.textContent).not.toMatch(/Uploading/i);
+    expect(stepEl.textContent).toMatch(/Checking it against your shelf information/i);
+    expect(stepEl.textContent).not.toMatch(/Sending your new map/i);
 
-    // Step 3: Updating staging panel…
+    // Step 3: Almost done…
     validateDef.resolve({ ok: true, json: async () => ({}) });
     await flush();
     modal = document.querySelector('[data-testid="staging-progress-modal"]');
     expect(modal).not.toBeNull();
     stepEl = modal.querySelector('[data-testid="staging-progress-modal-step"]');
-    expect(stepEl.textContent).toMatch(/Updating staging panel/i);
+    expect(stepEl.textContent).toMatch(/Almost done/i);
 
     // Resolve → modal removed.
     statusDef.resolve({

@@ -52,14 +52,15 @@
       "discarded": "Staging discarded",
       "discardFailed": "Discard failed",
       "progress": {
-        "uploading": "Uploading {filename}…",
-        "validating": "Validating staging…",
-        "refreshing": "Updating staging panel…",
+        "heading": "Replacing the Floor {floor} map",
+        "headingGeneric": "Replacing the map",
+        "uploading": "Sending your new map…",
+        "validating": "Checking it against your shelf information…",
+        "refreshing": "Almost done…",
         "leaveWarning": "An upload is in progress. Leaving may leave staging in an inconsistent state.",
-        "heading": "Updating staged map",
-        "doNotClose": "Do not close this tab. The operation is in progress.",
-        "stuckWarning": "Taking longer than expected. The upload may have failed silently.",
-        "forceClose": "Force close"
+        "doNotClose": "Please keep this tab open — I'm still working.",
+        "stuckWarning": "This is taking longer than usual — it may not have gone through. Keep waiting, or close and try again.",
+        "forceClose": "Close anyway"
       },
       "validate": {
         "passed": "The map you sent looks fine — it passed my checks and matches your shelf information. Want to start using it?",
