@@ -96,6 +96,24 @@
         "promote": "Start using this map",
         "reconcile": "Fix the mismatches",
         "discard": "Discard"
+      },
+      "reconcile": {
+        "title": "Before you publish: a few shelves on Floor {floor} changed — tell me what happened",
+        "renameHeading": "Looks like a shelf was renamed",
+        "sameShelf": "Same shelf on the map — it just has a new label.",
+        "entriesUse": "{entries} currently use \"{code}\".",
+        "applyRename": "Yes, same shelf — keep the entries",
+        "notRename": "No, different shelf — remove those {entries}",
+        "differentShelf": "It became this shelf instead:",
+        "goneHeading": "\"{code}\" is no longer on the map",
+        "gonePrompt": "{entries} use it. What happened to it?",
+        "renamedTo": "It became this shelf:",
+        "removeEntries": "It's gone for good — remove those {entries}",
+        "apply": "Apply these changes",
+        "cancel": "Cancel",
+        "confirmDelete": "This permanently removes {entries} for shelves that are gone. Continue?",
+        "entryWord": "library entry",
+        "entriesWord": "library entries"
       }
     }
   },

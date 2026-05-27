@@ -96,6 +96,24 @@
         "promote": "התחילו להשתמש במפה",
         "reconcile": "תקנו את אי־ההתאמות",
         "discard": "בטל"
+      },
+      "reconcile": {
+        "title": "לפני הפרסום: כמה מדפים בקומה {floor} השתנו — ספרו לי מה קרה",
+        "renameHeading": "נראה שמדף שונה בשמו",
+        "sameShelf": "אותו מדף במפה — פשוט עם תווית חדשה.",
+        "entriesUse": "{entries} משתמשות כרגע ב\"{code}\".",
+        "applyRename": "כן, אותו מדף — לשמור את הרשומות",
+        "notRename": "לא, מדף אחר — להסיר את {entries}",
+        "differentShelf": "הוא הפך למדף הזה:",
+        "goneHeading": "\"{code}\" כבר לא נמצא במפה",
+        "gonePrompt": "{entries} משתמשות בו. מה קרה לו?",
+        "renamedTo": "הוא הפך למדף:",
+        "removeEntries": "הוא נעלם לתמיד — להסיר את {entries}",
+        "apply": "החל את השינויים",
+        "cancel": "ביטול",
+        "confirmDelete": "פעולה זו תסיר לצמיתות {entries} עבור מדפים שאינם קיימים יותר. להמשיך?",
+        "entryWord": "רשומת ספרייה",
+        "entriesWord": "רשומות ספרייה"
       }
     }
   },
