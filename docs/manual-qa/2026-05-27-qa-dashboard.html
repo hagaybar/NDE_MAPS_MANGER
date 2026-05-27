@@ -1,0 +1,210 @@
+<!doctype html>
+<!-- Manual-QA dashboard for the 2026-05-27 librarian-facing changes:
+     #73 (validation panel), #78 Phase 1 (map-flow copy), #57/Phase 4b
+     (review new shelves before promote). Self-contained + offline:
+     inlined base.css, localStorage state. No server required.
+     For live co-testing with Claude, run the html-dashboard engine against
+     this file and ping per card (Claude must be active). -->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Primo Maps — QA dashboard (2026-05-27)</title>
+  <style>
+    :root{
+      --bg:#0f1116;--panel:#181b22;--panel-2:#1f242d;--line:#2b313c;
+      --ink:#e6e9ef;--muted:#9aa4b2;--accent:#6ea8fe;
+      --info:#6ea8fe;--success:#54d18c;--warn:#f0c36d;--error:#f08a8a;
+      --radius:12px;--gap:16px;
+      --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+      --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);line-height:1.5;padding:24px;max-width:1200px;margin:0 auto}
+    h1,h2,h3{line-height:1.25;margin:0 0 .4em}
+    header.dash-head{margin-bottom:8px}
+    header.dash-head .sub{color:var(--muted);font-size:14px}
+    a{color:var(--accent)}
+    .bar{position:sticky;top:0;z-index:5;background:var(--bg);padding:12px 0;border-bottom:1px solid var(--line);margin-bottom:20px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+    .bar .counts{font-size:14px;color:var(--muted)}
+    .bar .counts b{color:var(--ink)}
+    .group-title{margin:26px 0 4px;font-size:18px}
+    .group-sub{color:var(--muted);font-size:13px;margin-bottom:12px}
+    .grid{display:grid;gap:var(--gap);grid-template-columns:repeat(auto-fill,minmax(330px,1fr))}
+    .card{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--line);border-radius:var(--radius);padding:16px}
+    .card.pass{border-left-color:var(--success)}
+    .card.fail{border-left-color:var(--error)}
+    .card.blocked{border-left-color:var(--warn)}
+    .card h3{font-size:15px;display:flex;justify-content:space-between;gap:8px}
+    .card h3 .id{color:var(--muted);font-family:var(--mono);font-size:12px;font-weight:600}
+    .muted{color:var(--muted)}
+    .verifies{font-size:13px;color:var(--muted);margin:.2em 0 .8em}
+    ol.steps{margin:.4em 0;padding-inline-start:20px;font-size:13.5px}
+    ol.steps li{margin:.25em 0}
+    .expect{background:var(--panel-2);border-radius:8px;padding:8px 10px;font-size:13px;margin:8px 0}
+    .expect b{color:var(--success)}
+    .he{background:rgba(110,168,254,.08);border-radius:8px;padding:6px 10px;font-size:12.5px;margin:6px 0;color:var(--muted)}
+    code{font-family:var(--mono);background:var(--panel-2);padding:1px 5px;border-radius:5px;font-size:12.5px}
+    pre{font-family:var(--mono);background:var(--panel-2);padding:10px;border-radius:8px;overflow:auto;font-size:12px}
+    label{display:block;font-size:12px;color:var(--muted);margin-top:10px}
+    select,textarea{width:100%;font:inherit;color:var(--ink);background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:6px 10px;margin-top:3px}
+    textarea{font-size:13px}
+    button{font:inherit;color:var(--ink);background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:7px 14px;cursor:pointer}
+    button:hover{border-color:var(--accent)}
+    .badge{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px}
+    .badge.live{background:rgba(84,209,140,.15);color:var(--success)}
+    .badge.review{background:rgba(240,195,109,.15);color:var(--warn)}
+    .note{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:8px}
+    kbd{font-family:var(--mono);background:var(--panel-2);border:1px solid var(--line);border-radius:5px;padding:1px 6px;font-size:12px}
+  </style>
+</head>
+<body>
+  <header class="dash-head">
+    <h1>Primo Maps — manual QA</h1>
+    <div class="sub">Librarian-facing changes shipped 2026-05-27 · validation panel (#73), map-flow plain language (#78 Phase 1), review-new-shelves (#57 / Phase 4b)</div>
+  </header>
+
+  <div class="bar">
+    <div class="counts" id="counts">—</div>
+    <button id="copy">📋 Copy results for Claude</button>
+    <button id="reset">↺ Reset all</button>
+    <span class="muted" style="font-size:12.5px">Marks save in this browser automatically.</span>
+  </div>
+
+  <div class="note">
+    <h3>Before you start</h3>
+    <ol class="steps">
+      <li>Open the live admin: <a href="https://d3h8i7y9p8lyw7.cloudfront.net/admin/" target="_blank">d3h8i7y9p8lyw7.cloudfront.net/admin/</a> and log in.</li>
+      <li><b>Hard-refresh once</b> (<kbd>Ctrl/Cmd+Shift+R</kbd>) so you get today's deploy, not a cached build.</li>
+      <li>Language toggle is top-right (English / עברית) — several cards ask you to check both.</li>
+      <li><b>To make a "new shelf" for the #57 tests:</b> Map Files → <em>Download</em> a floor (e.g. <code>floor_0.svg</code>), open it in a text editor, add one rect inside the <code>&lt;svg&gt;</code>:
+        <pre>&lt;rect id="qa-new-shelf-1" data-map-object="shelf"
+      x="60" y="60" width="80" height="40" fill="#cccccc"/&gt;</pre>
+        save, then <em>Replace</em> that floor with your edited file. (A "strict superset" upload — nothing removed — so it won't trigger the removed-shelf wizard, only the new-shelf review.)</li>
+      <li>Mark each card Pass / Fail / Blocked and jot notes. When done, <b>Copy results for Claude</b> and paste them to me tomorrow.</li>
+    </ol>
+    <p class="muted" style="font-size:12.5px">Note: #57 / Phase 4b is <b>deployed but its PR (#80) isn't merged yet</b> — these tests are exactly the pre-merge check. #73 and #78 Phase 1 are already merged + live.</p>
+  </div>
+
+  <h2 class="group-title">A · Validation panel — plain &amp; honest <span class="badge live">live (#73)</span></h2>
+  <div class="group-sub">The panel that appears after you click <em>Check the map</em> (formerly "Validate").</div>
+  <div class="grid" id="grid-a"></div>
+
+  <h2 class="group-title">B · Map-replace flow — plain language <span class="badge live">live (#78 P1)</span></h2>
+  <div class="group-sub">Progress dialog, toasts, confirmations, and the reconcile-wizard wording.</div>
+  <div class="grid" id="grid-b"></div>
+
+  <h2 class="group-title">C · Review new shelves before promote <span class="badge review">deployed · PR #80 (#57)</span></h2>
+  <div class="group-sub">The new gate: a map with a shelf that has no library entry must be reviewed before going live.</div>
+  <div class="grid" id="grid-c"></div>
+
+  <script>
+    const SCENARIOS = {
+      "grid-a": [
+        { id:"A1", title:"Plain \"looks fine\" copy", verifies:"Passed-state copy is first-person & jargon-free.",
+          steps:["Map Files → Replace a floor with a valid map (or re-upload the current one).","Click <b>Check the map</b>.","Read the green result line."],
+          expect:"Reads like <b>“The map you sent looks fine — it passed my checks and matches your shelf information. Want to start using it?”</b> — NOT “Validation passed”.",
+          he:"Hebrew: “המפה ששלחתם נראית תקינה…”" },
+        { id:"A2", title:"No over-report after reconcile", verifies:"The #73 bug fix: a reconciled shelf isn't falsely flagged.",
+          steps:["Upload a map where a shelf was <b>renamed</b> (old code gone, new code present).","Run the reconcile wizard → confirm the rename.","Re-check the map."],
+          expect:"The reconciled shelf is <b>NOT</b> listed as “will be unlinked” or “unmapped”. No false “data loss” warning.",
+          he:"" },
+        { id:"A3", title:"Zero-count sections hidden", verifies:"No noisy “0 …” lines.",
+          steps:["On any passed result with nothing to report, read the panel."],
+          expect:"You see only the reassuring headline — <b>no</b> “0 library entries…” / “0 removed…” clutter.",
+          he:"" }
+      ],
+      "grid-b": [
+        { id:"B1", title:"Progress modal names the floor", verifies:"#78: heading + plain steps.",
+          steps:["Map Files → <b>Replace</b> a floor map with a new file.","Watch the progress dialog while it works."],
+          expect:"Heading reads <b>“Replacing the Floor N map”</b> (with the real floor number) and steps read “Sending your new map… / Checking it against your shelf information… / Almost done…”.",
+          he:"Hebrew: “מחליף את מפת קומה N”." },
+        { id:"B2", title:"Toasts & confirms are plain", verifies:"#78: no system jargon.",
+          steps:["Replace confirm dialog → read it.","Promote a map → read the success toast.","Start a discard → read the confirm."],
+          expect:"Replace asks <b>“Replace the Floor N map with this file?…”</b>; promote says <b>“Your new map is now live.”</b>; discard asks <b>“Throw away this map and start over?”</b> — no “promote/staging” wording.",
+          he:"Check the same three in Hebrew." },
+        { id:"B3", title:"Reconcile wizard wording", verifies:"#78: wizard copy is plain (now i18n'd).",
+          steps:["Upload a map that <b>removes</b> a shelf the CSV uses → open the reconcile wizard."],
+          expect:"Cards read like <b>“Looks like a shelf was renamed”</b> / “Same shelf on the map — it just has a new label.” / “Before you publish…” — no raw “CSV reference” jargon.",
+          he:"Confirm the wizard renders in Hebrew too." }
+      ],
+      "grid-c": [
+        { id:"C1", title:"New shelf → review gate", verifies:"#57: no silent one-click promote.",
+          steps:["Upload a map containing a brand-new shelf (see “Before you start”).","Click <b>Check the map</b>."],
+          expect:"The panel shows <b>“Review N new shelves”</b> instead of a one-click promote — you cannot promote until you review.",
+          he:"" },
+        { id:"C2", title:"Add library info now", verifies:"#57: inline add-entry form appends a real row.",
+          steps:["Click <b>Review new shelves</b>.","On the new-shelf card choose <b>Add library info now</b>.","Form: shelf code + floor are <b>pre-filled</b>. Fill library, collection, range start, range end (try a few optional fields too).","Save → it re-checks.","Promote."],
+          expect:"Form rejects until library/collection/range are filled. After save the shelf is mapped, <b>Promote unlocks</b>, and after promote the new row exists in the CSV (check CSV Editor).",
+          he:"" },
+        { id:"C3", title:"Leave unmapped", verifies:"#57: explicit opt-out still easy.",
+          steps:["With a new shelf, open the review.","Choose <b>Leave unmapped</b> for it.","Proceed."],
+          expect:"It's an explicit one-click choice; <b>Promote then unlocks</b> with no CSV change. (Decorative / map-later case.)",
+          he:"" },
+        { id:"C4", title:"Not a real shelf → discard", verifies:"#57: safe manual path, no in-app SVG editing.",
+          steps:["In the review, use the <b>“Is one of these not a real shelf?”</b> option.","Read the guidance + click Discard."],
+          expect:"Guidance says to remove it from your map file and upload again; <b>Discard</b> clears staging. (We deliberately don't edit your SVG in-app.)",
+          he:"" },
+        { id:"C5", title:"Bad add is rejected", verifies:"#57: server validation (range + required).",
+          steps:["Add library info with a <b>bad range</b> (start &gt; end, or different prefixes like A1 → B9), or leave a required field blank.","Try to save."],
+          expect:"Saving is blocked / returns a <b>clear error</b> — no invalid row reaches the CSV.",
+          he:"" },
+        { id:"C6", title:"Added review in Hebrew", verifies:"#57: en/he parity.",
+          steps:["Switch to עברית, repeat C1 → review opens."],
+          expect:"The “Review new shelves” button, the cards, and the add form all render in Hebrew.",
+          he:"" }
+      ]
+    };
+
+    const KEY = "primo-qa-2026-05-27";
+    const state = JSON.parse(localStorage.getItem(KEY) || "{}");
+    function save(){ localStorage.setItem(KEY, JSON.stringify(state)); render(); }
+
+    function cardHtml(s){
+      const st = state[s.id] || {};
+      return `<section class="card ${st.status||''}" data-id="${s.id}">
+        <h3><span>${s.title}</span><span class="id">${s.id}</span></h3>
+        <div class="verifies">${s.verifies}</div>
+        <ol class="steps">${s.steps.map(x=>`<li>${x}</li>`).join("")}</ol>
+        <div class="expect"><b>Expect:</b> ${s.expect}</div>
+        ${s.he?`<div class="he">🇮🇱 ${s.he}</div>`:""}
+        <label>Result
+          <select class="status" data-id="${s.id}">
+            <option value="">— to do —</option>
+            <option value="pass">✅ Pass</option>
+            <option value="fail">❌ Fail</option>
+            <option value="blocked">⛔ Blocked</option>
+          </select>
+        </label>
+        <label>Notes
+          <textarea class="notes" data-id="${s.id}" rows="2" placeholder="what you saw…"></textarea>
+        </label>
+      </section>`;
+    }
+
+    function render(){
+      let pass=0,fail=0,blocked=0,total=0;
+      for(const g in SCENARIOS){
+        document.getElementById(g).innerHTML = SCENARIOS[g].map(cardHtml).join("");
+        SCENARIOS[g].forEach(s=>{ total++; const st=(state[s.id]||{}).status; if(st==="pass")pass++; else if(st==="fail")fail++; else if(st==="blocked")blocked++; });
+      }
+      // restore selects + notes, wire events
+      document.querySelectorAll(".status").forEach(el=>{ el.value=(state[el.dataset.id]||{}).status||""; el.onchange=()=>{ state[el.dataset.id]={...state[el.dataset.id],status:el.value}; save(); }; });
+      document.querySelectorAll(".notes").forEach(el=>{ el.value=(state[el.dataset.id]||{}).notes||""; el.oninput=()=>{ state[el.dataset.id]={...state[el.dataset.id],notes:el.value}; localStorage.setItem(KEY,JSON.stringify(state)); }; });
+      document.getElementById("counts").innerHTML = `<b>${pass}</b> pass · <b>${fail}</b> fail · <b>${blocked}</b> blocked · ${total-pass-fail-blocked} to do <span class="muted">(of ${total})</span>`;
+    }
+
+    document.getElementById("copy").onclick = ()=>{
+      let out = "Primo Maps QA results (2026-05-27)\n";
+      for(const g in SCENARIOS) SCENARIOS[g].forEach(s=>{
+        const st=state[s.id]||{}; const m={pass:"PASS",fail:"FAIL",blocked:"BLOCKED"}[st.status]||"todo";
+        out += `\n[${m}] ${s.id} ${s.title}`; if(st.notes) out += `\n   notes: ${st.notes}`;
+      });
+      navigator.clipboard.writeText(out).then(()=>{ const b=document.getElementById("copy"); b.textContent="✅ Copied"; setTimeout(()=>b.textContent="📋 Copy results for Claude",1500); });
+    };
+    document.getElementById("reset").onclick = ()=>{ if(confirm("Clear all QA marks?")){ for(const k in state) delete state[k]; save(); } };
+
+    render();
+  </script>
+</body>
+</html>
