@@ -28,6 +28,13 @@ interface StagingValidated {
   summary: {
     addedShelves: Array<{ floor: number; svgCode: string }>;
     removedRefs: Array<{ floor: number; svgCode: string; affectedRowCount: number }>;
+    /**
+     * #57: shelves present in the staged SVG but not yet referenced by any CSV
+     * row. The staging panel gates Promote behind a per-shelf review when this
+     * is non-empty (see `staging-panel.js`'s `needsReview` branch). Optional so
+     * the existing strict-superset/removed-ref specs above don't have to set it.
+     */
+    newlyAddedShelves?: Array<{ floor: number; svgCode: string }>;
   };
   at?: string;
 }
@@ -232,6 +239,83 @@ test.describe('SoT — staged SVG replace', () => {
 
     await panel.locator('[data-action="promote-staging"]').click();
     await expect(panel).toContainText(/No map is waiting for review/i, { timeout: 10000 });
+  });
+
+  test('new-shelf upload gates promote behind add-now review (#57)', async ({ page }) => {
+    // Validation passes but reports a newly-added (unmapped) shelf. The panel
+    // must gate Promote behind a "Review N new shelves" step. After the wizard's
+    // Added card gets an inline library entry submitted, /staging/reconcile
+    // appends the row and the post-reconcile /staging/validate reports no more
+    // newly-added shelves, so Promote unlocks.
+    await mockStagingApi(page, {
+      owner: 'test-admin',
+      pendingValidation: {
+        ok: true,
+        errors: [],
+        summary: {
+          addedShelves: [{ floor: 1, svgCode: 'NEW_1' }],
+          removedRefs: [],
+          newlyAddedShelves: [{ floor: 1, svgCode: 'NEW_1' }],
+        },
+      },
+      postReconcileValidation: {
+        ok: true,
+        errors: [],
+        summary: {
+          addedShelves: [{ floor: 1, svgCode: 'NEW_1' }],
+          removedRefs: [],
+          newlyAddedShelves: [],
+        },
+      },
+    });
+
+    page.on('dialog', d => d.accept().catch(() => {}));
+
+    const fileChooserPromise = page.waitForEvent('filechooser');
+    await replaceButtonFor(page, 'floor_1.svg').click();
+    const chooser = await fileChooserPromise;
+    await chooser.setFiles({
+      name: 'floor_1.svg',
+      mimeType: 'image/svg+xml',
+      buffer: Buffer.from(
+        '<svg xmlns="http://www.w3.org/2000/svg">' +
+          '<rect id="EXISTING" data-map-object="shelf"/>' +
+          '<rect id="NEW_1" data-map-object="shelf"/>' +
+        '</svg>'
+      ),
+    });
+
+    const panel = page.locator('#staging-panel-host');
+    // Promote is gated: the panel shows the review control, not Promote.
+    await expect(panel.locator('[data-action="review-new-shelves"]')).toBeVisible({ timeout: 10000 });
+    await expect(panel.locator('[data-action="promote-staging"]')).toHaveCount(0);
+
+    // Open the wizard's Added group and resolve the NEW_1 card via "add now".
+    await panel.locator('[data-action="review-new-shelves"]').click();
+    const addedCard = panel.locator('[data-added-card][data-svg-code="NEW_1"]');
+    await expect(addedCard).toBeVisible({ timeout: 10000 });
+
+    // Choosing "add now" reveals the inline form; the submit stays disabled
+    // until the four required fields (library/collection/range) are filled.
+    await addedCard.locator('input[type="radio"][value="add-now"]').check();
+    const submitAdded = panel.locator('[data-action="submit-added"]');
+    await expect(submitAdded).toBeDisabled();
+
+    await addedCard.locator('[data-field="libraryName"]').fill('Central Library');
+    await addedCard.locator('[data-field="collectionName"]').fill('General Stacks');
+    await addedCard.locator('[data-field="rangeStart"]').fill('A1');
+    await addedCard.locator('[data-field="rangeEnd"]').fill('A9');
+
+    await expect(submitAdded).toBeEnabled();
+    await submitAdded.click();
+
+    // After the add is applied + re-validated, the panel no longer reports a
+    // newly-added shelf, so Promote unlocks.
+    await expect(panel.locator('[data-action="promote-staging"]')).toBeVisible({ timeout: 10000 });
+    await panel.locator('[data-action="promote-staging"]').click();
+
+    // The promote success toast announces the live map.
+    await expect(page.locator('#toast-container')).toContainText(/Your new map is now live/i, { timeout: 10000 });
   });
 
   test('removed-ref upload triggers reconcile wizard and resolves green', async ({ page }) => {
