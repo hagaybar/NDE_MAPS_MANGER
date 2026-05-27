@@ -89,6 +89,12 @@ const USE_STAGING_FLOW = window.__USE_STAGING_FLOW__ === true;
 // Module variables
 let svgFiles = [];
 
+// #57: session flag — true once the operator has reviewed this staging's
+// newly-added shelves (added entries or explicitly left unmapped). Gates the
+// Promote button in the passed-state panel. Reset on every new upload/validate
+// so a fresh staging requires a fresh review.
+let addsReviewed = false;
+
 /**
  * Initialize the SVG Manager component
  */
@@ -235,6 +241,7 @@ async function refreshStagingPanel() {
   const status = await resp.json();
   renderStagingPanel(host, status, {
     currentUser: getCurrentUsername(),
+    addsReviewed,
   });
   wireStagingActions();
 }
@@ -298,6 +305,8 @@ function wireStagingActions() {
   const host = document.getElementById('staging-panel-host');
   if (!host) return;
   host.querySelector('[data-action="validate-staging"]')?.addEventListener('click', async () => {
+    // #57: a fresh manual validate is a fresh review — drop any prior ack.
+    addsReviewed = false;
     const resp = await fetch(`${STAGING_API_BASE}/validate`, {
       method: 'POST',
       headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
@@ -469,6 +478,91 @@ function wireStagingActions() {
       () => refreshStagingPanel()
     );
   });
+
+  // #57: open the wizard's Added group to review newly-added shelves. Each card
+  // is either given a library entry (POST /staging/reconcile with action:'add')
+  // or explicitly left unmapped (no server call). After review, mark the session
+  // as reviewed, re-validate, and refresh so Promote unlocks.
+  host.querySelector('[data-action="review-new-shelves"]')?.addEventListener('click', async () => {
+    const statusResp = await fetch(`${STAGING_API_BASE}/status`, { headers: getAuthHeaders() });
+    const status = await statusResp.json();
+    const validated = status.lastValidated;
+    if (!validated || !validated.ok) return;
+    const newlyAddedShelves = validated.summary?.newlyAddedShelves || [];
+    if (!newlyAddedShelves.length) return;
+    // Floor for the wizard's diff.floor default: the first new shelf's floor.
+    const firstFloor = newlyAddedShelves[0]?.floor;
+    renderReconcileWizard(
+      document.getElementById('staging-panel-host'),
+      { floor: firstFloor, newlyAddedShelves },
+      async (floor, map, info) => {
+        const codes = Object.keys(map);
+        if (codes.length) {
+          // newlyAddedShelves may span floors; the per-card form prefills each
+          // entry's floor, so group the built map by entry floor and POST one
+          // reconcile per distinct floor present in the chosen adds.
+          const byFloor = {};
+          for (const code of codes) {
+            const entry = map[code];
+            const entryFloor = Number(entry?.fields?.floor ?? floor);
+            (byFloor[entryFloor] = byFloor[entryFloor] || {})[code] = entry;
+          }
+          for (const [f, reconcileMap] of Object.entries(byFloor)) {
+            const resp = await fetch(`${STAGING_API_BASE}/reconcile`, {
+              method: 'POST',
+              headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+              body: JSON.stringify({ floor: Number(f), reconcileMap }),
+            });
+            if (!resp.ok) {
+              showToast(t('svg.staging.reconcileFailed'));
+              return;
+            }
+          }
+        }
+        // Mark this session's adds as reviewed (added rows drop out of
+        // newlyAddedShelves on re-validate; leave-unmapped codes are
+        // acknowledged here) → re-validate + refresh with addsReviewed=true.
+        addsReviewed = true;
+        await fetch(`${STAGING_API_BASE}/validate`, {
+          method: 'POST',
+          headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+          body: '{}',
+        });
+        await refreshStagingPanel();
+      },
+      () => refreshStagingPanel()
+    );
+    // The "not a real shelf" Discard escape lives in the wizard's Added group
+    // (rendered above into the panel host), so wire it once the wizard exists.
+    document.getElementById('staging-panel-host')
+      ?.querySelector('[data-action="discard-from-added"]')
+      ?.addEventListener('click', discardFromAdded);
+  });
+}
+
+/**
+ * #57: the wizard's Added group offers a "not a real shelf" escape that discards
+ * the upload (operator re-edits + re-uploads). Mirrors the existing discard flow
+ * (confirm → spinner → POST /clear → refresh), then resets the review flag.
+ */
+async function discardFromAdded() {
+  if (!window.confirm(t('svg.staging.confirmDiscard'))) return;
+  const panelHost = document.getElementById('staging-panel-host');
+  if (panelHost) showDiscardIndicator(panelHost);
+  try {
+    await fetch(`${STAGING_API_BASE}/clear`, {
+      method: 'POST',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: '{}',
+    });
+    addsReviewed = false;
+    await refreshStagingPanel();
+    showToast(t('svg.staging.discarded'), 'success');
+  } catch (err) {
+    console.error('Failed to discard staging:', err);
+    await refreshStagingPanel().catch(() => {});
+    showToast(t('svg.staging.discardFailed'), 'error');
+  }
 }
 
 /**
@@ -822,6 +916,8 @@ async function replaceFile(targetFilename, file) {
     // Issue #58: provide per-step UI feedback during the upload → validate →
     // refresh sequence. Without this, librarians sit through 3-15s of silent
     // UI and frequently double-click Replace or close the tab mid-flight.
+    // #57: a new upload starts a new staging → a fresh review is required.
+    addsReviewed = false;
     const sequence = beginStagingSequence(targetFilename);
     try {
       const base64 = await fileToBase64(file);
