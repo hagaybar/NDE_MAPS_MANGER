@@ -81,9 +81,10 @@
         <pre>&lt;rect id="qa-new-shelf-1" data-map-object="shelf"
       x="60" y="60" width="80" height="40" fill="#cccccc"/&gt;</pre>
         save, then <em>Replace</em> that floor with your edited file. (A "strict superset" upload — nothing removed — so it won't trigger the removed-shelf wizard, only the new-shelf review.)</li>
-      <li>Mark each card Pass / Fail / Blocked and jot notes. When done, <b>Copy results for Claude</b> and paste them to me tomorrow.</li>
+      <li>Mark each card Pass / Fail / Blocked and jot notes (saved automatically — stop and resume anytime).</li>
+      <li><b>How to send me results — there is no live "ping" in this offline dashboard.</b> When you're done (or stuck on a card), click <b>📋 Copy results for Claude</b> at the top and paste it into our chat. Or just tell me in chat which card + what you saw (exactly like you did for C1). <em>(If you'd rather ping me per-card in real time, ask me to "turn on the live bridge" and I'll switch the dashboard to its interactive mode.)</em></li>
     </ol>
-    <p class="muted" style="font-size:12.5px">Note: #57 / Phase 4b is <b>deployed but its PR (#80) isn't merged yet</b> — these tests are exactly the pre-merge check. #73 and #78 Phase 1 are already merged + live.</p>
+    <p class="muted" style="font-size:12.5px">Status: #73 and #78 Phase 1 are merged + live. <b>#57 / Phase 4b (Group C) is deployed but PR #80 isn't merged yet</b> — Group C is the pre-merge check. <b>#81 (Group D) is fixed + live</b> as of 2026-05-28.</p>
   </div>
 
   <h2 class="group-title">A · Validation panel — plain &amp; honest <span class="badge live">live (#73)</span></h2>
@@ -97,6 +98,10 @@
   <h2 class="group-title">C · Review new shelves before promote <span class="badge review">deployed · PR #80 (#57)</span></h2>
   <div class="group-sub">The new gate: a map with a shelf that has no library entry must be reviewed before going live.</div>
   <div class="grid" id="grid-c"></div>
+
+  <h2 class="group-title">D · Map Editor — add a range to a shelf <span class="badge live">fixed + live (#81)</span></h2>
+  <div class="group-sub">The just-fixed bug: a newly-added range row used to vanish the moment you typed into it.</div>
+  <div class="grid" id="grid-d"></div>
 
   <script>
     const SCENARIOS = {
@@ -133,9 +138,9 @@
           steps:["Upload a map containing a brand-new shelf (see “Before you start”).","Click <b>Check the map</b>."],
           expect:"The panel shows <b>“Review N new shelves”</b> instead of a one-click promote — you cannot promote until you review.",
           he:"" },
-        { id:"C2", title:"Add library info now", verifies:"#57: inline add-entry form appends a real row.",
-          steps:["Click <b>Review new shelves</b>.","On the new-shelf card choose <b>Add library info now</b>.","Form: shelf code + floor are <b>pre-filled</b>. Fill library, collection, range start, range end (try a few optional fields too).","Save → it re-checks.","Promote."],
-          expect:"Form rejects until library/collection/range are filled. After save the shelf is mapped, <b>Promote unlocks</b>, and after promote the new row exists in the CSV (check CSV Editor).",
+        { id:"C2", title:"Add library info now", verifies:"#57: the inline form gives a new shelf a real CSV entry so patrons can find it. This is the main new-shelf path.",
+          steps:["After C1, click <b>Review new shelves</b> → the wizard opens with a card for your new shelf.","On that card choose <b>Add library info now</b> → an inline form appears.","Shelf code + floor are <b>already filled in (read-only)</b>. Fill the <b>required</b> fields: Library, Collection, Range start, Range end (e.g. start 100, end 199). Optional: Hebrew names, description, shelf label, notes — fill as many as you like.","<b>Save</b> → the map is re-checked; the shelf is now mapped and drops out of “new shelves”.","<b>Promote</b> → “Your new map is now live.”","Open the <b>CSV Editor</b> and confirm a new row exists for that shelf code with what you typed."],
+          expect:"Save is <b>blocked until Library/Collection/Range are filled</b>. After saving, the shelf is mapped, <b>Promote unlocks</b>, and the new CSV row persists after promote.",
           he:"" },
         { id:"C3", title:"Leave unmapped", verifies:"#57: explicit opt-out still easy.",
           steps:["With a new shelf, open the review.","Choose <b>Leave unmapped</b> for it.","Proceed."],
@@ -153,6 +158,12 @@
           steps:["Switch to עברית, repeat C1 → review opens."],
           expect:"The “Review new shelves” button, the cards, and the add form all render in Hebrew.",
           he:"" }
+      ],
+      "grid-d": [
+        { id:"D1", title:"Add a range row — it stays while you type", verifies:"#81 (fixed + live): a newly-added range row used to vanish on the first keystroke.",
+          steps:["Map Editor (עורך מפות) → click a shelf → the bottom drawer opens.","Click <b>Add range</b> → a new empty row appears.","<b>Type a value into the new row</b> (e.g. Range start) — this is the action that used to delete it.","Fill range start + end, then <b>Save</b>.","Reopen the shelf and confirm the range is there."],
+          expect:"The new row <b>stays as you type</b> (previously it disappeared on the first keystroke) and saves correctly.",
+          he:"Same behavior in Hebrew." }
       ]
     };
 
