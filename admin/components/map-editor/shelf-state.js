@@ -22,7 +22,16 @@ export function createShelfState({ ranges, permittedRowIds }) {
     },
 
     edit(rangeId, patch) {
-      _pending.set(rangeId, { type: 'modify', patch: { ...(_pending.get(rangeId)?.patch || {}), ...patch } });
+      // If this row is a not-yet-saved add, merge the edit INTO the add so it
+      // stays an 'add' (materialize only re-adds 'add' entries). Overwriting it
+      // with a 'modify' would orphan the row — it isn't in _ranges yet — and
+      // drop it on the next render (issue #81).
+      const existing = _pending.get(rangeId);
+      if (existing && existing.type === 'add') {
+        _pending.set(rangeId, { type: 'add', range: { ...existing.range, ...patch } });
+        return;
+      }
+      _pending.set(rangeId, { type: 'modify', patch: { ...(existing?.patch || {}), ...patch } });
     },
     add(tempId, range) {
       _pending.set(tempId, { type: 'add', range });

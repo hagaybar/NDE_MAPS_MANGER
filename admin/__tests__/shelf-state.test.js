@@ -70,3 +70,32 @@ describe('shelfState.materialize permission filter', () => {
     expect(out).toHaveLength(1);
   });
 });
+
+describe('shelfState add-then-edit (issue #81)', () => {
+  test('editing a freshly-added row keeps it and applies the value', () => {
+    const s = createShelfState({
+      ranges: [{ id: 'r1', svgCode: 'A1', floor: '0', rangeStart: '1', rangeEnd: '9' }],
+      permittedRowIds: null,
+    });
+    s.add('temp-1', { svgCode: 'A1', floor: '0', rangeStart: '', rangeEnd: '' });
+    expect(s.materialize().filter(r => r.svgCode === 'A1')).toHaveLength(2); // r1 + temp-1
+
+    s.edit('temp-1', { rangeStart: '100' }); // librarian types into the new row
+
+    const onShelf = s.materialize().filter(r => r.svgCode === 'A1');
+    expect(onShelf).toHaveLength(2);                       // the new row must NOT vanish
+    const added = onShelf.find(r => r.id === 'temp-1');
+    expect(added).toBeDefined();
+    expect(added.rangeStart).toBe('100');                  // and must carry the typed value
+  });
+
+  test('multiple edits to a new row accumulate into the pending add', () => {
+    const s = createShelfState({ ranges: [], permittedRowIds: null });
+    s.add('temp-1', { svgCode: 'B1', floor: '1', rangeStart: '', rangeEnd: '' });
+    s.edit('temp-1', { rangeStart: '100' });
+    s.edit('temp-1', { rangeEnd: '199' });
+    const added = s.materialize().find(r => r.id === 'temp-1');
+    expect(added).toMatchObject({ svgCode: 'B1', floor: '1', rangeStart: '100', rangeEnd: '199' });
+    expect(s.pendingEdits().get('temp-1').type).toBe('add'); // still an add, not a modify
+  });
+});
