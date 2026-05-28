@@ -34,6 +34,8 @@ const FALLBACKS = {
   'svg.staging.header':                   { en: 'Map waiting for review (uploaded by {owner})', he: 'מפה ממתינה לבדיקה (הועלתה על־ידי {owner})' },
   'svg.staging.actions.validate':         { en: 'Check the map', he: 'בדוק את המפה' },
   'svg.staging.actions.promote':          { en: 'Start using this map', he: 'התחילו להשתמש במפה' },
+  'svg.staging.reconcile.added.reviewButton': { en: 'Review {count} new shelves', he: 'בדקו {count} מדפים חדשים' },
+  'svg.staging.reconcile.added.gateLine':     { en: "Tell me what each new shelf is before this map goes live.", he: 'ספרו לי מה כל מדף חדש לפני שהמפה הזו עולה לאוויר.' },
   'svg.staging.actions.reconcile':        { en: 'Fix the mismatches', he: 'תקנו את אי־ההתאמות' },
   'svg.staging.actions.discard':          { en: 'Discard', he: 'בטל' },
 };
@@ -76,8 +78,8 @@ export function renderStagingPanel(host, status, opts = {}) {
   const validated = status.lastValidated;
   const files = (status.files || []).map(f => `<li class="font-mono text-xs">${escapeHtml(f)}</li>`).join('');
 
-  const btn = (action, key, cls) =>
-    `<button data-action="${action}" class="${cls}">${escapeHtml(t(key))}</button>`;
+  const btn = (action, key, cls, vars) =>
+    `<button data-action="${action}" class="${cls}">${escapeHtml(t(key, vars))}</button>`;
   const discardBtn = btn('discard-staging', 'svg.staging.actions.discard', 'px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200');
 
   let stateBlock = '';
@@ -130,10 +132,23 @@ export function renderStagingPanel(host, status, opts = {}) {
       ${section(removedRefs.length, 'svg.staging.validate.unlinked', '', null)}
       ${section(preExisting.length, 'svg.staging.validate.preExisting', idList(preExisting), 'svg.staging.validate.preExistingHint')}
     `;
-    actions = `
-      ${btn('promote-staging', 'svg.staging.actions.promote', 'px-3 py-1.5 text-sm bg-green-600 text-white rounded hover:bg-green-700')}
-      ${discardBtn}
-    `;
+    // #57: gate Promote behind a per-shelf review of any newly-added shelves.
+    // When there are new unmapped shelves and the operator hasn't reviewed them
+    // yet (opts.addsReviewed), replace Promote with a "Review N new shelves"
+    // control + a short gate line. Once reviewed, show Promote as usual.
+    const needsReview = newlyAdded.length > 0 && !opts.addsReviewed;
+    if (needsReview) {
+      stateBlock += `<div class="text-xs text-amber-700 mt-2">${escapeHtml(t('svg.staging.reconcile.added.gateLine'))}</div>`;
+      actions = `
+        ${btn('review-new-shelves', 'svg.staging.reconcile.added.reviewButton', 'px-3 py-1.5 text-sm bg-amber-500 text-white rounded hover:bg-amber-600', { count: newlyAdded.length })}
+        ${discardBtn}
+      `;
+    } else {
+      actions = `
+        ${btn('promote-staging', 'svg.staging.actions.promote', 'px-3 py-1.5 text-sm bg-green-600 text-white rounded hover:bg-green-700')}
+        ${discardBtn}
+      `;
+    }
   } else {
     const removedRefs = validated.summary?.removedRefs || [];
     const removedSummary = removedRefs

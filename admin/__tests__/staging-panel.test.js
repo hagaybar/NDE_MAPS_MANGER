@@ -54,7 +54,7 @@ describe('staging-panel', () => {
           ],
         },
       },
-    });
+    }, { addsReviewed: true }); // #57: this test asserts section honesty + Promote; reviewed → Promote shown.
     const host = document.getElementById('staging-panel-host');
     const text = host.textContent;
     expect(host.innerHTML).not.toContain('no CSV changes needed');
@@ -87,7 +87,7 @@ describe('staging-panel', () => {
           unmappedShelves: [],
         },
       },
-    });
+    }, { addsReviewed: true }); // #57: this test asserts rename rendering + Promote; reviewed → Promote shown.
     const host = document.getElementById('staging-panel-host');
     const text = host.textContent;
 
@@ -109,6 +109,70 @@ describe('staging-panel', () => {
 
     // Promote still available.
     expect(host.querySelector('[data-action="promote-staging"]')).not.toBeNull();
+  });
+
+  test('GREEN state with newlyAddedShelves gates Promote behind Review (#57)', () => {
+    renderStagingPanel(document.getElementById('staging-panel-host'), {
+      locked: true,
+      owner: 'alice',
+      files: ['maps/floor_1.svg'],
+      lastValidated: {
+        ok: true,
+        errors: [],
+        summary: {
+          newlyAddedShelves: [{ svgCode: 'NEW_1', floor: 1 }, { svgCode: 'NEW_2', floor: 1 }],
+          removedRefs: [],
+        },
+      },
+    });
+    const host = document.getElementById('staging-panel-host');
+    // Review control present with the count interpolated.
+    const review = host.querySelector('[data-action="review-new-shelves"]');
+    expect(review).not.toBeNull();
+    expect(review.textContent).toContain('Review 2 new shelves');
+    // Promote must NOT be available (gated) while there are unreviewed adds.
+    const promote = host.querySelector('[data-action="promote-staging"]');
+    expect(promote === null || promote.disabled === true).toBe(true);
+    // Discard still available.
+    expect(host.querySelector('[data-action="discard-staging"]')).not.toBeNull();
+  });
+
+  test('GREEN state with newlyAddedShelves shows Promote once addsReviewed (#57)', () => {
+    renderStagingPanel(document.getElementById('staging-panel-host'), {
+      locked: true,
+      owner: 'alice',
+      files: ['maps/floor_1.svg'],
+      lastValidated: {
+        ok: true,
+        errors: [],
+        summary: {
+          newlyAddedShelves: [{ svgCode: 'NEW_1', floor: 1 }],
+          removedRefs: [],
+        },
+      },
+    }, { addsReviewed: true });
+    const host = document.getElementById('staging-panel-host');
+    const promote = host.querySelector('[data-action="promote-staging"]');
+    expect(promote).not.toBeNull();
+    expect(promote.disabled).toBeFalsy();
+    // No review CTA once reviewed.
+    expect(host.querySelector('[data-action="review-new-shelves"]')).toBeNull();
+  });
+
+  test('GREEN state with empty newlyAddedShelves shows Promote, no Review (#57)', () => {
+    renderStagingPanel(document.getElementById('staging-panel-host'), {
+      locked: true,
+      owner: 'alice',
+      files: ['maps/floor_1.svg'],
+      lastValidated: {
+        ok: true,
+        errors: [],
+        summary: { newlyAddedShelves: [], removedRefs: [] },
+      },
+    });
+    const host = document.getElementById('staging-panel-host');
+    expect(host.querySelector('[data-action="promote-staging"]')).not.toBeNull();
+    expect(host.querySelector('[data-action="review-new-shelves"]')).toBeNull();
   });
 
   test('renders RED state with reconcile wizard CTA', () => {
