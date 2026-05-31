@@ -1,67 +1,51 @@
 /* ------------------------------------------------------------------
- * Map Editor mockup — clean, hand-crafted sample floor SVGs.
- * Renders from window.MOCK.FLOORS. Shelves are clickable <g> with
- * data-code; CSS classes drive hover / selected / pulse / attention.
- * Direction-agnostic geometry (lives inside a direction:ltr canvas).
+ * Map Editor mockup — REAL floor SVG loader.
+ * Loads the production floor plans (duplicated into this folder), makes
+ * them responsive (the #70 fix: derive a viewBox, strip width/height so
+ * CSS scales-to-fit), and reports the real shelf codes.
+ *
+ * Shelf rule (matches admin/services/svg-shelves.js):
+ *   element has data-map-object="shelf" AND a non-empty id (= svgCode).
  * ------------------------------------------------------------------ */
 (function () {
   'use strict';
-  const VIEW_W = 880, VIEW_H = 560;
+  const cache = {};   // floorId -> { svg, codes }
 
-  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => (
-    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
-
-  function decorMarkup(d, lang) {
-    if (d.type === 'room') {
-      const cx = d.x + d.w / 2, cy = d.y + d.h / 2;
-      return `<g class="decor decor-room">
-        <rect x="${d.x}" y="${d.y}" width="${d.w}" height="${d.h}" rx="10"/>
-        <text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle">${esc(d[lang] || d.en)}</text>
-      </g>`;
-    }
-    if (d.type === 'stairs') {
-      let steps = '';
-      const n = 6, sh = d.h / n;
-      for (let i = 1; i < n; i++) steps += `<line x1="${d.x}" y1="${d.y + i * sh}" x2="${d.x + d.w}" y2="${d.y + i * sh}"/>`;
-      return `<g class="decor decor-stairs"><rect x="${d.x}" y="${d.y}" width="${d.w}" height="${d.h}" rx="4"/>${steps}</g>`;
-    }
-    if (d.type === 'entrance') {
-      return `<g class="decor decor-entrance">
-        <circle cx="${d.x}" cy="${d.y - 6}" r="5"/>
-        <text x="${d.x}" y="${d.y + 16}" text-anchor="middle">${esc(d[lang] || d.en)}</text>
-      </g>`;
-    }
-    return '';
+  // Derive a viewBox from width/height and strip width/height on the ROOT <svg>
+  // so the map scales to fit the canvas instead of rendering at native size.
+  function makeResponsive(svgText) {
+    return svgText.replace(/<svg\b[^>]*>/, (open) => {
+      const w = (open.match(/\bwidth\s*=\s*"([\d.]+)[^"]*"/) || [])[1];
+      const h = (open.match(/\bheight\s*=\s*"([\d.]+)[^"]*"/) || [])[1];
+      let tag = open;
+      if (!/\bviewBox\s*=/.test(tag) && w && h) tag = tag.replace('<svg', `<svg viewBox="0 0 ${w} ${h}"`);
+      tag = tag.replace(/\s(width|height)\s*=\s*"[^"]*"/g, '');
+      if (!/\bpreserveAspectRatio\s*=/.test(tag)) tag = tag.replace('<svg', '<svg preserveAspectRatio="xMidYMid meet"');
+      return tag;
+    });
   }
 
-  // primary tone = first entry's collection; empty shelves are neutral
-  function shelfTone(shelf) { return shelf.entries && shelf.entries.length ? shelf.entries[0].col : null; }
-
-  function shelfMarkup(shelf, lang) {
-    const vertical = shelf.orient === 'v';
-    const cx = shelf.x + shelf.w / 2, cy = shelf.y + shelf.h / 2;
-    const tone = shelfTone(shelf);
-    const empty = !(shelf.entries && shelf.entries.length);
-    const cls = ['shelf', empty ? 'is-empty' : `tone-${tone}`].join(' ');
-    const label = vertical
-      ? `<text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle" transform="rotate(-90 ${cx} ${cy})">${esc(shelf.code)}</text>`
-      : `<text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle">${esc(shelf.code)}</text>`;
-    return `<g class="${cls}" data-code="${esc(shelf.code)}" tabindex="0" role="button" aria-label="${esc(shelf.code)}">
-      <rect class="shelf-body" x="${shelf.x}" y="${shelf.y}" width="${shelf.w}" height="${shelf.h}" rx="4"/>
-      <rect class="shelf-spine" x="${shelf.x}" y="${shelf.y}" width="${vertical ? shelf.w : 5}" height="${vertical ? 5 : shelf.h}" rx="2"/>
-      ${label}
-    </g>`;
+  function parseShelfCodes(svgText) {
+    const tags = svgText.match(/<[a-zA-Z][^>]*?>/g) || [];
+    const seen = new Set(); const codes = [];
+    for (const t of tags) {
+      if (!/\bdata-map-object\s*=\s*["']shelf["']/.test(t)) continue;
+      const m = t.match(/\bid\s*=\s*["']([^"']+)["']/);
+      if (!m || !m[1] || seen.has(m[1])) continue;
+      seen.add(m[1]); codes.push(m[1]);
+    }
+    return codes;
   }
 
-  function renderFloorSvg(floor, lang) {
-    const decor = (floor.decor || []).map(d => decorMarkup(d, lang)).join('');
-    const shelves = (floor.shelves || []).map(s => shelfMarkup(s, lang)).join('');
-    return `<svg class="floor-svg" viewBox="0 0 ${VIEW_W} ${VIEW_H}" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" aria-label="Floor ${floor.id}">
-      <rect class="floor-bg" x="6" y="6" width="${VIEW_W - 12}" height="${VIEW_H - 12}" rx="14"/>
-      <g class="decor-layer">${decor}</g>
-      <g class="shelf-layer">${shelves}</g>
-    </svg>`;
+  async function loadFloorAssets(floorId) {
+    if (cache[floorId]) return cache[floorId];
+    const res = await fetch(`floor_${floorId}.svg`, { cache: 'no-cache' });
+    if (!res.ok) throw new Error(`floor_${floorId}.svg → HTTP ${res.status}`);
+    const raw = await res.text();
+    const out = { svg: makeResponsive(raw), codes: parseShelfCodes(raw) };
+    cache[floorId] = out;
+    return out;
   }
 
-  window.renderFloorSvg = renderFloorSvg;
+  window.FloorSvg = { loadFloorAssets };
 })();

@@ -7,17 +7,44 @@
  * ------------------------------------------------------------------ */
 (function () {
   'use strict';
-  const { COLLECTIONS, FLOORS, STR } = window.MOCK;
+  const { COLLECTIONS, FLOOR_META, SAMPLE_RANGES, ORPHANS, STR } = window.MOCK;
   const clone = (x) => JSON.parse(JSON.stringify(x));
 
   const S = {
-    theme: 'a', lang: 'he', floorId: 0,
+    theme: 'a', lang: 'he', floorId: 1,   // floor 1 is richly marked; floor 0 has just 1 shelf
     mode: 'idle',           // idle | shelf | reassign | triage
     selected: null,         // shelf code
     reassign: null,         // { entry, fromCode, fromFloor, orphan? }
-    data: clone(FLOORS),
-    baseline: clone(FLOORS),
+    data: [], baseline: [], seed: [],     // built at init from the real SVG shelf codes
   };
+
+  /* Build the working model from the REAL shelf codes parsed out of each floor
+     SVG, seeding sample ranges onto a subset so the demo has shelves to edit. */
+  function buildFloors(assets) {
+    return FLOOR_META.map(meta => {
+      const codes = (assets[meta.id] && assets[meta.id].codes) || [];
+      let pop = 0;
+      const shelves = codes.map((code, i) => {
+        const entries = [];
+        if (i < 5 || i % 7 === 0) {                 // ~first 5 + every 7th shelf gets data
+          const base = `seed-${meta.id}-${i}`;
+          if (pop === 0) {                          // conflict demo: overlapping, same collection
+            entries.push({ id: base + '-0', col: 'jud', from: '221', to: '249.9' });
+            entries.push({ id: base + '-1', col: 'jud', from: '240', to: '275' });
+          } else if (pop === 1) {                   // touching-boundary demo: abutting is NOT a conflict
+            entries.push({ id: base + '-0', col: 'soc', from: '300', to: '349.9' });
+            entries.push({ id: base + '-1', col: 'soc', from: '349.9', to: '389.9' });
+          } else {
+            const tmpl = SAMPLE_RANGES[pop % SAMPLE_RANGES.length];
+            entries.push({ id: base + '-0', col: tmpl.col, from: tmpl.from, to: tmpl.to });
+          }
+          pop++;
+        }
+        return { code, entries };
+      });
+      return { id: meta.id, he: meta.he, en: meta.en, shelves, orphans: clone(ORPHANS[meta.id] || []) };
+    });
+  }
 
   /* ---------- tiny helpers ---------- */
   const $ = (s, r = document) => r.querySelector(s);
@@ -74,7 +101,7 @@
     $('#batch-note').innerHTML = '<span class="dot">●</span> ' + esc(t('batch.note'));
 
     const tabs = $('#floor-tabs'); tabs.innerHTML = '';
-    FLOORS.forEach(f => {
+    FLOOR_META.forEach(f => {
       const b = document.createElement('button');
       b.textContent = (S.lang === 'he' ? f.he : f.en);
       b.className = f.id === S.floorId ? 'is-active' : '';
@@ -95,20 +122,28 @@
   }
 
   /* ============================== MAP ============================== */
-  function renderMap() {
+  let mapToken = 0;
+  async function renderMap() {
     const host = $('#map-svg-host');
-    host.innerHTML = window.renderFloorSvg(floor(), S.lang);
+    const my = ++mapToken;
+    let assets;
+    try { assets = await window.FloorSvg.loadFloorAssets(S.floorId); }
+    catch (e) { host.innerHTML = '<div class="idle"><p>המפה לא נטענה / Could not load the floor map.</p></div>'; return; }
+    if (my !== mapToken) return;                 // a newer floor switch superseded us
+    host.innerHTML = assets.svg;
     decorateMap();
   }
   function decorateMap() {
-    const fl = floor();
-    document.querySelectorAll('#map-svg-host .shelf').forEach(g => {
-      const code = g.getAttribute('data-code');
+    const fl = floor(); if (!fl) return;
+    document.querySelectorAll('#map-svg-host [data-map-object="shelf"]').forEach(el => {
+      const code = el.id;
       const sh = shelf(code, fl);
-      g.classList.toggle('is-selected', S.selected === code && S.mode === 'shelf');
-      g.classList.toggle('has-warn', sh && shelfWarnCount(sh) > 0);
+      el.classList.add('mock-shelf');
+      el.classList.toggle('has-entries', !!(sh && sh.entries.length));
+      el.classList.toggle('is-selected', S.selected === code && S.mode === 'shelf');
+      el.classList.toggle('has-warn', !!(sh && shelfWarnCount(sh) > 0));
       const picking = S.mode === 'reassign';
-      g.classList.toggle('is-target', picking && (!S.reassign || S.reassign.fromCode !== code));
+      el.classList.toggle('is-target', picking && (!S.reassign || S.reassign.fromCode !== code));
     });
     $('#map-canvas').classList.toggle('is-picking', S.mode === 'reassign');
     const strip = $('#reassign-strip');
@@ -432,14 +467,14 @@
 
   /* ---------- reset ---------- */
   function resetAll() {
-    S.data = clone(FLOORS); S.baseline = clone(FLOORS);
+    S.data = clone(S.seed); S.baseline = clone(S.seed);
     S.mode = 'idle'; S.selected = null; S.reassign = null;
     sync(); toast(t('mapEditor.toast.reset'));
     if (window.FB) FB.clearSilent();
   }
 
   /* ============================ INIT ============================ */
-  function init() {
+  async function init() {
     // switchers
     ['a', 'b', 'c'].forEach(k => $('#style-' + k).onclick = () => { S.theme = k; renderChrome(); });
     $('#lang-toggle').onclick = () => { S.lang = S.lang === 'he' ? 'en' : 'he'; sync(); };
@@ -448,24 +483,26 @@
     $('#collapse-btn').onclick = toggleCollapse;
     $('#reassign-strip').querySelector('button').onclick = cancelReassign;
 
-    // map click delegation
+    // map click delegation — bind to the REAL shelf elements (data-map-object="shelf")
     $('#map-canvas').addEventListener('click', ev => {
-      const g = ev.target.closest('.shelf');
-      if (g) selectShelf(g.getAttribute('data-code'));
-      else if (ev.target.closest('.floor-bg')) clickBackground();
-    });
-    $('#map-canvas').addEventListener('keydown', ev => {
-      if ((ev.key === 'Enter' || ev.key === ' ') && ev.target.closest('.shelf')) {
-        ev.preventDefault(); selectShelf(ev.target.closest('.shelf').getAttribute('data-code'));
-      }
+      const el = ev.target.closest('[data-map-object="shelf"]');
+      if (el && el.id) selectShelf(el.id); else clickBackground();
     });
     document.addEventListener('keydown', ev => {
       if (ev.key === 'Escape') { if (S.mode === 'reassign') cancelReassign(); else if (S.mode === 'shelf' || S.mode === 'triage') { S.mode = 'idle'; S.selected = null; sync(); } }
     });
 
-    sync();
     FB.init(() => ({ style: t('style.' + S.theme), styleKey: S.theme, lang: S.lang }));
     HELP.init();
+    renderChrome();   // topbar visible immediately while the floor SVGs load
+
+    // load the three real floor SVGs (duplicated into this folder) + seed sample data
+    const loaded = await Promise.all(FLOOR_META.map(m =>
+      window.FloorSvg.loadFloorAssets(m.id).then(a => [m.id, a]).catch(() => [m.id, { svg: '', codes: [] }])));
+    const assets = Object.fromEntries(loaded);
+    S.seed = buildFloors(assets); S.data = clone(S.seed); S.baseline = clone(S.seed);
+
+    sync();
     if (!localStorage.getItem('mock-help-seen')) { HELP.open(); localStorage.setItem('mock-help-seen', '1'); }
   }
 

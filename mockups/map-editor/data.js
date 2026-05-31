@@ -18,94 +18,42 @@
     { id: 'per', he: 'כתבי עת', en: 'Periodicals', tone: 'teal' },
   ];
 
-  /* Each floor: decorative elements + shelves laid out on an 880×560 board.
-     A shelf with entries=[] is empty; `orphans` are entries that have no shelf
-     on this map yet (feed the idle "needs attention" nudge + triage mode). */
-  const FLOORS = [
-    {
-      id: 0, he: 'קומה 0', en: 'Floor 0',
-      decor: [
-        { type: 'room', x: 300, y: 360, w: 300, h: 150, he: 'אולם קריאה א׳', en: 'Reading room A' },
-        { type: 'stairs', x: 40, y: 360, w: 90, h: 150 },
-        { type: 'entrance', x: 410, y: 516, he: 'כניסה', en: 'Entrance' },
-      ],
-      shelves: [
-        { code: 'A1', x: 60, y: 60, w: 150, h: 26, entries: [{ id: 'e1', col: 'ref', from: '000', to: '099.9' }] },
-        { code: 'A2', x: 60, y: 96, w: 150, h: 26, entries: [{ id: 'e2', col: 'ref', from: '100', to: '199.9' }] },
-        { code: 'A3', x: 60, y: 132, w: 150, h: 26, entries: [{ id: 'e3', col: 'gen', from: '200', to: '289.5' }] },
-        { code: 'A4', x: 60, y: 168, w: 150, h: 26, entries: [] },
-        { code: 'B1', x: 250, y: 60, w: 150, h: 26, entries: [{ id: 'e4', col: 'soc', from: '300', to: '349.9' }] },
-        { code: 'B2', x: 250, y: 96, w: 150, h: 26, entries: [
-            { id: 'e5', col: 'soc', from: '350', to: '369.5' },
-            { id: 'e6', col: 'soc', from: '365', to: '380' } /* deliberate overlap → inline warning */
-        ] },
-        { code: 'B3', x: 250, y: 132, w: 150, h: 26, entries: [{ id: 'e7', col: 'gen', from: '381', to: '420' }] },
-        { code: 'C1', x: 650, y: 60, w: 150, h: 26, entries: [{ id: 'e8', col: 'sci', from: '500', to: '549.9' }] },
-        { code: 'C2', x: 650, y: 96, w: 150, h: 26, entries: [{ id: 'e9', col: 'sci', from: '550', to: '599.9' }] },
-        { code: 'C3', x: 650, y: 132, w: 150, h: 26, entries: [{ id: 'e10', col: 'sci', from: '600', to: '659' }] },
-        { code: 'C4', x: 650, y: 168, w: 150, h: 26, entries: [] },
-      ],
-      orphans: [
-        { id: 'o1', col: 'jud', from: '296', to: '296.4', reason: 'wrongSvgCode' },
-      ],
-    },
-    {
-      id: 1, he: 'קומה 1', en: 'Floor 1',
-      decor: [
-        { type: 'room', x: 330, y: 70, w: 230, h: 120, he: 'מתחם עיון', en: 'Reference area' },
-        { type: 'stairs', x: 760, y: 380, w: 90, h: 150 },
-        { type: 'entrance', x: 60, y: 300, he: 'מעלית', en: 'Elevator' },
-      ],
-      shelves: [
-        { code: 'D1', x: 60, y: 60, w: 26, h: 150, orient: 'v', entries: [{ id: 'f1', col: 'art', from: '700', to: '724' }] },
-        { code: 'D2', x: 100, y: 60, w: 26, h: 150, orient: 'v', entries: [{ id: 'f2', col: 'art', from: '725', to: '749.9' }] },
-        { code: 'D3', x: 140, y: 60, w: 26, h: 150, orient: 'v', entries: [{ id: 'f3', col: 'art', from: '750', to: '779' }] },
-        { code: 'D4', x: 180, y: 60, w: 26, h: 150, orient: 'v', entries: [] },
-        { code: 'E1', x: 60, y: 360, w: 160, h: 26, entries: [{ id: 'f4', col: 'jud', from: '800', to: '839.9' }] },
-        { code: 'E2', x: 60, y: 396, w: 160, h: 26, entries: [{ id: 'f5', col: 'jud', from: '840', to: '889.5' }] },
-        { code: 'E3', x: 60, y: 432, w: 160, h: 26, entries: [{ id: 'f6', col: 'gen', from: '890', to: '919.9' }] },
-        { code: 'F1', x: 620, y: 70, w: 26, h: 120, orient: 'v', entries: [{ id: 'f7', col: 'per', from: 'A', to: 'F' }] },
-        { code: 'F2', x: 660, y: 70, w: 26, h: 120, orient: 'v', entries: [{ id: 'f8', col: 'per', from: 'G', to: 'M' }] },
-        { code: 'F3', x: 700, y: 70, w: 26, h: 120, orient: 'v', entries: [{ id: 'f9', col: 'per', from: 'N', to: 'Z' }] },
-        { code: 'G1', x: 600, y: 360, w: 200, h: 26, entries: [{ id: 'f10', col: 'sci', from: '920', to: '969.9' }] },
-        { code: 'G2', x: 600, y: 396, w: 200, h: 26, entries: [] },
-      ],
-      orphans: [],
-    },
-    {
-      id: 2, he: 'קומה 2', en: 'Floor 2',
-      decor: [
-        { type: 'room', x: 300, y: 330, w: 320, h: 180, he: 'אולם קריאה ב׳', en: 'Reading room B' },
-        { type: 'stairs', x: 40, y: 60, w: 90, h: 150 },
-        { type: 'entrance', x: 430, y: 516, he: 'כניסה', en: 'Entrance' },
-      ],
-      shelves: [
-        { code: 'A', x: 200, y: 60, w: 170, h: 26, entries: [
-            { id: 'g1', col: 'jud', from: '296.1', to: '296.39' },
-            { id: 'g2', col: 'jud', from: '296.4', to: '296.8' },
-            { id: 'g3', col: 'gen', from: '297', to: '299.9' }
-        ] },
-        { code: 'B', x: 200, y: 96, w: 170, h: 26, entries: [{ id: 'g4', col: 'jud', from: '221', to: '249.9' }] },
-        { code: 'C', x: 200, y: 132, w: 170, h: 26, entries: [{ id: 'g5', col: 'jud', from: '250', to: '289.9' }] },
-        { code: 'D', x: 200, y: 168, w: 170, h: 26, entries: [] },
-        { code: 'H1', x: 420, y: 60, w: 26, h: 150, orient: 'v', entries: [{ id: 'g6', col: 'soc', from: '301', to: '319' }] },
-        { code: 'H2', x: 460, y: 60, w: 26, h: 150, orient: 'v', entries: [{ id: 'g7', col: 'soc', from: '320', to: '339.9' }] },
-        { code: 'H3', x: 500, y: 60, w: 26, h: 150, orient: 'v', entries: [{ id: 'g8', col: 'soc', from: '340', to: '369' }] },
-        { code: 'J1', x: 650, y: 60, w: 26, h: 150, orient: 'v', entries: [{ id: 'g9', col: 'art', from: '740', to: '759.9' }] },
-        { code: 'J2', x: 690, y: 60, w: 26, h: 150, orient: 'v', entries: [{ id: 'g10', col: 'art', from: '760', to: '779.9' }] },
-        { code: 'J3', x: 730, y: 60, w: 26, h: 150, orient: 'v', entries: [] },
-        { code: 'K1', x: 60, y: 360, w: 170, h: 26, entries: [{ id: 'g11', col: 'gen', from: '430', to: '469.9' }] },
-        { code: 'K2', x: 60, y: 396, w: 170, h: 26, entries: [{ id: 'g12', col: 'gen', from: '470', to: '499.9' }] },
-        { code: 'K3', x: 60, y: 432, w: 170, h: 26, entries: [{ id: 'g13', col: 'ref', from: '030', to: '069.9' }] },
-        { code: 'L1', x: 690, y: 360, w: 150, h: 26, entries: [{ id: 'g14', col: 'sci', from: '510', to: '549.9' }] },
-        { code: 'L2', x: 690, y: 396, w: 150, h: 26, entries: [{ id: 'g15', col: 'sci', from: '550', to: '589.9' }] },
-      ],
-      orphans: [
-        { id: 'o2', col: 'art', from: '780', to: '789.9', reason: 'wrongSvgCode' },
-        { id: 'o3', col: 'gen', from: '', to: '', reason: 'missingSvgCode' },
-      ],
-    },
+  /* Floors render the REAL production SVGs (duplicated into this folder).
+     Shelf codes come from the SVG at runtime (data-map-object="shelf" + id);
+     app.js seeds sample ranges onto a subset of those real codes. */
+  const FLOOR_META = [
+    { id: 0, he: 'קומה 0', en: 'Floor 0' },
+    { id: 1, he: 'קומה 1', en: 'Floor 1' },
+    { id: 2, he: 'קומה 2', en: 'Floor 2' },
   ];
+
+  /* Sample ranges seeded onto real shelves (cycled, varied by index in app.js).
+     Plain Dewey-ish numbers + the collection they belong to. */
+  const SAMPLE_RANGES = [
+    { col: 'jud', from: '221', to: '249.9' },
+    { col: 'jud', from: '296.1', to: '296.39' },
+    { col: 'soc', from: '301', to: '319' },
+    { col: 'soc', from: '320', to: '339.9' },
+    { col: 'ref', from: '030', to: '069.9' },
+    { col: 'gen', from: '430', to: '469.9' },
+    { col: 'sci', from: '510', to: '549.9' },
+    { col: 'sci', from: '550', to: '589.9' },
+    { col: 'art', from: '740', to: '759.9' },
+    { col: 'art', from: '760', to: '779.9' },
+    { col: 'per', from: 'A', to: 'F' },
+    { col: 'gen', from: '890', to: '919.9' },
+  ];
+
+  /* Synthetic "needs a shelf" items per floor — codes intentionally NOT on the
+     map (feed the idle nudge + triage mode). reason ∈ wrongSvgCode|missingSvgCode. */
+  const ORPHANS = {
+    0: [],
+    1: [{ id: 'o1', col: 'jud', from: '296', to: '296.4', reason: 'wrongSvgCode' }],
+    2: [
+      { id: 'o2', col: 'art', from: '780', to: '789.9', reason: 'wrongSvgCode' },
+      { id: 'o3', col: 'gen', from: '', to: '', reason: 'missingSvgCode' },
+    ],
+  };
 
   /* String table — plain, first-person, jargon-free (the #73/#78 voice).
      Tokens like {n}, {label} are replaced caller-side. */
@@ -292,5 +240,5 @@
     },
   };
 
-  window.MOCK = { COLLECTIONS, FLOORS, STR, FEEDBACK_EMAIL: 'hagaybar@tauex.tau.ac.il' };
+  window.MOCK = { COLLECTIONS, FLOOR_META, SAMPLE_RANGES, ORPHANS, STR, FEEDBACK_EMAIL: 'hagaybar@tauex.tau.ac.il' };
 })();
