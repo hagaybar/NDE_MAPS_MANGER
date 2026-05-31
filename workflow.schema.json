@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/hagaybar/NDE_MAPS_MANGER/workflow.schema.json",
+  "title": "NDE_MAPS_MANGER issue-resolution workflow structures",
+  "description": "Machine-consumable shapes for the loop defined in WORKFLOW.md. This file carries STRUCTURE only. All judgment (gates, thresholds, what each gate approves on) lives in WORKFLOW.md as prose and must not be encoded here.",
+  "$defs": {
+    "issueState": {
+      "type": "string",
+      "enum": ["proposed", "batched", "approached", "ac_approved", "implementing", "in_review", "done", "blocked", "spec_dispute"]
+    },
+    "axis": { "type": "string", "enum": ["area", "coupling", "priority"] },
+    "blastRadius": { "type": "string", "enum": ["low", "medium", "high"] },
+    "acceptanceCriterion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "given", "when", "then"],
+      "properties": {
+        "id": { "type": "string" },
+        "given": { "type": "string" },
+        "when": { "type": "string" },
+        "then": { "type": "string" },
+        "ownerApproved": { "type": "boolean", "default": false },
+        "test": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "file", "observedRedGreen"],
+          "properties": {
+            "name": { "type": "string" },
+            "file": { "type": "string" },
+            "observedRedGreen": { "type": "boolean" }
+          }
+        }
+      }
+    },
+    "batch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "issueNumbers", "rationale", "blastRadius", "ownerCanEyeball"],
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "issueNumbers": { "type": "array", "items": { "type": "integer" }, "minItems": 1 },
+        "rationale": { "type": "string" },
+        "blastRadius": { "$ref": "#/$defs/blastRadius" },
+        "ownerCanEyeball": { "type": "boolean" },
+        "suggestedPilot": { "type": "boolean", "default": false }
+      }
+    },
+    "batchOption": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["optionId", "axis", "batches"],
+      "properties": {
+        "optionId": { "type": "string" },
+        "axis": { "$ref": "#/$defs/axis" },
+        "batches": { "type": "array", "items": { "$ref": "#/$defs/batch" }, "minItems": 1 }
+      }
+    },
+    "batchingProposal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["generatedAt", "openIssueCount", "options"],
+      "properties": {
+        "generatedAt": { "type": "string", "format": "date-time" },
+        "openIssueCount": { "type": "integer" },
+        "options": { "type": "array", "items": { "$ref": "#/$defs/batchOption" }, "minItems": 3, "maxItems": 3 },
+        "recommendedPilot": { "type": "string" }
+      }
+    },
+    "issueRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["number", "state"],
+      "properties": {
+        "number": { "type": "integer" },
+        "title": { "type": "string" },
+        "area": { "type": "string" },
+        "priority": { "type": "string", "enum": ["high", "medium", "low"] },
+        "type": { "type": "string", "enum": ["bug", "enhancement", "tech-debt"] },
+        "state": { "$ref": "#/$defs/issueState" },
+        "rootCauseOrApproaches": { "type": "string" },
+        "acceptanceCriteria": { "type": "array", "items": { "$ref": "#/$defs/acceptanceCriterion" } },
+        "chosenApproach": { "type": "string" },
+        "prUrl": { "type": "string" }
+      }
+    },
+    "prSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["closesIssues", "acTestMapComplete", "fullSuiteGreen", "hardRulesRespected"],
+      "properties": {
+        "closesIssues": { "type": "array", "items": { "type": "integer" } },
+        "chosenApproach": { "type": "string" },
+        "acTestMapComplete": { "type": "boolean" },
+        "fullSuiteGreen": { "type": "boolean" },
+        "ownerAppCheckRequired": { "type": "boolean" },
+        "hardRulesRespected": { "type": "boolean" },
+        "specDisputes": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}

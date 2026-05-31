@@ -1,5 +1,20 @@
 # CLAUDE.md
 
+## ⛔ Hard Rules — read WORKFLOW.md before resolving any issue
+
+This repo is run by an **architect who does not read source code**. All work is
+governed by [`WORKFLOW.md`](./WORKFLOW.md). Before touching any issue, read it.
+The following are non-negotiable (full text and rationale in WORKFLOW.md):
+
+- **HR1** Never weaken, skip, narrow, or delete a test to make a build pass.
+- **HR2** If a test seems wrong, file a one-line Spec Dispute in the PR — do not edit the test.
+- **HR3** Every behavioural change adds a test you observed go red→green this run; name it in the PR.
+- **HR4** Test behaviour at stable boundaries (API contract, UI behaviour), never internal call structure.
+- **HR5** Never ask the owner to read code. Surface decisions as acceptance criteria, tradeoffs, and the running app.
+- **HR7** Never claim tests pass without executing them in this run.
+
+The owner is the oracle: a green suite is a signal, never the reason to merge.
+
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
