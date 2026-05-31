@@ -428,9 +428,11 @@ conventions (confirmed with the user 2026-05-31), so #87 needs **no rule change*
 - **Phase 4 is therefore verification, not a code fix:** reproduce #87 against the live CSV; if it does
   not reproduce (expected), **close #87**; if it does, capture the exact row pair — the cause is then a
   stale deploy or a case outside the touching-boundary rule, *not* the rule itself.
-- **Minor fold-in:** `doRangesOverlap` groups by `collection + floor` but **not** `libraryName`,
-  whereas `overlapsConflict` groups by `library + floor + collection` — a rare cross-library
-  false-positive on the Dashboard only. Verify on live during Phase 4; note if it occurs.
+- **Minor parity gap → tracked separately as #98 (low priority).** `doRangesOverlap` (Dashboard)
+  groups by `collection + floor` but **not** `libraryName`, whereas `overlapsConflict` (Map Editor)
+  groups by `library + floor + collection` — a rare cross-library false-positive on the Dashboard only.
+  Cannot fire today (live data is single-library; 0 cross-library `(collection,floor)` pairs, verified
+  2026-05-31). Not part of this work — see #98.
 
 ## 11. Phasing (summary — full detail in the plan)
 

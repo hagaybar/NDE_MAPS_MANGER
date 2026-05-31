@@ -390,10 +390,10 @@ Editor + Data Quality Dashboard and inspect the floors/collections #87 reference
     NOT the touching-boundary rule (that's correct) — likely a stale deploy or an uncovered case. File
     the concrete finding and fix that specific cause.
 
-- [ ] **Step 3 (fold-in): library-grouping check.** Confirm whether `doRangesOverlap` (Dashboard,
-  groups by `collection + floor`) vs `overlapsConflict` (Map Editor, groups by
-  `library + floor + collection`) yields any cross-library false positive on the live data. If material,
-  note on #87 or as a tiny separate follow-up; if none, record "no occurrences."
+- [ ] **Step 3: library-grouping parity — NOT part of this phase.** The Dashboard-vs-Map-Editor
+  grouping mismatch (`collection+floor` vs `library+floor+collection`) is tracked separately as **#98**
+  (low priority). Verified 2026-05-31 it can't fire on the current single-library data (0 cross-library
+  `(collection,floor)` pairs). Nothing to do here.
 
 - [ ] **Step 4:** Close #87 (or file the concrete finding). Commit only if a doc/test note was added.
 
