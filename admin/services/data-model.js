@@ -312,32 +312,56 @@ export function parseRangeBoundary(rangeValue) {
  * @param {Object} range2 - Second range with start and end properties
  * @returns {boolean} True if ranges have problematic interior overlap
  */
+/**
+ * Canonical call-number ordering. Returns -1 / 0 / 1.
+ *
+ * Rule (owner-confirmed — see issue #100):
+ *  - DEFAULT: plain string comparison of the raw value. Dewey integer parts are
+ *    zero-padded to 3 digits so magnitude is correct; '(' sorts before '.' so a
+ *    parenthetical sub-classification sorts right after the base and before any
+ *    decimal (e.g. 396(44) < 396.04 < 396.4); leading zeros stay significant
+ *    (320(044) < 320(44)); different-length parentheticals order digit-by-digit
+ *    (323.67(6761) < 323.67(73)).
+ *  - EXCEPTION: prefixes ML / MT are NOT zero-padded — compare the prefix, then
+ *    the number after it as a NATURAL number (ML5 < ML113).
+ *
+ * MUST stay behaviorally identical to compareCallNumbers in
+ * admin/utils/range-filter.js and lambda/range-validation.mjs.
+ */
+export function compareCallNumbers(a, b) {
+  const sa = (a ?? '').toString().trim();
+  const sb = (b ?? '').toString().trim();
+  const pa = (sa.match(/^[A-Za-z]+/) || [''])[0].toUpperCase();
+  const pb = (sb.match(/^[A-Za-z]+/) || [''])[0].toUpperCase();
+  if (pa === pb && (pa === 'ML' || pa === 'MT')) {
+    const na = parseFloat(sa.slice(pa.length));
+    const nb = parseFloat(sb.slice(pb.length));
+    if (!Number.isNaN(na) && !Number.isNaN(nb) && na !== nb) return na < nb ? -1 : 1;
+  }
+  if (sa < sb) return -1;
+  if (sa > sb) return 1;
+  return 0;
+}
+
 export function doRangesOverlap(range1, range2) {
-  const start1 = parseRangeValue(range1.start);
-  const end1 = parseRangeValue(range1.end);
-  const start2 = parseRangeValue(range2.start);
-  const end2 = parseRangeValue(range2.end);
+  const s1 = (range1.start ?? '').toString().trim();
+  const e1 = (range1.end ?? '').toString().trim();
+  const s2 = (range2.start ?? '').toString().trim();
+  const e2 = (range2.end ?? '').toString().trim();
 
-  // If any value couldn't be parsed, can't determine overlap
-  if (start1.numeric === null || end1.numeric === null ||
-      start2.numeric === null || end2.numeric === null) {
-    return false;
-  }
+  // Can't determine overlap if any boundary is missing.
+  if (!s1 || !e1 || !s2 || !e2) return false;
 
-  // Different prefixes don't overlap
-  if (start1.prefix !== start2.prefix) {
-    return false;
-  }
+  // Normalize each range so start <= end (by the canonical ordering).
+  const [a1, a2] = compareCallNumbers(s1, e1) <= 0 ? [s1, e1] : [e1, s1];
+  const [b1, b2] = compareCallNumbers(s2, e2) <= 0 ? [s2, e2] : [e2, s2];
 
-  // Identical ranges are OK (multiple shelves for same classification with different cutters)
-  if (start1.numeric === start2.numeric && end1.numeric === end2.numeric) {
-    return false;
-  }
-
-  // Check for interior overlap using strict inequalities
-  // Boundary touch (end1 = start2 or end2 = start1) is NOT a problematic overlap
-  // Interior overlap exists when: start1 < end2 AND start2 < end1
-  return start1.numeric < end2.numeric && start2.numeric < end1.numeric;
+  // Interior overlap iff max(start) < min(end). Strict '<' means a single-point
+  // boundary touch (and identical ranges, and different classification systems)
+  // is NOT a problematic overlap.
+  const lo = compareCallNumbers(a1, b1) >= 0 ? a1 : b1;
+  const hi = compareCallNumbers(a2, b2) <= 0 ? a2 : b2;
+  return compareCallNumbers(lo, hi) < 0;
 }
 
 /**
@@ -678,6 +702,7 @@ export default {
   findDuplicateRows,
   parseRangeValue,
   parseRangeBoundary,
+  compareCallNumbers,
   doRangesOverlap,
   findOverlappingRanges,
   createEmptyRow,

@@ -275,29 +275,26 @@ export function parseCallNumber(callNumber) {
  * @returns {number} Comparison result (-1, 0, or 1)
  */
 export function compareCallNumbers(a, b) {
-  const parsedA = parseCallNumber(a);
-  const parsedB = parseCallNumber(b);
-
-  // Different prefixes: compare alphabetically
-  if (parsedA.prefix !== parsedB.prefix) {
-    if (parsedA.prefix < parsedB.prefix) return -1;
-    if (parsedA.prefix > parsedB.prefix) return 1;
-    return 0;
+  // Canonical call-number ordering (issue #100). MUST stay behaviorally
+  // identical to compareCallNumbers in lambda/range-validation.mjs and
+  // admin/services/data-model.js (parity-tested).
+  //  - DEFAULT: plain string comparison of the raw value. Dewey integer parts
+  //    are zero-padded to 3 digits so magnitude is correct; '(' sorts before
+  //    '.' so a parenthetical sub-classification sorts right after the base and
+  //    before any decimal; leading zeros stay significant.
+  //  - EXCEPTION: prefixes ML / MT are NOT zero-padded — compare the prefix,
+  //    then the number after it as a NATURAL number (ML5 < ML113).
+  const sa = (a ?? '').toString().trim();
+  const sb = (b ?? '').toString().trim();
+  const pa = (sa.match(/^[A-Za-z]+/) || [''])[0].toUpperCase();
+  const pb = (sb.match(/^[A-Za-z]+/) || [''])[0].toUpperCase();
+  if (pa === pb && (pa === 'ML' || pa === 'MT')) {
+    const na = parseFloat(sa.slice(pa.length));
+    const nb = parseFloat(sb.slice(pb.length));
+    if (!Number.isNaN(na) && !Number.isNaN(nb) && na !== nb) return na < nb ? -1 : 1;
   }
-
-  // Same prefix or no prefix: compare numerics
-  if (parsedA.numeric === null && parsedB.numeric === null) {
-    // Both non-numeric, compare original strings
-    if (parsedA.original < parsedB.original) return -1;
-    if (parsedA.original > parsedB.original) return 1;
-    return 0;
-  }
-
-  if (parsedA.numeric === null) return -1;
-  if (parsedB.numeric === null) return 1;
-
-  if (parsedA.numeric < parsedB.numeric) return -1;
-  if (parsedA.numeric > parsedB.numeric) return 1;
+  if (sa < sb) return -1;
+  if (sa > sb) return 1;
   return 0;
 }
 

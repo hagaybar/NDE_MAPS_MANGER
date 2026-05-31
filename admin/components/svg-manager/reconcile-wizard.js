@@ -20,7 +20,7 @@
  * @param {() => void} [onCancel]
  */
 import i18n from '../../i18n.js?v=5';
-import { parseRangeValue } from '../../services/data-model.js';
+import { parseRangeValue, compareCallNumbers } from '../../services/data-model.js';
 
 // Canonical CSV column order (mirrors lambda/applyReconcileToStaging.mjs COLUMNS).
 const COLUMNS = [
@@ -257,11 +257,9 @@ function rangeOk(rangeStart, rangeEnd) {
   const s = parseRangeValue(start);
   const e = parseRangeValue(end);
   if (s.prefix !== e.prefix) return false;
-  if (s.numeric === null || e.numeric === null) {
-    // Both unparseable-as-number but same prefix: fall back to string order.
-    return start <= end;
-  }
-  return s.numeric <= e.numeric;
+  // Canonical call-number ordering (issue #100): string-based, with the ML/MT
+  // natural-number exception. Prefix match is already checked above.
+  return compareCallNumbers(start, end) <= 0;
 }
 
 function renderAddedGroup(host, diff, added, onSubmit, onCancel) {

@@ -22,34 +22,20 @@
 // parseRangeValue preserves both the alphabetic prefix (e.g. "ML") and the
 // numeric portion, so we can rule out cross-classification overlaps (Dewey vs
 // LC, or ML vs MA) before doing numeric arithmetic.
-import { parseRangeBoundary, parseRangeValue } from '../../services/data-model.js';
+import { parseRangeBoundary, compareCallNumbers, doRangesOverlap } from '../../services/data-model.js';
 
 export function overlapsConflict(a, b) {
   if (a.libraryName !== b.libraryName) return false;
   if (String(a.floor) !== String(b.floor)) return false;
   if (a.collectionName !== b.collectionName) return false;
 
-  const aStart = parseRangeValue(a.rangeStart);
-  const aEnd = parseRangeValue(a.rangeEnd);
-  const bStart = parseRangeValue(b.rangeStart);
-  const bEnd = parseRangeValue(b.rangeEnd);
-
-  // Different classification systems (Dewey "" vs LC "ML", or "ML" vs "MA")
-  // cannot overlap even when their numeric portions do.
-  if (aStart.prefix !== bStart.prefix) return false;
-  if (aEnd.prefix !== bEnd.prefix) return false;
-
-  if (aStart.numeric === null || aEnd.numeric === null ||
-      bStart.numeric === null || bEnd.numeric === null) {
-    return false;
-  }
-
-  const lo = Math.max(aStart.numeric, bStart.numeric);
-  const hi = Math.min(aEnd.numeric, bEnd.numeric);
-
-  if (lo > hi) return false;   // disjoint
-  if (lo === hi) return false; // single-point touch (integer or fractional) — OK
-  return true;                 // genuine interior overlap
+  // Shared overlap engine (issue #100): string-ordered, touching boundaries are
+  // OK, and different classification systems (Dewey "" vs "ML") never overlap
+  // because digits sort before letters.
+  return doRangesOverlap(
+    { start: a.rangeStart, end: a.rangeEnd },
+    { start: b.rangeStart, end: b.rangeEnd }
+  );
 }
 
 export function validateRangeShape(range) {
@@ -58,7 +44,7 @@ export function validateRangeShape(range) {
   if (Number.isNaN(start) || Number.isNaN(end)) {
     return { ok: false, error: 'invalid format' };
   }
-  if (start > end) {
+  if (compareCallNumbers(range.rangeStart, range.rangeEnd) > 0) {
     return { ok: false, error: 'start > end' };
   }
   return { ok: true };
