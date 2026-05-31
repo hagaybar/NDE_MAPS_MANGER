@@ -1,24 +1,21 @@
-# Batching proposal — open issues
+# Batching plan — open issues
 
-> **Analysis only.** This document proposes how the open issues *could* be
-> grouped for the resolution loop defined in [`WORKFLOW.md`](../WORKFLOW.md)
-> (step 1). It does **not** select a batch, modify/label/close any issue, or
-> implement anything. The owner selects at step 3.
+> **Decision recorded 2026-05-31.** The owner reviewed the three batching options
+> originally proposed here (by `area:`, by coupling, by `priority:`) and
+> **selected Option B — by coupling**. The other two options have been removed to
+> keep a single unambiguous plan. **The active first batch is [B1](#b1--active-first-batch).**
+> Selection happens per [`WORKFLOW.md`](../WORKFLOW.md) step 3; this document is
+> now the working batch plan, not a menu.
 
-- **generatedAt:** 2026-05-31
-- **openIssueCount:** 37
-- **options:** 3 (A — by `area:` · B — by coupling · C — by `priority:`)
+- **chosen axis:** coupling (issues that must move together)
+- **active batch:** B1 (Map-Editor drawer/shelf-state + side-panel redesign)
+- **openIssueCount at decision time:** 37
 - **conforms to:** the `batchingProposal` shape in
-  [`workflow.schema.json`](../workflow.schema.json)
-
-Each batch lists: **name**, **member issues** (number + title), **axis**,
-**one-line rationale**, **blast radius** (low/med/high), and
-**owner-can-eyeball?** (y/n) — whether the owner can verify it by clicking the
-running app.
+  [`workflow.schema.json`](../workflow.schema.json) (Option B is the retained `batchOption`)
 
 ---
 
-## Issue inventory (the 37 being batched)
+## Issue inventory (the 37 in scope at decision time)
 
 | # | Title | type | area(s) | priority |
 |---|-------|------|---------|----------|
@@ -61,72 +58,68 @@ running app.
 
 ---
 
-## Option A — by `area:` label
+## Chosen plan — Option B (by coupling)
 
-Axis: **area**. Goal: maximise independent revertability — one bucket per
-`area:` label, each its own deployable surface. Issues carrying multiple `area:`
-labels are placed in their *primary* surface (cross-listings noted). The
-12 issues with **no** `area:` label are grouped by nature (A7–A9) and flagged as
-"not classified by the area axis."
-
-| Batch | Member issues | Blast | Eyeball? | One-line rationale |
-|-------|---------------|-------|----------|--------------------|
-| **A1 — Map Editor** | 97, 92, 91, 87, 86, 75, 14, 12 | high | **y** | All live in the SVG shelf editor; verifiable by opening Map Editor and clicking shelves. (87/14 also touch validation; 14 also csv.) |
-| **A2 — Validation** | 98, 96, 94, 85, 72, 55 | med | **y** | Validation panel / Data Quality Dashboard / version-history rules; visible in those screens. |
-| **A3 — CSV editor** | 93, 84, 59 | med | **y** | CSV table editor row handling; visible by filtering/saving/deleting rows. (84/59 also touch validation.) |
-| **A4 — Auth** | 90, 7 | high | **partial** | Cognito/JWT + password-reset; security-critical and largely invisible — **excluded from pilot per WORKFLOW.md.** |
-| **A5 — Integrations** | 89, 88, 8 | high | **n** | Server-side publish atomicity, cross-repo floor default, Alma sync — hard to eyeball — **excluded from pilot.** |
-| **A6 — Testing** | 95, 54, 9 | low | **n** | Test-infra only; no user-facing surface, so the running-app oracle does not apply. |
-| **A7 — App-wide UX / roles** *(no area label)* | 78, 83 | med | **y** | Cross-cutting copy + nav role-scoping; visible across every screen. |
-| **A8 — Meta / brainstorm / handoff** *(no code)* | 71, 64, 49, 38, 37 | n/a | **n** | Trackers and paused brainstorms — not directly resolvable as code; need owner triage/close first. |
-| **A9 — Infra / housekeeping** *(no area label)* | 27, 43, 52, 63, 65 | med | **n** | Cache-suffix cleanup, cold-start 502, meta-stamp, security audit, deferred ?v= — infra, not screen-visible. |
-
----
-
-## Option B — by coupling
-
-Axis: **coupling**. Goal: keep issues that **must move together** in one batch —
-a fix and the issue it references, or several issues that edit the same code path
-where changing one would break another's test. Issues with no hard coupling ship
+Axis: **coupling**. Issues that **must move together** (a fix and the issue it
+references, or several issues editing the same code path where changing one would
+break another's test) are kept in one batch. Issues with no hard coupling ship
 alone (B-IND).
 
-| Batch | Member issues | Blast | Eyeball? | One-line rationale |
-|-------|---------------|-------|----------|--------------------|
-| **B1 — Map-Editor drawer/shelf-state + side-panel redesign** | 97, 86, 92, 91, 87 | high | **y** | #97 explicitly *rewrites the exact code* the bug cluster lives in and folds the orphan/reassign surfaces; 86/92 are `shelf-state.js` merge-semantics bugs, 91 is the same file's CSV load, 87 is conflict-detect in the same editor. Sequencing them apart causes rework. |
-| **B2 — Reconcile 4c + CSV-row metadata** | 71, 59 | med | **y** | #71's checklist item *4c "Closes #59"* — the soft-unlink/reassign work and the "Delete loses row metadata / Rename limited" bug are the same deliverable. |
-| **B3 — Bundle-invariant integrity** | 14, 55, 84, 12 | high | **partial** | All hinge on the shared bundle/validation rule (`validateBundle.mjs` / `bundle-validator.js`): tighten save-time validation (14), close the restore bypass (55), define+remove empty rows (84), and decide catch-all 000–999 semantics (12). Changing the rule in one moves the others' tests. |
-| **B4 — promoteStaging publish path** | 89, 52 | high | **n** | Both edit the `promoteStaging` Lambda's publish step; an atomicity rewrite (89) and the `lastPromotedAt` stamp (52) should land in one pass, not two rewrites of the same function. |
-| **B5 — Cache-busting / versioning thread** | 65, 27, 75 | med | **partial** | One decision: adopting versioned `?v=` (65) determines what the `?v=N` suffix cleanup (27) standardizes and whether the #50 403-spam re-verify (75) still holds. Interlocking. |
-| **B6 — i18n / plain-language strings** | 96, 78 | med | **y** | Both rewrite the same i18n JSON + fallbacks (key-drift/BiDi fixes 96, plain-language pass 78); done apart they edit the same strings twice and conflict. |
-| **B-IND — Independent (no hard coupling; each ships alone)** | 90, 7, 93, 94, 98, 85, 72, 83, 88, 8, 54, 95, 9, 43, 63, 64, 49, 38, 37 | varies | varies | Listed together only because the coupling axis does not cluster them — under this axis each is its own 1-issue batch (blast/eyeball assessed per issue, e.g. 93 csv low-eyeball-y, 90/7 auth high-eyeball-partial, 88 integrations high-eyeball-n). |
+Each batch lists: **member issues**, **rationale**, **blast radius**
+(low/med/high), and **owner-can-eyeball?** (y/n).
+
+### B1 — ACTIVE (first batch)
+**Map-Editor drawer/shelf-state + side-panel redesign**
+- **Members:** 97, 86, 92, 91, 87
+- **Blast radius:** high · **Owner-can-eyeball?:** **y**
+- **Rationale:** #97 explicitly *rewrites the exact code* the bug cluster lives in
+  and folds the orphan/reassign surfaces into one panel; 86/92 are `shelf-state.js`
+  merge-semantics bugs, 91 is the same file's CSV load, 87 is conflict-detection
+  in the same editor (verified already-correct → verify-and-close). Sequencing them
+  apart causes rework, so they move together.
+- **Spec:** `docs/superpowers/specs/2026-05-31-map-editor-side-panel-layout-design.md`
+  · **Plan:** `docs/superpowers/plans/2026-05-31-map-editor-side-panel-layout.md`
+
+### B2 — Reconcile 4c + CSV-row metadata
+- **Members:** 71, 59 · **Blast:** med · **Eyeball?:** y
+- #71's checklist item *4c "Closes #59"* — the soft-unlink/reassign work and the
+  "Delete loses row metadata / Rename limited" bug are the same deliverable.
+
+### B3 — Bundle-invariant integrity
+- **Members:** 14, 55, 84, 12 · **Blast:** high · **Eyeball?:** partial
+- All hinge on the shared bundle/validation rule (`validateBundle.mjs` /
+  `bundle-validator.js`): tighten save-time validation (14), close the restore
+  bypass (55), define+remove empty rows (84), decide catch-all 000–999 semantics
+  (12). Changing the rule in one moves the others' tests.
+
+### B4 — promoteStaging publish path
+- **Members:** 89, 52 · **Blast:** high · **Eyeball?:** n
+- Both edit the `promoteStaging` Lambda's publish step; an atomicity rewrite (89)
+  and the `lastPromotedAt` stamp (52) should land in one pass, not two rewrites of
+  the same function.
+
+### B5 — Cache-busting / versioning thread
+- **Members:** 65, 27, 75 · **Blast:** med · **Eyeball?:** partial
+- One decision: adopting versioned `?v=` (65) determines what the `?v=N` suffix
+  cleanup (27) standardizes and whether the #50 403-spam re-verify (75) still holds.
+
+### B6 — i18n / plain-language strings
+- **Members:** 96, 78 · **Blast:** med · **Eyeball?:** y
+- Both rewrite the same i18n JSON + fallbacks (key-drift/BiDi fixes 96, plain-language
+  pass 78); done apart they edit the same strings twice and conflict.
+
+### B-IND — Independent (no hard coupling; each ships alone)
+- **Members:** 90, 7, 93, 94, 98, 85, 72, 83, 88, 8, 54, 95, 9, 43, 63, 64, 49, 38, 37
+- **Blast/Eyeball:** vary per issue. Under the coupling axis each is its own
+  1-issue batch (e.g. 93 csv low-eyeball-y; 90/7 auth high-eyeball-partial; 88
+  integrations high-eyeball-n). Prioritize individually when B1–B6 are clear.
 
 ---
 
-## Option C — by `priority:` label
+## Sequencing note
 
-Axis: **priority**. Goal: fastest user impact first. Buckets are the raw
-`priority:` labels; the owner would still sub-split a large bucket (C2) before
-selecting, since priority cuts across areas and coupling.
-
-| Batch | Member issues | Blast | Eyeball? | One-line rationale |
-|-------|---------------|-------|----------|--------------------|
-| **C1 — priority: high** | 97, 90, 89, 88, 86, 14, 7 | high | **mixed** | Highest user/operational impact, but spans auth (90/7) + integrations (89/88) + editor (97/86/14) — not a single revertable unit; would be split before work. |
-| **C2 — priority: medium** | 96, 94, 93, 92, 91, 85, 84, 83, 78, 72, 71, 64, 59, 55, 54, 12, 8 | mixed | **mixed** | 17 issues — too large to ship as one; useful as a priority ranking, not as a batch. |
-| **C3 — priority: low** | 98, 95, 87, 75, 52, 27, 9 | low | **mixed** | Polish / nice-to-have; lowest urgency, several are good low-risk warm-ups. |
-| **C4 — unprioritized** *(no priority label)* | 65, 63, 49, 43, 38, 37 | n/a | **n** | No `priority:` label — needs owner triage (legacy/meta/brainstorm/infra) before it can be ordered. |
-
----
-
-## Pilot recommendation
-
-**Pilot = Batch B1 narrowed to #86 + #92** (the Map-Editor range-edit bug pair in
-`shelf-state.js`): **small** (2 issues, same module), **maximally eyeball-able**
-(owner opens Map Editor, adds a range, types — the inputs keep focus and the
-saved range stays in the drawer; the whole AC is visible in seconds), **low blast
-radius** (client-only, single module + the drawer render path; no Lambda, auth,
-integration, or data-format surface; test-guardable), and **not auth/integrations**.
-#86 is `priority: high` and the add-range flow is currently unusable, so the
-loop's very first turn delivers real librarian value while stress-testing every
-gate. *Caveat to surface at step 3:* #97 plans to rewrite this same code, so if
-the owner later picks #97 these fixes may be superseded — fixing them now is still
-correct (immediate value) and leaves #97 ready-made red→green regression tests.
+B1 is first by owner decision (highest user pain — the add/edit-range flow is
+currently unusable — and the most eyeball-able). Within B1, the spec phases the
+delivery as: #91 → #92 → #86 (on the current drawer) → #87 (verify-and-close) →
+the layout move (last, the only PR needing visual rebaselining). Subsequent batch
+order across B2–B6 + B-IND is revisited after B1 ships.
