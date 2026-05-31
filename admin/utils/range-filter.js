@@ -250,9 +250,12 @@ export function parseCallNumber(callNumber) {
   const deweyMatch = original.match(/^(\d+(?:\.\d+)?)\((\d+)\)$/);
   if (deweyMatch) {
     const mainNum = parseFloat(deweyMatch[1]);
-    const subNum = parseFloat(deweyMatch[2]);
-    // Divide by 10,000,000 to ensure parenthetical value stays within 0.01 of main number
-    const combined = mainNum + (subNum / 10000000);
+    // Compare parenthetical values digit-by-digit (e.g. 73 > 6761 because 7 > 6)
+    // by treating them as a decimal fraction (0.73 vs 0.6761)
+    const subDecimal = parseFloat('0.' + deweyMatch[2]);
+    // Scale down sufficiently so it does not interfere with the main number's own decimals
+    // Since main number can have many decimals, we add it very small
+    const combined = mainNum + (subDecimal / 10000000);
     return { numeric: combined, prefix: '', original };
   }
 
