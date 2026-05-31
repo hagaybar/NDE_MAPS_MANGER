@@ -18,8 +18,8 @@
 - `admin/components/map-editor.js` — `loadMappingCsv` cache flag (#91); `saveCsv` calls `commit()` (#86); `onChange` stops full re-render (#86).
 - `admin/components/map-editor/shelf-state.js` — `commit()`, add-safe `move`/`delete` (#86/#92).
 - `admin/components/map-editor/shelf-drawer.js` — extract `applyRowValidation`; in-place update path (#86).
-- `admin/components/map-editor/range-validation.js` — same-shelf/same-collection sub-range rule (#87).
-- Tests: `admin/__tests__/shelf-state.test.js`, `admin/__tests__/shelf-drawer.test.js`, `admin/__tests__/map-editor-csv-cache.test.js` (new), `admin/__tests__/range-validation.test.js`.
+- `admin/components/map-editor/range-validation.js` — **no change** for #87 (the rule is already correct; Phase 4 is verification only).
+- Tests: `admin/__tests__/shelf-state.test.js`, `admin/__tests__/shelf-drawer.test.js`, `admin/__tests__/map-editor-csv-cache.test.js` (new).
 
 **Phase 5 (layout):**
 - `admin/components/map-editor.js` — new scaffold (`#map-editor-split`), mode orchestration, `fitMapEditorViewport` stays height-only.
@@ -352,52 +352,50 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 
 ---
 
-## Phase 4 — #87: same-shelf, same-collection sub-range false conflict
+## Phase 4 — #87: verify the range-conflict rule on live data, then close (NO rule change)
 
-> **Decision gate (record in the issue before coding):** is a same-shelf, same-collection *sub-range* a real conflict? Recommended: **suppress** (a collection split across adjacent call-number bands on one shelf is normal). If the user decides "reword" instead, change the message key rather than the predicate.
+> **Re-scoped 2026-05-31 after a range-rule audit (spec §10).** The Map Editor (`overlapsConflict`,
+> `map-editor/range-validation.js`) and the Data Quality Dashboard (`doRangesOverlap`,
+> `services/data-model.js:315`) **already** treat single-point touching boundaries as non-conflicts,
+> compare numerically (float), and are prefix-aware — matching the catalog's authoring conventions
+> (user-confirmed). The only inclusive (`<= 0`) function, `doCallNumberRangesOverlap`, is editor
+> access-control and emits no data error; no server save path rejects on overlap. So #87 is a
+> **verification task**, not a code fix. The earlier "change the predicate" plan was wrong and is
+> removed.
 
-### Task 4.1: Exclude same-shelf same-collection pairs from conflict detection
+### Task 4.1: Reproduce #87 against live data; close if clean
 
-**Files:**
-- Test: `admin/__tests__/range-validation.test.js` (extend/create)
-- Modify: `admin/components/map-editor/range-validation.js` (`computeFloorConflicts`)
+**Files:** none changed unless it actually reproduces.
 
-- [ ] **Step 1: Write the failing test**
-
-```js
-test('two sub-ranges of the same collection on the same shelf are not a conflict', () => {
-  const conflicts = computeFloorConflicts([
-    { id: 'a', svgCode: 'S1', collectionName: 'C', rangeStart: '1', rangeEnd: '5' },
-    { id: 'b', svgCode: 'S1', collectionName: 'C', rangeStart: '6', rangeEnd: '9' },
-  ]);
-  expect(conflicts.size).toBe(0);
-});
-
-test('overlapping sub-ranges of the same collection on the same shelf STILL conflict', () => {
-  const conflicts = computeFloorConflicts([
-    { id: 'a', svgCode: 'S1', collectionName: 'C', rangeStart: '1', rangeEnd: '5' },
-    { id: 'b', svgCode: 'S1', collectionName: 'C', rangeStart: '4', rangeEnd: '9' },
-  ]);
-  expect(conflicts.size).toBeGreaterThan(0);   // genuine overlap is still flagged
-});
-```
-
-- [ ] **Step 2: Run it, verify it fails.** Expected: FAIL — adjacent same-collection sub-ranges currently flagged.
-
-- [ ] **Step 3: Implement** — in `computeFloorConflicts`, skip the pair only when same shelf **and** same collection **and** the ranges do **not** actually overlap (keep flagging true overlaps). (Exact predicate depends on the current overlap test; gate the *adjacent/non-overlapping* same-collection case, not all same-collection pairs.)
-
-- [ ] **Step 4: Run it, verify it passes.** Expected: PASS (both tests).
-
-- [ ] **Step 5: Run `npx jest range-validation`** + the parity test if present.
-
-- [ ] **Step 6: Commit**
+- [ ] **Step 1: Run the live conflict rule over the live CSV**
 
 ```bash
-git add admin/components/map-editor/range-validation.js admin/__tests__/range-validation.test.js
-git commit -m "fix(map-editor): don't flag adjacent same-collection sub-ranges as conflicts (#87)
-
-Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
+curl -s https://d3h8i7y9p8lyw7.cloudfront.net/data/mapping.csv -o /tmp/mapping_live.csv
+# group by floor and run computeFloorConflicts; print any same-collection pairs flagged as conflicts
+node --input-type=module -e "
+import { computeFloorConflicts } from './admin/components/map-editor/range-validation.js';
+import { readFileSync } from 'fs';
+const [h,...lines]=readFileSync('/tmp/mapping_live.csv','utf8').trim().split(/\r?\n/);
+const cols=h.split(','); const rows=lines.map((l,i)=>{const v=l.split(','); const o={id:'r'+i}; cols.forEach((c,j)=>o[c]=v[j]); return o;});
+for (const f of ['0','1','2']) { const c=computeFloorConflicts(rows.filter(r=>String(r.floor)===f)); if (c.size) console.log('floor',f,'conflicts:',c.size); }
+"
 ```
+(Note: this quick split() ignores quoted commas — fine for a smoke check. Also open the live Map
+Editor + Data Quality Dashboard and inspect the floors/collections #87 referenced.)
+
+- [ ] **Step 2: Decide based on the output**
+  - **No** false conflicts on touching/abutting same-collection bands → **close #87** with a comment
+    linking spec §10 and the verification output. (Expected outcome.)
+  - **Reproduces** → capture the exact row pair (library/floor/collection/shelf/ranges). The cause is
+    NOT the touching-boundary rule (that's correct) — likely a stale deploy or an uncovered case. File
+    the concrete finding and fix that specific cause.
+
+- [ ] **Step 3 (fold-in): library-grouping check.** Confirm whether `doRangesOverlap` (Dashboard,
+  groups by `collection + floor`) vs `overlapsConflict` (Map Editor, groups by
+  `library + floor + collection`) yields any cross-library false positive on the live data. If material,
+  note on #87 or as a tiny separate follow-up; if none, record "no occurrences."
+
+- [ ] **Step 4:** Close #87 (or file the concrete finding). Commit only if a doc/test note was added.
 
 ---
 

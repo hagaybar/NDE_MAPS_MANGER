@@ -408,10 +408,29 @@ the Map Editor layout.
 Location-Editor merge, the "Ranges Editor" rename (pure churn across i18n/nav/storage keys/e2e),
 multi-shelf selection.
 
-**Open product decision (flagged in the issue, your call): #87** — a same-shelf, same-collection
-*sub-range* is currently flagged as a conflict. Decide: suppress it (likely a false positive) or
-reword. Small change in `computeFloorConflicts` / `range-validation.js`; do it in its own phase while
-the validation code is in hand.
+**#87 — verified already correct; re-scoped to verify-and-close (range-rule audit, 2026-05-31).** A
+range audit of every surface found the conflict rule is *already* aligned with the catalog's authoring
+conventions (confirmed with the user 2026-05-31), so #87 needs **no rule change**:
+
+- **Both error-reporting surfaces are correct.** Map Editor conflicts use `overlapsConflict`
+  (`map-editor/range-validation.js`); the Data Quality Dashboard uses `doRangesOverlap`
+  (`services/data-model.js:315`). **Both** treat a single-point *touching* boundary (`lo === hi` /
+  strict `<`) as **non-conflicting**, compare **numerically (float)**, and are **prefix-aware** (Dewey
+  `""` vs LC `"ML"` never overlap). Real abutments (shelf `953–955.05` next to `955.05–956.01`) and
+  deliberate gaps (shelf 21 A `912–912.999` + `914–915.6`, the `913` band absent) come back clean.
+  Only genuine interior overlaps and `start > end` are flagged.
+- **The one inclusive (`<= 0`) function is in the right place.** `doCallNumberRangesOverlap`
+  (`lambda/range-validation.mjs` + `admin/utils/range-filter.js`) counts a touch as a match, but it is
+  used **only** for **editor access-control** (`validateEditsAgainstRange` → "you can only edit rows
+  within your assigned range", HTTP 422). Inclusive matching is *correct* there; it emits no data-error
+  indication. **No server save path rejects on range overlap** (the bundle-invariant 422 is
+  `svgCode → shelf` resolution only).
+- **Phase 4 is therefore verification, not a code fix:** reproduce #87 against the live CSV; if it does
+  not reproduce (expected), **close #87**; if it does, capture the exact row pair — the cause is then a
+  stale deploy or a case outside the touching-boundary rule, *not* the rule itself.
+- **Minor fold-in:** `doRangesOverlap` groups by `collection + floor` but **not** `libraryName`,
+  whereas `overlapsConflict` groups by `library + floor + collection` — a rare cross-library
+  false-positive on the Dashboard only. Verify on live during Phase 4; note if it occurs.
 
 ## 11. Phasing (summary — full detail in the plan)
 
@@ -421,7 +440,8 @@ after the state/lifecycle contract is proven green on the current drawer.
 1. **#91** — `cache:'no-cache'` on `loadMappingCsv` (one line).
 2. **#92** — add-safe `move`/`delete` in `shelf-state.js`.
 3. **#86** — `commit()` + saveCsv re-baseline + stop full-re-render-on-input, **on the current drawer**.
-4. **#87** — product tweak in the conflict validator.
+4. **#87** — verify on live data; the rule already treats touching boundaries as non-conflicts, so
+   close if it does not reproduce (no rule change).
 5. **Layout move** — grid split out of `#map-canvas`, 4-mode panel, vertical cards, plain-language
    strings, strengthened fit-viewport guards, reassign-as-mode, triage. Carries the now-proven
    contract; the only PR needing e2e/visual rebaselining.
