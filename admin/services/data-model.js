@@ -356,12 +356,16 @@ export function doRangesOverlap(range1, range2) {
   const [a1, a2] = compareCallNumbers(s1, e1) <= 0 ? [s1, e1] : [e1, s1];
   const [b1, b2] = compareCallNumbers(s2, e2) <= 0 ? [s2, e2] : [e2, s2];
 
-  // Interior overlap iff max(start) < min(end). Strict '<' means a single-point
-  // boundary touch (and identical ranges, and different classification systems)
-  // is NOT a problematic overlap.
-  const lo = compareCallNumbers(a1, b1) >= 0 ? a1 : b1;
-  const hi = compareCallNumbers(a2, b2) <= 0 ? a2 : b2;
-  return compareCallNumbers(lo, hi) < 0;
+  // Identical ranges (905-905 vs 905-905, or 100-200 vs 100-200) are NOT a
+  // conflict — the catalog allows multiple shelves for the same classification.
+  if (compareCallNumbers(a1, b1) === 0 && compareCallNumbers(a2, b2) === 0) return false;
+
+  // Otherwise overlap iff start1 < end2 AND start2 < end1 (strict). The strict
+  // '<' keeps a boundary touch (end of A = start of B) NON-conflicting, while
+  // still catching a POINT range sitting inside a wider one (305-305 within
+  // 302-309 — both claim 305). Do NOT switch this to max(start) < min(end):
+  // that collapses for point ranges and hides those real conflicts (issue #100).
+  return compareCallNumbers(a1, b2) < 0 && compareCallNumbers(b1, a2) < 0;
 }
 
 /**

@@ -80,6 +80,21 @@ describe('doRangesOverlap (#100)', () => {
     expect(ov('100', '200', '300', '400')).toBe(false);
   });
 
+  test('a point range sitting INSIDE a wider range is a conflict', () => {
+    expect(ov('305', '305', '302', '309')).toBe(true);   // both claim 305
+    expect(ov('951.03', '951.03', '951', '951.22')).toBe(true);
+  });
+
+  test('a point range only TOUCHING a boundary is not a conflict', () => {
+    expect(ov('305', '305', '305', '309')).toBe(false);  // shares only the endpoint 305
+    expect(ov('309', '309', '302', '309')).toBe(false);
+  });
+
+  test('identical ranges (incl. identical points) are not a conflict', () => {
+    expect(ov('905', '905', '905', '905')).toBe(false);
+    expect(ov('100', '200', '100', '200')).toBe(false);
+  });
+
   test('ML ranges: ML5–ML113 is a valid forward range and overlaps ML100–ML200', () => {
     expect(ov('ML5', 'ML113', 'ML100', 'ML200')).toBe(true);
     expect(ov('ML5', 'ML113', 'ML200', 'ML300')).toBe(false);
