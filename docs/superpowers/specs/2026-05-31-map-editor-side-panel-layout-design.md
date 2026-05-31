@@ -4,7 +4,7 @@
 **Status:** Approved (direction + two revisions confirmed by user 2026-05-31)
 **Mock-up:** `docs/map_editor_new_layout.png`
 **Plan:** `docs/superpowers/plans/2026-05-31-map-editor-side-panel-layout.md`
-**Tracking issue:** _(filled in after issue creation)_
+**Tracking issue:** [#97](https://github.com/hagaybar/NDE_MAPS_MANGER/issues/97)
 
 ---
 
