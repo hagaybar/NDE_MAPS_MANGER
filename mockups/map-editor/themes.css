@@ -1,0 +1,89 @@
+/* ------------------------------------------------------------------
+ * Map Editor mockup — THREE skins as custom-property overrides.
+ * One layout (styles.css); only these tokens + fonts change per style.
+ * Google Fonts load with system fallbacks (page still works offline).
+ * ------------------------------------------------------------------ */
+@import url('https://fonts.googleapis.com/css2?family=Assistant:wght@400;500;600;700&family=Frank+Ruhl+Libre:wght@500;700;900&family=Heebo:wght@400;500;700&family=Rubik:wght@400;500;600;700&display=swap');
+
+/* ---- Shared scale (does NOT change between styles) ---- */
+:root {
+  --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
+  --space-5: 20px; --space-6: 28px; --space-8: 40px;
+  --panel-w: clamp(320px, 26vw, 400px);
+
+  /* Collection identity tones — fixed across all styles so a collection
+     keeps the same colour whichever skin is chosen. */
+  --tone-slate: #475569;  --tone-slate-bg: #eef1f5;
+  --tone-blue:  #2563eb;  --tone-blue-bg:  #dde8fe;
+  --tone-amber: #b45309;  --tone-amber-bg: #fbeccb;
+  --tone-rose:  #be123c;  --tone-rose-bg:  #fcdbe3;
+  --tone-green: #15803d;  --tone-green-bg: #d6f3df;
+  --tone-violet:#6d28d9;  --tone-violet-bg:#e9e2fb;
+  --tone-teal:  #0f766e;  --tone-teal-bg:  #cdf3ee;
+}
+
+/* ===========================================================
+ * STYLE A — Library Classic  (today's app, refined)
+ * =========================================================== */
+:root, [data-theme="a"] {
+  --font-display: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-body:    system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  --accent: #2563eb; --accent-strong: #1d4ed8; --accent-weak: #dbeafe; --on-accent: #ffffff;
+  --bg-app: #eef1f5; --bg-surface: #ffffff; --bg-canvas: #f7f9fc; --bg-elev: #ffffff;
+  --bg-sunken: #f3f4f6;
+  --text: #1e293b; --text-muted: #64748b; --text-faint: #94a3b8;
+  --border: #e3e7ee; --border-strong: #cbd5e1; --divider: #eef1f5;
+  --danger: #dc2626; --danger-bg: #fee2e2; --warn: #b45309; --warn-bg: #fef3c7; --ok: #15803d;
+
+  --radius-card: 8px; --radius-control: 6px; --radius-btn: 6px; --radius-pill: 999px;
+  --shadow-card: 0 1px 2px rgba(15,23,42,.05), 0 1px 3px rgba(15,23,42,.06);
+  --shadow-pop: 0 8px 24px rgba(15,23,42,.12);
+  --shadow-panel: -1px 0 0 var(--border);
+  --header-weight: 600; --display-spacing: normal; --display-transform: none;
+  --map-grid: rgba(37,99,235,.05);
+}
+
+/* ===========================================================
+ * STYLE B — Warm Reading Room  (calm, humane, "paper")
+ * =========================================================== */
+[data-theme="b"] {
+  --font-display: 'Frank Ruhl Libre', 'Times New Roman', Georgia, serif;
+  --font-body:    'Assistant', system-ui, sans-serif;
+
+  --accent: #0f766e; --accent-strong: #115e59; --accent-weak: #d6f1ec; --on-accent: #fffdf9;
+  --bg-app: #f4ede1; --bg-surface: #fffdf8; --bg-canvas: #f6f0e6; --bg-elev: #fffdf8;
+  --bg-sunken: #f1e9da;
+  --text: #3a342b; --text-muted: #8a7c68; --text-faint: #b6a991;
+  --border: #e7dcc8; --border-strong: #d8c8ac; --divider: #efe6d6;
+  --danger: #b3402b; --danger-bg: #f7e0d8; --warn: #b06d20; --warn-bg: #f7ead0; --ok: #4d7c40;
+
+  --radius-card: 14px; --radius-control: 10px; --radius-btn: 10px; --radius-pill: 999px;
+  --shadow-card: 0 2px 6px rgba(99,72,33,.07), 0 8px 20px rgba(99,72,33,.06);
+  --shadow-pop: 0 14px 40px rgba(99,72,33,.18);
+  --shadow-panel: -1px 0 0 var(--border);
+  --header-weight: 700; --display-spacing: normal; --display-transform: none;
+  --map-grid: rgba(120,90,40,.06);
+}
+
+/* ===========================================================
+ * STYLE C — Focused Modern  (crisp, contemporary)
+ * =========================================================== */
+[data-theme="c"] {
+  --font-display: 'Rubik', system-ui, sans-serif;
+  --font-body:    'Heebo', system-ui, sans-serif;
+
+  --accent: #4f46e5; --accent-strong: #4338ca; --accent-weak: #e3e3fb; --on-accent: #ffffff;
+  --bg-app: #eef0f8; --bg-surface: #ffffff; --bg-canvas: #fafbff; --bg-elev: #ffffff;
+  --bg-sunken: #f3f4fb;
+  --text: #131829; --text-muted: #5a6175; --text-faint: #9aa1b7;
+  --border: #e6e8f3; --border-strong: #cfd3e6; --divider: #eef0f8;
+  --danger: #e11d48; --danger-bg: #ffe1e7; --warn: #c2410c; --warn-bg: #ffedd5; --ok: #059669;
+
+  --radius-card: 14px; --radius-control: 10px; --radius-btn: 999px; --radius-pill: 999px;
+  --shadow-card: 0 2px 4px rgba(30,27,75,.04), 0 10px 30px rgba(30,27,75,.08);
+  --shadow-pop: 0 18px 48px rgba(30,27,75,.22);
+  --shadow-panel: -1px 0 0 var(--border);
+  --header-weight: 600; --display-spacing: -0.01em; --display-transform: none;
+  --map-grid: rgba(79,70,229,.05);
+}

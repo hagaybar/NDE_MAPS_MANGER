@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="he" dir="rtl" data-theme="a">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>מפת מדפים — תצוגת עיצוב · Shelf map design preview</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="themes.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- ============================ Topbar ============================ -->
+  <header class="topbar">
+    <div class="brand">
+      <h1 id="brand-title">מפת מדפים</h1>
+      <span class="preview-badge" id="preview-badge">תצוגת עיצוב</span>
+    </div>
+    <nav class="floor-tabs" id="floor-tabs"></nav>
+    <div class="switchers">
+      <div class="seg" role="group" aria-label="style">
+        <span id="style-label">מראה</span>
+        <button id="style-a">קלאסי</button>
+        <button id="style-b">חמים</button>
+        <button id="style-c">מודרני</button>
+      </div>
+      <button class="icon-btn" id="lang-toggle">English</button>
+      <button class="icon-btn" id="help-btn">איך נותנים משוב?</button>
+      <button class="icon-btn" id="reset-btn">איפוס</button>
+    </div>
+  </header>
+
+  <div class="preview-note" id="batch-note"></div>
+
+  <!-- ============================ Editor ============================ -->
+  <main class="editor">
+    <section id="map-split">
+      <!-- panel FIRST in DOM = inline-start track (right in RTL, left in LTR) -->
+      <aside id="side-panel"></aside>
+      <div id="map-canvas">
+        <button class="collapse-btn" id="collapse-btn" title="">⟨</button>
+        <div id="map-svg-host"></div>
+        <div class="reassign-strip" id="reassign-strip" hidden>
+          <span class="msg"></span>
+          <button type="button"></button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="toasts"></div>
+  <button class="fab" id="fab-feedback">💬 משוב</button>
+
+  <!-- ========================= Feedback drawer ========================= -->
+  <div class="overlay" id="fb-overlay" aria-hidden="true">
+    <div class="drawer" role="dialog" aria-modal="true">
+      <div class="drawer-head">
+        <h2 id="fb-title">המשוב שלך</h2>
+        <button class="x" id="fb-close" aria-label="close">×</button>
+      </div>
+      <div class="drawer-body">
+        <p class="drawer-intro" id="fb-intro"></p>
+        <div class="meta-row">
+          <div class="field">
+            <label id="fb-style-label">מראה נוכחי</label>
+            <span class="meta-pill" id="fb-style-pill"></span>
+          </div>
+          <div class="field">
+            <label id="fb-topic-label">נושא</label>
+            <select id="fb-topic"></select>
+          </div>
+        </div>
+        <div class="field">
+          <label id="fb-comment-label">ההערה שלך</label>
+          <textarea id="fb-comment"></textarea>
+        </div>
+        <div class="field">
+          <label id="fb-screenshot-label">צילומי מסך</label>
+          <div class="dropzone" id="fb-dropzone"><span id="fb-dropzone-text"></span></div>
+          <input type="file" id="fb-file" accept="image/*" multiple hidden>
+          <div class="thumbs" id="fb-thumbs"></div>
+        </div>
+        <button class="btn btn-primary" id="fb-add" style="flex:none">הוסף הערה</button>
+        <div>
+          <h3 id="fb-list-title" style="font-family:var(--font-display);font-size:.95rem;margin:8px 0 6px"></h3>
+          <div class="notes-list" id="fb-list"></div>
+        </div>
+      </div>
+      <div class="drawer-foot">
+        <div class="row">
+          <button class="btn btn-primary" id="fb-export" style="flex:1">ייצא ושלח</button>
+          <button class="btn btn-ghost" id="fb-copy">העתק כטקסט</button>
+        </div>
+        <button class="btn btn-ghost" id="fb-clear" style="font-size:.8rem">נקה הכול</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================== Help modal =========================== -->
+  <div class="overlay" id="help-overlay" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true">
+      <h2 id="help-title"></h2>
+      <p class="lead" id="help-lead"></p>
+      <div class="steps">
+        <div class="step"><div class="n">1</div><div><h3 id="help-s1-t"></h3><p id="help-s1-d"></p></div></div>
+        <div class="step"><div class="n">2</div><div><h3 id="help-s2-t"></h3><p id="help-s2-d"></p></div></div>
+        <div class="step"><div class="n">3</div><div><h3 id="help-s3-t"></h3><p id="help-s3-d"></p></div></div>
+      </div>
+      <button class="btn btn-primary" id="help-close"></button>
+    </div>
+  </div>
+
+  <script src="data.js"></script>
+  <script src="floor-svg.js"></script>
+  <script src="feedback.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
