@@ -10,6 +10,7 @@ import {
   FLOOR_VALUES,
   getRowKey,
   parseRangeValue,
+  compareCallNumbers,
   doRangesOverlap
 } from '../services/data-model.js';
 
@@ -128,7 +129,7 @@ export function validateRow(row, options = {}) {
           field: 'rangeStart',
           message: i18n.t('validation.rangePrefixMismatch')
         });
-      } else if (parsedStart.numeric > parsedEnd.numeric) {
+      } else if (compareCallNumbers(rangeStart, rangeEnd) > 0) {
         errors.push({
           field: 'rangeStart',
           message: i18n.t('validation.invalidRange')

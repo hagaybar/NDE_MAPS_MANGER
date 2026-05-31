@@ -56,6 +56,7 @@ describe('CSV Editor — Broken refs filter', () => {
       getRowKey: jest.fn().mockReturnValue(''),
       parseRangeValue: jest.fn().mockReturnValue(null),
       parseRangeBoundary: jest.fn().mockReturnValue(null),
+      compareCallNumbers: jest.fn((a, b) => (a < b ? -1 : a > b ? 1 : 0)),
       doRangesOverlap: jest.fn().mockReturnValue(false),
       loadCsv: jest.fn().mockResolvedValue({ rows: [], svgShelfIdsByFloor: {} }),
     }));
