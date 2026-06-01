@@ -100,7 +100,7 @@ test('Map Editor: clicking a shelf produces no console errors or warnings', asyn
 
   // Click a shelf to exercise the selection path.
   await clickShelf(page, 'A1');
-  await expect(page.locator('#map-drawer')).toBeVisible();
+  await expect(page.locator('#map-side-panel .map-panel--shelf')).toBeVisible();
 
   // Allow any deferred logging to flush before the fixture's afterEach asserts.
   await page.waitForTimeout(250);

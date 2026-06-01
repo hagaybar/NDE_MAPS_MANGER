@@ -173,7 +173,7 @@ for (const locale of ['en', 'he'] as const) {
     // survives the viewBox scaling, not just the data wiring.
     await page.locator('#map-canvas > svg #A1').click();
 
-    await expect(page.locator('#map-drawer')).toBeVisible();
-    await expect(page.locator('#map-drawer')).toContainText('A1');
+    await expect(page.locator('#map-side-panel .map-panel--shelf')).toBeVisible();
+    await expect(page.locator('#map-side-panel')).toContainText('A1');
   });
 }

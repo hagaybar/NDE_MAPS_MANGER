@@ -108,31 +108,27 @@ test.describe('Map Editor — empty shelf', () => {
     // Click E1.
     await clickShelf(page, 'E1');
 
-    // Drawer renders the empty-state UI.
-    await expect(page.locator('.map-drawer__empty-state')).toBeVisible();
-    await expect(page.locator('.map-drawer__empty-state__message')).toBeVisible();
-    await expect(page.locator('.map-drawer__empty-state__explanation')).toBeVisible();
-    await expect(page.locator('.map-drawer__empty-state__cta')).toBeVisible();
+    // Panel renders the empty-state UI.
+    await expect(page.locator('.map-panel__empty')).toBeVisible();
+    await expect(page.locator('.map-panel__empty-msg')).toBeVisible();
+    await expect(page.locator('#panel-empty-cta')).toBeVisible();
 
-    // No range rows.
-    expect(await page.locator('.map-drawer__row').count()).toBe(0);
+    // No range cards.
+    expect(await page.locator('.map-card').count()).toBe(0);
   });
 
   test('clicking the empty-state CTA creates the first range', async ({ page }) => {
     await clickShelf(page, 'E1');
-    await expect(page.locator('.map-drawer__empty-state__cta')).toBeVisible();
+    await expect(page.locator('#panel-empty-cta')).toBeVisible();
 
-    await page.locator('.map-drawer__empty-state__cta').click();
+    await page.locator('#panel-empty-cta').click();
 
-    // Drawer transitions to populated UI.
-    await expect(page.locator('.map-drawer__empty-state')).toHaveCount(0);
-    await expect(page.locator('.map-drawer__row')).toHaveCount(1);
+    // Panel transitions to populated UI: the empty state is gone and one card shows.
+    await expect(page.locator('.map-panel__empty')).toHaveCount(0);
+    await expect(page.locator('.map-card')).toHaveCount(1);
 
-    // The new row's svgCode is captured in state — we proxy it via the drawer
-    // header which uses both the shelf label and the range count.
-    // Header template: "Shelf {label} — {n} ranges"
-    const header = await page.locator('.map-drawer__header h3').textContent();
+    // The panel header shows the shelf label (count dropped from the headline).
+    const header = await page.locator('.map-panel__title').textContent();
     expect(header).toContain('E1');
-    expect(header).toContain('1');
   });
 });

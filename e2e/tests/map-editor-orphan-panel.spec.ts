@@ -159,9 +159,9 @@ test.describe('Map Editor — orphan panel (sub-phase 2a)', () => {
       }
     });
 
-    // Click the badge — opens the right-side panel.
+    // Click the badge — opens the worklist in the side panel's triage mode.
     await badge.click();
-    await expect(page.locator('.map-orphan-panel--open')).toBeVisible();
+    await expect(page.locator('#map-side-panel .map-panel--triage')).toBeVisible();
 
     // Wait for at least one card to appear. If the SVG cache is still cold
     // when the panel opens, the deriver returns an empty list and the panel
@@ -171,8 +171,8 @@ test.describe('Map Editor — orphan panel (sub-phase 2a)', () => {
     try {
       await firstCard.waitFor({ state: 'visible', timeout: 2_000 });
     } catch {
-      // Refresh: close the panel and reopen via the badge.
-      await page.locator('.map-orphan-panel__close').click();
+      // Refresh: close the worklist and reopen via the badge.
+      await page.locator('#panel-triage-close').click();
       await badge.click();
       await firstCard.waitFor({ state: 'visible', timeout: 5_000 });
     }

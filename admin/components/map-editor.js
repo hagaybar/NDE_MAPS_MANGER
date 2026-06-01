@@ -269,8 +269,16 @@ async function loadFloor(floorNumber) {
   // Re-render floor tabs so the orphan badge picks up this floor's count
   // now that locationElements is indexed.
   renderFloorTabs(currentFloor);
-  // If the triage worklist is showing, refresh it for the new floor.
-  refreshTriageIfOpen();
+  // Render the panel for this floor. Drop a selection that isn't on this floor
+  // (e.g. after switching tabs) so the panel shows the idle hint rather than an
+  // empty 'shelf'. This also renders the idle hint on first load — the old drawer
+  // just stayed hidden, but the persistent panel must paint something. renderDrawer
+  // re-derives triage too, so it covers the post-save / floor-change refresh.
+  const sel = shelfState.selection();
+  if (sel.kind === 'single' && !locationElements.has(sel.shelfIds[0])) {
+    shelfState.clearSelection();
+  }
+  renderDrawer();
 }
 
 // Issue #70: the Map Editor must show the whole floor map without scrolling at
