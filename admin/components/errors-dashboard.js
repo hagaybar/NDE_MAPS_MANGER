@@ -1,7 +1,7 @@
 // Errors Dashboard Component - Interactive dashboard for viewing and fixing validation issues
 import i18n from '../i18n.js?v=5';
 import { validateRow, VALIDATION_ERRORS, VALIDATION_WARNINGS } from '../services/data-model.js';
-import { showEditLocationDialog, setCollections } from './edit-location-dialog.js?v=6';
+import { showEditLocationDialog, setCollections } from './edit-location-dialog.js?v=7';
 import { getAuthHeaders } from '../app.js?v=5';
 import logger from '../services/logger.js?v=1';
 import { buildReportRows, toCsv, downloadCsv, reportFilename } from './errors-dashboard/report-export.js';
