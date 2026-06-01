@@ -2677,13 +2677,17 @@ textarea:focus-visible,
 }
 
 /* Side-panel layout (#97): the editing surface moves from a bottom drawer into a
- * CSS-grid column beside the map. #map-editor-split is the direction-aware parent
- * (it inherits document dir; the panel lands at inline-end → right in LTR, left in
- * RTL — for free, no physical CSS). The panel is a SIBLING of #map-canvas, never a
- * child, so #23 (RTL panel displacement inside force-LTR canvas) cannot recur. */
+ * CSS-grid column beside the map. Per librarian request the layout is FIXED
+ * physically — map on the LEFT, panel on the RIGHT — in both Hebrew and English
+ * (not mirrored by language). We pin the columns by forcing the split to ltr so
+ * column 1 = physical left (map, 1fr) and column 2 = physical right (panel). The
+ * panel's CONTENT direction is restored to the document dir below so Hebrew still
+ * reads right-to-left. The panel is a SIBLING of #map-canvas, never a child, so
+ * #23 (RTL panel displacement inside force-LTR canvas) cannot recur. */
 #map-editor-split {
   display: grid;
-  grid-template-columns: 1fr var(--panel-w, 360px);  /* canvas | panel */
+  grid-template-columns: 1fr var(--panel-w, 360px);  /* map | panel */
+  direction: ltr;         /* pin columns physically: map left, panel right (both langs) */
   flex: 1;                /* fill the column below the header */
   min-height: 0;
 }
@@ -2706,10 +2710,13 @@ textarea:focus-visible,
   min-width: 0;           /* grid item: don't force the column wider than --panel-w */
   overflow-y: auto;
   background: var(--me-surface);
-  border-inline-start: 1px solid var(--me-border);  /* logical: sits between map & panel in both dirs */
+  border-left: 1px solid var(--me-border);  /* physical: panel sits on the right, divider faces the map on its left */
   font-family: var(--me-font-body);
   color: var(--me-ink);
 }
+/* The split is forced ltr to pin the layout physically (map left, panel right);
+ * restore the panel's CONTENT direction so Hebrew still reads right-to-left. */
+[dir="rtl"] #map-side-panel { direction: rtl; }
 #map-side-panel.map-side-panel--hidden { display: none; }
 
 /* ── Map Editor side-panel redesign (#97) — Classic skin ──────────────────────
@@ -2725,7 +2732,9 @@ textarea:focus-visible,
   --me-radius-card: 8px; --me-radius-control: 6px;
   --me-shadow-card: 0 1px 2px rgba(15,23,42,.05), 0 1px 3px rgba(15,23,42,.06);
   --me-font-body: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --panel-w: clamp(320px, 26vw, 400px);
+  /* Narrower panel → the map (the 1fr column) gets more room, per librarian
+   * feedback. Floor is 300px so the cards (collection select + From/To) stay usable. */
+  --panel-w: clamp(300px, 22vw, 360px);
 }
 
 .map-panel { display: flex; flex-direction: column; gap: 12px; padding: 16px; height: 100%; box-sizing: border-box; }
@@ -2840,7 +2849,7 @@ textarea:focus-visible,
 /* ── responsive: the panel width tracks the viewport via the clamp above; below
  * the desktop target the map keeps min-width:0 so it never overflows. ── */
 @media (max-width: 1180px) {
-  #map-editor-view { --panel-w: clamp(280px, 30vw, 360px); }
+  #map-editor-view { --panel-w: clamp(280px, 26vw, 340px); }
 }
 
 /* Issue #70 — fit the floor map to the canvas at default zoom (no scrolling).
