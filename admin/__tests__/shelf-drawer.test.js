@@ -139,4 +139,28 @@ describe('showSingleShelf — empty-state branch', () => {
       expect(document.activeElement).toBe(outside);
     });
   });
+
+  describe('overlap warning wording distinguishes same-shelf vs cross-shelf (issue #87)', () => {
+    // i18n mock returns the key verbatim, so the rendered title IS the key used.
+    const conflictRow = (otherShelf) => baseProps({
+      rangesOnShelf: [{
+        id: 'r1', svgCode: 'E1', collectionName: 'GEN',
+        rangeStart: '300', rangeEnd: '400', shelfLabel: 'E1',
+      }],
+      collectionsList: ['GEN'],
+      conflictsByRangeId: new Map([['r1', [{ otherShelf, otherRangeLabel: '350-360' }]]]),
+    });
+
+    test('a same-shelf overlap uses the overlapSameShelf message', () => {
+      showSingleShelf(conflictRow('E1')); // other range is on the SAME shelf
+      const title = document.querySelector('[data-field="rangeStart"]').title;
+      expect(title).toBe('mapEditor.warning.overlapSameShelf');
+    });
+
+    test('a cross-shelf overlap uses the generic overlap message', () => {
+      showSingleShelf(conflictRow('E2')); // other range is on a DIFFERENT shelf
+      const title = document.querySelector('[data-field="rangeStart"]').title;
+      expect(title).toBe('mapEditor.warning.overlap');
+    });
+  });
 });

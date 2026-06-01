@@ -458,9 +458,10 @@
       }
     },
     "warning": {
-      "overlap": "חופף ל-{otherRangeLabel} במדף {otherShelfLabel}",
+      "overlap": "חופף ל-{otherRangeLabel} במדף {otherShelfLabel} — מספר מיון בטווח החופף עלול להצביע על שני מדפים.",
+      "overlapSameShelf": "חופף ל-{otherRangeLabel}, טווח נוסף במדף זה — מספרי המיון האלה מופיעים כאן פעמיים.",
       "startGtEnd": "תחילת הטווח גדולה מהסוף.",
-      "banner": "{n} התנגשויות במדף זה",
+      "banner": "{n} חפיפות במדף זה",
       "with": "— גם במדפים:"
     },
     "shelf": {
