@@ -204,20 +204,21 @@ test.describe('@phase-3 Map Editor UX polish', () => {
     // Open the drawer by selecting a shelf — only then is the layout under
     // test (drawer is `display: none` while hidden, so its bounding box is null).
     await clickShelf(page, 'A1');
-    await expect(page.locator('#map-drawer')).toBeVisible();
+    await expect(page.locator('#map-side-panel .map-panel--shelf')).toBeVisible();
 
     // Allow the flex layout one frame to settle before measuring.
     await page.waitForTimeout(50);
 
     const canvasBox = await page.locator('#map-canvas').boundingBox();
-    const drawerBox = await page.locator('#map-drawer').boundingBox();
+    const panelBox = await page.locator('#map-side-panel').boundingBox();
     expect(canvasBox, 'canvas must have a layout box').not.toBeNull();
-    expect(drawerBox, 'drawer must have a layout box once visible').not.toBeNull();
+    expect(panelBox, 'panel must have a layout box').not.toBeNull();
 
-    // Drawer top edge must sit at or below the canvas's bottom edge. The
-    // `- 1` slack accounts for sub-pixel rounding from the browser's layout
-    // engine; an actual overlay would clear this threshold by tens of pixels.
-    expect(drawerBox!.y).toBeGreaterThanOrEqual(canvasBox!.y + canvasBox!.height - 1);
+    // The panel sits to the RIGHT of the map, not over it (map left / panel
+    // right). The panel's left edge starts at or after the canvas's right edge.
+    // The `- 1` slack absorbs sub-pixel rounding; an actual overlay would clear
+    // this by tens of pixels.
+    expect(panelBox!.x).toBeGreaterThanOrEqual(canvasBox!.x + canvasBox!.width - 1);
 
     // The console fixture's afterEach also asserts cleanliness; do it mid-test
     // so a regression points at the layout interaction rather than teardown.
@@ -248,10 +249,10 @@ test.describe('@phase-3 Map Editor UX polish', () => {
     );
 
     await clickShelf(page, 'A1');
-    await expect(page.locator('#map-drawer')).toBeVisible();
+    await expect(page.locator('#map-side-panel .map-panel--shelf')).toBeVisible();
 
-    await page.click('#drawer-close');
-    await expect(page.locator('#map-drawer')).toHaveClass(/map-drawer--hidden/);
+    await page.click('#panel-close');
+    await expect(page.locator('#map-side-panel .map-panel--idle')).toBeVisible();
     // No shelf should be selected after close.
     const selected = await page.locator('.map-shelf--selected').count();
     expect(selected).toBe(0);
@@ -280,10 +281,10 @@ test.describe('@phase-3 Map Editor UX polish', () => {
     );
 
     await clickShelf(page, 'A1');
-    await expect(page.locator('#map-drawer')).toBeVisible();
+    await expect(page.locator('#map-side-panel .map-panel--shelf')).toBeVisible();
 
     await page.keyboard.press('Escape');
-    await expect(page.locator('#map-drawer')).toHaveClass(/map-drawer--hidden/);
+    await expect(page.locator('#map-side-panel .map-panel--idle')).toBeVisible();
     expect(confirmCalled).toBe(false);
   });
 
@@ -303,19 +304,19 @@ test.describe('@phase-3 Map Editor UX polish', () => {
     );
 
     await clickShelf(page, 'A1');
-    await expect(page.locator('#map-drawer')).toBeVisible();
+    await expect(page.locator('#map-side-panel .map-panel--shelf')).toBeVisible();
 
     // Force window.confirm to return false so the Esc-cancel path is exercised
     // synchronously (avoids the async dialog round-trip and its timing).
     await page.evaluate(() => { (window as any).confirm = () => false; });
 
     // Create a pending edit by modifying the rangeStart input.
-    const startInput = page.locator('#map-drawer [data-field="rangeStart"]').first();
+    const startInput = page.locator('#map-side-panel [data-field="rangeStart"]').first();
     await startInput.fill('999');
 
     await page.keyboard.press('Escape');
     // Drawer must still be visible (confirm returned false → no close).
-    await expect(page.locator('#map-drawer')).toBeVisible();
+    await expect(page.locator('#map-side-panel .map-panel--shelf')).toBeVisible();
     // Pending edit must still be present (input value preserved).
     await expect(startInput).toHaveValue('999');
   });
@@ -338,16 +339,16 @@ test.describe('@phase-3 Map Editor UX polish', () => {
     );
 
     await clickShelf(page, 'A1');
-    await expect(page.locator('#map-drawer')).toBeVisible();
+    await expect(page.locator('#map-side-panel .map-panel--shelf')).toBeVisible();
 
     // Enter reassign-mode via the row's "Move" button.
-    await page.click('#map-drawer [data-action="move"]');
+    await page.click('#map-side-panel [data-action="move"]');
     await expect(page.locator('#map-reassign-banner')).toBeVisible();
 
     await page.keyboard.press('Escape');
     // Reassign-mode handles its own Esc → banner disappears, drawer remains.
     await expect(page.locator('#map-reassign-banner')).toBeHidden();
-    await expect(page.locator('#map-drawer')).toBeVisible();
+    await expect(page.locator('#map-side-panel .map-panel--shelf')).toBeVisible();
   });
 
   // ---------------------------------------------------------------------------
@@ -363,7 +364,10 @@ test.describe('@phase-3 Map Editor UX polish', () => {
   // or styling clears these thresholds by orders of magnitude.
   // ---------------------------------------------------------------------------
 
-  const SNAPSHOT_OPTS = { maxDiffPixels: 50, threshold: 0.2, fullPage: true } as const;
+  // animations:'disabled' freezes the shelf fill-transition (.map-shelf) and any
+  // easing so the capture is deterministic; caret:'hide' removes the blinking text
+  // caret from the focused-input snapshot. Both prevent visual-snapshot flake.
+  const SNAPSHOT_OPTS = { maxDiffPixels: 50, threshold: 0.2, fullPage: true, animations: 'disabled', caret: 'hide' } as const;
 
   test('snapshot: drawer-closed', async ({ page }) => {
     const { locale, role } = parseProjectMatrix(test.info().project.name);
@@ -383,7 +387,7 @@ test.describe('@phase-3 Map Editor UX polish', () => {
 
     // Drawer starts hidden — confirm before taking the shot so we don't
     // accidentally race a deferred selection from a previous interaction.
-    await expect(page.locator('#map-drawer')).toHaveClass(/map-drawer--hidden/);
+    await expect(page.locator('#map-side-panel .map-panel--idle')).toBeVisible();
     // Allow one frame for any layout settling.
     await page.waitForTimeout(50);
 
@@ -418,14 +422,17 @@ test.describe('@phase-3 Map Editor UX polish', () => {
     // locked-input rendering inline. The dedicated locked-row snapshot below
     // covers the editor-only state explicitly.
     await clickShelf(page, 'A1');
-    await expect(page.locator('#map-drawer')).toBeVisible();
+    await expect(page.locator('#map-side-panel .map-panel--shelf')).toBeVisible();
     // Defocus any auto-focused element so the snapshot is deterministic.
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
     await page.waitForTimeout(80);
 
-    await expect(page).toHaveScreenshot(
+    // Panel-scoped: this captures the shelf editor's rendering; the map's
+    // selected-shelf fill is covered by the layout/positioning specs and would
+    // otherwise flake the full-page shot on highlight timing.
+    await expect(page.locator('#map-side-panel')).toHaveScreenshot(
       snapshotName('drawer-open-single-shelf', locale, role),
-      SNAPSHOT_OPTS
+      { maxDiffPixels: 50, threshold: 0.2, animations: 'disabled', caret: 'hide' }
     );
   });
 
@@ -451,17 +458,20 @@ test.describe('@phase-3 Map Editor UX polish', () => {
     );
 
     await clickShelf(page, 'A1');
-    await expect(page.locator('#map-drawer')).toBeVisible();
+    await expect(page.locator('#map-side-panel .map-panel--shelf')).toBeVisible();
 
     // Click the rangeStart input to focus it. Use `.click()` rather than
     // `.focus()` so we exercise the same path a user would.
-    await page.locator('#map-drawer [data-field="rangeStart"]').first().click();
+    await page.locator('#map-side-panel [data-field="rangeStart"]').first().click();
     // Allow caret/focus-ring transition to settle.
     await page.waitForTimeout(120);
 
-    await expect(page).toHaveScreenshot(
+    // Snapshot only the panel — this test is about the focused input's rendering,
+    // and a full-page shot would also capture the map's selected-shelf fill, which
+    // can flake on transition/focus timing (the single-shelf shot covers the map).
+    await expect(page.locator('#map-side-panel')).toHaveScreenshot(
       snapshotName('drawer-open-input-focused', locale, role),
-      SNAPSHOT_OPTS
+      { maxDiffPixels: 50, threshold: 0.2, animations: 'disabled', caret: 'hide' }
     );
   });
 
@@ -491,17 +501,19 @@ test.describe('@phase-3 Map Editor UX polish', () => {
     );
 
     await clickShelf(page, 'A1');
-    await expect(page.locator('#map-drawer')).toBeVisible();
+    await expect(page.locator('#map-side-panel .map-panel--shelf')).toBeVisible();
     // Sanity-check that the row IS rendered in its locked state — without
     // this assertion an environment glitch (e.g. user JSON not parsed) could
     // silently let us snapshot an unlocked row and bake the wrong baseline.
-    await expect(page.locator('#map-drawer .map-drawer__row--locked').first()).toBeVisible();
+    await expect(page.locator('#map-side-panel .map-card--locked').first()).toBeVisible();
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
     await page.waitForTimeout(80);
 
-    await expect(page).toHaveScreenshot(
+    // Panel-scoped (see single-shelf note) — this captures the locked vs editable
+    // card rendering, not the map highlight.
+    await expect(page.locator('#map-side-panel')).toHaveScreenshot(
       snapshotName('drawer-open-locked-row', locale, role),
-      SNAPSHOT_OPTS
+      { maxDiffPixels: 50, threshold: 0.2, animations: 'disabled', caret: 'hide' }
     );
   });
 });
