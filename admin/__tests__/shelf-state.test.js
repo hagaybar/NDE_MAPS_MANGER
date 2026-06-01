@@ -99,3 +99,38 @@ describe('shelfState add-then-edit (issue #81)', () => {
     expect(s.pendingEdits().get('temp-1').type).toBe('add'); // still an add, not a modify
   });
 });
+
+describe('shelfState add-then-move / add-then-delete (issue #92)', () => {
+  test('moving a freshly-added row keeps it and applies the target', () => {
+    const s = createShelfState({ ranges: [], permittedRowIds: null });
+    s.add('temp-1', { svgCode: 'B1', floor: '1', rangeStart: '100', rangeEnd: '199' });
+
+    s.move('temp-1', { svgCode: 'C2' }); // drag the new shelf onto a different cell
+
+    const moved = s.materialize().find(r => r.id === 'temp-1');
+    expect(moved).toBeDefined();                              // must NOT vanish
+    expect(moved.svgCode).toBe('C2');                         // and must carry the new target
+    expect(moved).toMatchObject({ floor: '1', rangeStart: '100', rangeEnd: '199' });
+    expect(s.pendingEdits().get('temp-1').type).toBe('add');  // still an add, not a move
+  });
+
+  test('deleting a freshly-added row removes it cleanly with no dangling pending entry', () => {
+    const s = createShelfState({ ranges: [], permittedRowIds: null });
+    s.add('temp-1', { svgCode: 'B1', floor: '1', rangeStart: '100', rangeEnd: '199' });
+
+    s.delete('temp-1'); // librarian adds a row then discards it
+
+    expect(s.materialize().find(r => r.id === 'temp-1')).toBeUndefined();
+    expect(s.pendingEdits().has('temp-1')).toBe(false); // no orphaned {type:'delete'} for an unsaved id
+  });
+
+  test('moving a SAVED row still records a move and applies the target', () => {
+    const s = createShelfState({
+      ranges: [{ id: 'r1', svgCode: 'A1', floor: '1', rangeStart: '100', rangeEnd: '110' }],
+      permittedRowIds: null,
+    });
+    s.move('r1', { svgCode: 'Z9' });
+    expect(s.pendingEdits().get('r1').type).toBe('move');
+    expect(s.materialize().find(r => r.id === 'r1').svgCode).toBe('Z9');
+  });
+});
