@@ -2795,11 +2795,11 @@ textarea:focus-visible,
   border-radius: var(--me-radius-card); padding: 12px; box-shadow: var(--me-shadow-card);
 }
 .map-card--locked { opacity: .7; background: var(--me-sunken); }
-.map-card__collection { width: 100%; padding: 6px 8px; font-size: 13px; border: 1px solid var(--me-border-strong); border-radius: var(--me-radius-control); background: var(--me-surface); }
+.map-card__collection { width: 100%; box-sizing: border-box; padding: 6px 8px; font-size: 13px; border: 1px solid var(--me-border-strong); border-radius: var(--me-radius-control); background: var(--me-surface); }
 .map-card__range { display: flex; gap: 10px; }
-.map-card__field { display: flex; flex-direction: column; gap: 3px; flex: 1; font-size: 12px; color: var(--me-muted); }
+.map-card__field { display: flex; flex-direction: column; gap: 3px; flex: 1 1 0; min-width: 0; font-size: 12px; color: var(--me-muted); }
 .map-card__label { font-weight: 600; }
-.map-card__input { padding: 6px 8px; font-size: 14px; border: 1px solid var(--me-border-strong); border-radius: var(--me-radius-control); }
+.map-card__input { width: 100%; min-width: 0; box-sizing: border-box; padding: 6px 8px; font-size: 14px; border: 1px solid var(--me-border-strong); border-radius: var(--me-radius-control); }
 .map-card__cell--invalid { border-color: var(--me-warn-border); background: var(--me-warn-bg); }
 .map-card__warn { color: #92400e; background: var(--me-warn-bg); border-radius: var(--me-radius-control); padding: 6px 8px; font-size: 12.5px; white-space: pre-line; }
 .map-card__actions { display: flex; justify-content: space-between; gap: 8px; }
