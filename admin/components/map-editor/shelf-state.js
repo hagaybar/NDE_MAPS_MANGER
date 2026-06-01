@@ -37,9 +37,26 @@ export function createShelfState({ ranges, permittedRowIds }) {
       _pending.set(tempId, { type: 'add', range });
     },
     delete(rangeId) {
+      // Deleting a not-yet-saved add just drops it — the row was never in
+      // _ranges, so there's nothing to tombstone. Leaving a {type:'delete'}
+      // keyed to a temp id would orphan a delete the server can't resolve (#92).
+      const existing = _pending.get(rangeId);
+      if (existing && existing.type === 'add') {
+        _pending.delete(rangeId);
+        return;
+      }
       _pending.set(rangeId, { type: 'delete' });
     },
     move(rangeId, target) {
+      // If this row is a not-yet-saved add, fold the move INTO the add so it
+      // stays an 'add' (materialize only re-adds 'add' entries). Overwriting it
+      // with a 'move' would orphan the row — it isn't in _ranges yet — and drop
+      // it on the next render (same class as the #81 edit bug; #92).
+      const existing = _pending.get(rangeId);
+      if (existing && existing.type === 'add') {
+        _pending.set(rangeId, { type: 'add', range: { ...existing.range, ...target } });
+        return;
+      }
       _pending.set(rangeId, { type: 'move', target });
     },
     revert() { _pending.clear(); },
