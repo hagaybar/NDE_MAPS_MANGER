@@ -40,6 +40,7 @@ const REQUIRED = [
   'mapEditor.reassign.banner.repair',
   'mapEditor.reassign.cancel',
   'mapEditor.reassign.chooseFromList',
+  'mapEditor.reassign.moved',
 ];
 
 describe('Map Editor side-panel i18n keys (#97 Task 5.5)', () => {

@@ -332,10 +332,23 @@ installPromoteRefreshListener({
 window.addEventListener('mapeditor:selection-changed', () => renderDrawer());
 
 function renderDrawer() {
-  // The persistent side panel renders one of four modes. shelf vs idle is driven
-  // by shelfState.mode(); reassign/triage panel modes are wired in later tasks
-  // (the idle nudge currently opens the existing orphan worklist overlay).
-  if (shelfState.mode() !== 'shelf') {
+  // The persistent side panel renders one of four modes, driven by
+  // shelfState.mode(). The active "click a target" instruction strip lives over
+  // the map (reassign-mode.js); the panel shows the passive reassign summary.
+  const mode = shelfState.mode();
+
+  if (mode === 'reassign') {
+    const r = shelfState.reassign();
+    const range = r ? shelfState.materialize().find(x => x.id === r.rangeId) : null;
+    const summary = range
+      ? `${(range.collectionName || '').trim()} ${range.rangeStart || ''}-${range.rangeEnd || ''}`.trim()
+      : '';
+    renderPanel({ mode: 'reassign', reassignSummary: summary, onCancelReassign: () => cancelReassign() });
+    return;
+  }
+
+  if (mode !== 'shelf') {
+    // idle (triage is wired in Task 5.7; the nudge opens the worklist overlay for now)
     const orphanCount = currentFloor === null ? 0 : deriveOrphansForFloor(allRanges, currentFloor).length;
     renderPanel({
       mode: 'idle',
@@ -386,44 +399,7 @@ function renderDrawer() {
       pendingCount: shelfState.pendingCount(),
       onChange: (id, patch) => { shelfState.edit(id, patch); refreshConflicts(); renderDrawer(); },
       onAdd: () => addNewRangeToShelf(locationId),
-      onMove: (id) => {
-        const range = shelfState.materialize().find(r => r.id === id);
-        if (!range) return;
-        const allShelves = allRanges
-          .filter(r => r.svgCode)
-          .reduce((acc, r) => {
-            const key = `${r.svgCode}|${r.floor}`;
-            if (!acc.has(key)) acc.set(key, { svgCode: r.svgCode, floor: r.floor, label: r.shelfLabel || r.svgCode });
-            return acc;
-          }, new Map());
-        const allShelvesList = Array.from(allShelves.values()).sort((a, b) => a.label.localeCompare(b.label));
-        startReassign({
-          rangeId: id,
-          rangeLabel: `${range.collectionName} ${range.rangeStart}-${range.rangeEnd}`,
-          oldShelfLabel: range.shelfLabel || range.svgCode || '',
-          shelfElements: new Map([...locationElements].filter(([sid]) => sid !== range.svgCode)),
-          allShelves: allShelvesList,
-          onConfirm: ({ newSvgCode, newFloor }) => {
-            const target = { svgCode: newSvgCode };
-            if (newFloor !== undefined) target.floor = newFloor;
-            shelfState.move(id, target);
-            refreshConflicts();
-            // Reopen-destination behavior for move intent: if the destination
-            // shelf is on the current floor, shift the drawer's selection to
-            // it so the librarian sees the moved range in its new context. If
-            // the destination is on a different floor, the drawer closes
-            // (renderDrawer with no current-floor selection) and the librarian
-            // can switch tabs to inspect.
-            if (locationElements.has(newSvgCode)) {
-              shelfState.selectSingle(newSvgCode);
-              applySelection(locationElements, shelfState.selection().shelfIds);
-            }
-            renderDrawer();
-          },
-          onCancel: () => { /* nothing — banner already removed */ },
-          intent: 'move',
-        });
-      },
+      onMove: (id) => beginReassign(id, 'move'),
       onDelete: (id) => { shelfState.delete(id); renderDrawer(); },
       onDiscard: () => { shelfState.revert(); renderDrawer(); refreshConflicts(); },
       onSave: () => saveCsv(),
@@ -440,6 +416,70 @@ function renderDrawer() {
       },
     });
   }
+}
+
+// Move (intent 'move') or orphan-repair (intent 'repair'): drive reassign through
+// shelfState so the panel shows the passive "moving …" summary + Cancel, while
+// reusing reassign-mode.js's over-map instruction strip + target picking. The
+// single ESC owner during reassign is reassign-mode.js (the global esc-handler
+// bails while isReassignActive). (#97 Task 5.6, spec §5.4)
+function beginReassign(id, intent) {
+  const range = shelfState.materialize().find(r => r.id === id);
+  if (!range) return;
+  const allShelvesList = Array.from(
+    allRanges.filter(r => r.svgCode).reduce((acc, r) => {
+      const key = `${r.svgCode}|${r.floor}`;
+      if (!acc.has(key)) acc.set(key, { svgCode: r.svgCode, floor: r.floor, label: r.shelfLabel || r.svgCode });
+      return acc;
+    }, new Map()).values()
+  ).sort((a, b) => a.label.localeCompare(b.label));
+
+  shelfState.enterReassign({ rangeId: id, intent });
+  renderDrawer(); // panel → passive reassign summary + Cancel
+
+  startReassign({
+    rangeId: id,
+    rangeLabel: `${range.collectionName} ${range.rangeStart}-${range.rangeEnd}`,
+    oldShelfLabel: range.shelfLabel || range.svgCode || '',
+    shelfElements: new Map([...locationElements].filter(([sid]) => sid !== range.svgCode)),
+    allShelves: allShelvesList,
+    onConfirm: ({ newSvgCode, newFloor }) => {
+      const crossFloor = newFloor !== undefined && String(newFloor) !== String(currentFloor);
+      shelfState.confirmReassignTarget(crossFloor ? { svgCode: newSvgCode, floor: String(newFloor) } : { svgCode: newSvgCode });
+      refreshConflicts();
+      if (crossFloor) {
+        completeCrossFloorMove(newSvgCode, String(newFloor), range);
+      } else {
+        if (locationElements.has(newSvgCode)) {
+          applySelection(locationElements, shelfState.selection().shelfIds);
+        }
+        renderDrawer();
+      }
+    },
+    onCancel: () => { shelfState.cancelReassign(); renderDrawer(); },
+    intent,
+  });
+}
+
+// Cross-floor confirm: the move is already applied and the destination is selected
+// in shelfState. Switch to the destination floor, re-apply the selection on the
+// freshly-bound elements, and toast — never strand the librarian on the origin floor.
+async function completeCrossFloorMove(newSvgCode, newFloor, range) {
+  saveActiveFloor(Number(newFloor));
+  renderFloorTabs(Number(newFloor));
+  await loadFloor(Number(newFloor));
+  if (locationElements.has(newSvgCode)) {
+    applySelection(locationElements, [newSvgCode]);
+  }
+  renderDrawer();
+  const label = `${(range.collectionName || '').trim()} ${range.rangeStart || ''}-${range.rangeEnd || ''}`.trim();
+  showToast(
+    i18n.t('mapEditor.reassign.moved')
+      .replace('{range}', label)
+      .replace('{shelf}', newSvgCode)
+      .replace('{n}', String(newFloor)),
+    'success'
+  );
 }
 
 function refreshConflicts() {

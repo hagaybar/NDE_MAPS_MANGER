@@ -448,6 +448,7 @@
       },
       "chooseFromList": "או בחר מתוך רשימה",
       "cancel": "ביטול",
+      "moved": "{range} הועבר למדף {shelf} בקומה {n}",
       "confirm": {
         "repair": "להצמיד את {label} למדף {picked}?",
         "move": "להעביר את {label} מהמדף {old} למדף {new}?"

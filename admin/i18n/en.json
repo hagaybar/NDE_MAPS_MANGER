@@ -448,6 +448,7 @@
       },
       "chooseFromList": "or pick from a list",
       "cancel": "Never mind",
+      "moved": "Moved {range} to shelf {shelf} on Floor {n}",
       "confirm": {
         "repair": "Set shelf for {label} to {picked}?",
         "move": "Move {label} from {old} to {new}?"
