@@ -5,6 +5,7 @@ import { getAuthHeaders, getCurrentUsername } from '../app.js?v=5';
 import { loadFloorSvg, indexShelvesById, buildRangeCountByShelf, buildKnownSvgCodes } from './map-editor/svg-loader.js?v=2';
 import { fetchMappingCsvText } from './map-editor/csv-loader.js?v=1';
 import { buildMapEditorScaffold } from './map-editor/scaffold.js?v=1';
+import { collectionsForFloor } from './map-editor/collections.js?v=1';
 import { installPromoteRefreshListener, getFloorCacheBust } from './map-editor/promote-refresh.js?v=1';
 import { indexShelfLocations } from './map-editor/location-model.js';
 import { attachInteraction, applySelection } from './map-editor/svg-interaction.js?v=1';
@@ -366,7 +367,9 @@ function renderDrawer() {
     const mergedFloor = merged.filter(r => String(r.floor) === String(currentFloor));
     const rangesOnShelf = mergedFloor.filter(r => r.svgCode === locationId);
     const conflictsByRangeId = floorConflicts;
-    const collectionsList = Array.from(new Set(allRanges.map(r => r.collectionName).filter(Boolean))).sort();
+    // Collections are floor-specific — only offer this floor's collections so a
+    // cross-floor collection can't be attached to the shelf (#115).
+    const collectionsList = collectionsForFloor(allRanges, currentFloor);
 
     // Aggregate the OTHER shelves involved in this shelf's conflicts.
     const shelfLabelByCode = new Map();
@@ -496,12 +499,14 @@ function refreshConflicts() {
 function addNewRangeToShelf(locationId) {
   const floorRanges = allRanges.filter(r => String(r.floor) === String(currentFloor));
   const rangesOnShelf = floorRanges.filter(r => r.svgCode === locationId);
-  const defaultCollection = rangesOnShelf[0]?.collectionName || (allRanges[0]?.collectionName || '');
+  // Default to the shelf's own collection, else a collection from THIS floor —
+  // never the first global collection (which could belong to another floor) (#115).
+  const defaultCollection = rangesOnShelf[0]?.collectionName || (floorRanges[0]?.collectionName || '');
   const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
   shelfState.add(tempId, {
     svgCode: locationId,
     floor: String(currentFloor),
-    libraryName: rangesOnShelf[0]?.libraryName || allRanges[0]?.libraryName || '',
+    libraryName: rangesOnShelf[0]?.libraryName || floorRanges[0]?.libraryName || '',
     collectionName: defaultCollection,
     rangeStart: '',
     rangeEnd: '',
