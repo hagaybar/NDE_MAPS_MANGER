@@ -93,4 +93,50 @@ describe('showSingleShelf — empty-state branch', () => {
     }));
     expect(document.querySelector('.map-drawer__empty-state')).toBeNull();
   });
+
+  describe('focus preservation across re-render (issue #86)', () => {
+    const rowProps = (overrides = {}) => baseProps({
+      rangesOnShelf: [{
+        id: 'r1', svgCode: 'E1', collectionName: 'GEN',
+        rangeStart: '100', rangeEnd: '200', shelfLabel: 'E1',
+      }],
+      collectionsList: ['GEN'],
+      ...overrides,
+    });
+
+    test('focus + caret on a range input survive a re-render', () => {
+      showSingleShelf(rowProps());
+      const input = document.querySelector('.map-drawer__row [data-field="rangeStart"]');
+      input.focus();
+      input.value = '105';
+      input.setSelectionRange(3, 3);
+      expect(document.activeElement).toBe(input); // sanity
+
+      // Simulate the app loop: onChange re-renders the drawer with the new value.
+      showSingleShelf(rowProps({
+        rangesOnShelf: [{
+          id: 'r1', svgCode: 'E1', collectionName: 'GEN',
+          rangeStart: '105', rangeEnd: '200', shelfLabel: 'E1',
+        }],
+        hasPendingEdits: true,
+      }));
+
+      const after = document.querySelector('.map-drawer__row [data-field="rangeStart"]');
+      expect(after).not.toBe(input);             // it really is a new element
+      expect(document.activeElement).toBe(after); // …but focus came back to it
+      expect(after.selectionStart).toBe(3);       // and the caret is preserved
+      expect(after.value).toBe('105');
+    });
+
+    test('does not steal focus when nothing in the drawer was focused', () => {
+      showSingleShelf(rowProps());
+      const outside = document.createElement('input');
+      document.body.appendChild(outside);
+      outside.focus();
+
+      showSingleShelf(rowProps({ hasPendingEdits: true }));
+
+      expect(document.activeElement).toBe(outside);
+    });
+  });
 });

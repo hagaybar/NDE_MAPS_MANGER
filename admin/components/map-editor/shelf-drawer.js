@@ -9,6 +9,12 @@ export function mountDrawer(elementId) {
 
 export function showSingleShelf({ shelfId, shelfLabel, rangesOnShelf, conflictsByRangeId, conflictingShelves, permission, collectionsList, onChange, onAdd, onMove, onDelete, onDiscard, onSave, onSelectShelf, onClose, hasPendingEdits }) {
   if (!host) return;
+  // The drawer re-renders on every keystroke (onChange → renderDrawer), which
+  // rebuilds host.innerHTML and would tear out the input the librarian is typing
+  // in — the cursor jumps to the page and they have to re-click after each
+  // character (issue #86). Capture which field/caret had focus before the rebuild
+  // and restore it after, so editing feels continuous.
+  const focusInfo = captureFocus();
   host.classList.remove('map-drawer--hidden');
   const conflictCount = rangesOnShelf.reduce((n, r) => n + (conflictsByRangeId.get(r.id)?.length || 0), 0);
   const banner = buildConflictBanner(conflictCount, conflictingShelves || []);
@@ -62,7 +68,46 @@ export function showSingleShelf({ shelfId, shelfLabel, rangesOnShelf, conflictsB
       btn.addEventListener('click', () => onSelectShelf(btn.dataset.targetShelf));
     });
   }
+  restoreFocus(focusInfo);
 }
+
+// --- focus preservation across re-render (issue #86) ---
+
+// Record the field + caret of the input currently focused inside the drawer, so
+// a full innerHTML rebuild can hand focus back to the equivalent new element.
+function captureFocus() {
+  if (!host) return null;
+  const el = document.activeElement;
+  if (!el || !el.dataset || !host.contains(el)) return null;
+  const field = el.dataset.field;
+  if (!field) return null;
+  const row = el.closest('.map-drawer__row');
+  const info = { field, rangeId: row ? row.dataset.rangeId : null };
+  if (typeof el.selectionStart === 'number') {
+    info.start = el.selectionStart;
+    info.end = el.selectionEnd;
+  }
+  return info;
+}
+
+function restoreFocus(info) {
+  if (!info || !host) return;
+  let scope = host;
+  if (info.rangeId) {
+    const row = host.querySelector(`.map-drawer__row[data-range-id="${cssAttr(info.rangeId)}"]`);
+    if (row) scope = row;
+  }
+  const el = scope.querySelector(`[data-field="${cssAttr(info.field)}"]`);
+  if (!el) return;
+  el.focus();
+  if (typeof info.start === 'number' && typeof el.setSelectionRange === 'function') {
+    // <select> and some inputs throw on setSelectionRange — guard it.
+    try { el.setSelectionRange(info.start, info.end); } catch { /* not a text input */ }
+  }
+}
+
+// Escape a value for safe use inside a double-quoted attribute selector.
+function cssAttr(value) { return String(value).replace(/(["\\])/g, '\\$1'); }
 
 function buildConflictBanner(conflictCount, conflictingShelves) {
   if (conflictCount === 0) return '';
