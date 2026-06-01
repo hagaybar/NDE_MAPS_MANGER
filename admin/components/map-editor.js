@@ -304,6 +304,17 @@ installPromoteRefreshListener({
 
 window.addEventListener('mapeditor:selection-changed', () => renderDrawer());
 
+// Re-render the locale-dependent UI when the language toggles. Every other view
+// listens for this; the map editor manages its own DOM (floor tabs + the side
+// panel both render via i18n.t), so without this the panel stayed stuck in the
+// previous language after an EN/HE switch. The panel's text DIRECTION flips for
+// free via the [dir] CSS — this re-renders the STRINGS. (#97)
+document.addEventListener('localeChanged', () => {
+  if (currentFloor === null || !shelfState) return; // not mounted yet
+  renderFloorTabs(currentFloor);
+  renderDrawer();
+});
+
 function renderDrawer() {
   // The persistent side panel renders one of four modes, driven by
   // shelfState.mode(). The active "click a target" instruction strip lives over
