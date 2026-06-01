@@ -416,25 +416,52 @@
   },
   "mapEditor": {
     "empty": "Click a shelf to edit.",
+    "idle": {
+      "hint": "To see the range and collection, pick a shelf on the map. At the top of the page you can choose a floor and display style.",
+      "nudge": "⚠ {n} shelves on this floor need attention",
+      "expand": "Show me →"
+    },
     "tab": {
       "floor": "Floor {n}",
       "orphans": "{n} unassigned"
     },
-    "discard": "Discard",
+    "field": {
+      "from": "From",
+      "to": "To",
+      "collection": "Collection"
+    },
+    "discard": "Undo my changes",
     "save": "Save",
-    "addRange": "+ Add range",
+    "addRange": "+ Add another entry",
     "move": "Move to another shelf",
-    "delete": "Delete",
+    "delete": "Remove",
+    "removeConfirm": {
+      "title": "Remove this entry?",
+      "body": "{label} will be removed from this shelf. Nothing is final until you Save.",
+      "confirm": "Remove",
+      "cancel": "Keep it"
+    },
     "reassign": {
       "banner": {
-        "repair": "Click the shelf where this range belongs",
-        "move": "Click the new shelf for this range"
+        "repair": "Now click this entry's shelf on the map",
+        "move": "Now click the shelf where this belongs"
       },
-      "chooseFromList": "choose from list",
-      "cancel": "Cancel",
+      "chooseFromList": "or pick from a list",
+      "cancel": "Never mind",
+      "moved": "Moved {range} to shelf {shelf} on Floor {n}",
       "confirm": {
         "repair": "Set shelf for {label} to {picked}?",
         "move": "Move {label} from {old} to {new}?"
+      }
+    },
+    "triage": {
+      "title": "Entries that aren't on the map yet",
+      "empty": "Nothing needs fixing on this floor.",
+      "card": {
+        "wrongSvgCode": "Its shelf isn't on this map anymore",
+        "missingSvgCode": "No shelf chosen yet",
+        "setShelf": "Choose its shelf on the map",
+        "editElsewhere": "Fix this in the table instead"
       }
     },
     "orphan": {
@@ -460,12 +487,13 @@
     "warning": {
       "overlap": "Overlaps {otherRangeLabel} on shelf {otherShelfLabel} — a call number in the overlap could point to either shelf.",
       "overlapSameShelf": "Overlaps {otherRangeLabel}, another range on this shelf — these call numbers are listed twice here.",
-      "startGtEnd": "Start is greater than end.",
-      "banner": "{n} overlap(s) on this shelf",
-      "with": "— also on:"
+      "startGtEnd": "'From' is higher than 'To' — please check.",
+      "banner": "{n} things to check on this shelf",
+      "with": "Also on:"
     },
     "shelf": {
-      "header": "Shelf {label} — {n} ranges",
+      "header": "Shelf {label}",
+      "count": "{n} entries here",
       "empty": {
         "message": "No ranges are mapped to this shelf yet.",
         "explanation": "This shelf is on the map but has no ranges assigned. Click 'Create the first range here' to add the first range — you can set the collection and the call-number range in the next step.",
@@ -474,7 +502,7 @@
     },
     "locked": "Locked",
     "close": "Close",
-    "unsavedChangesConfirm": "You have unsaved changes. Discard and close?"
+    "unsavedChangesConfirm": "You have changes you haven't saved. Leave without saving?"
   },
   "ranges": {
     "editableRanges": "Editable Ranges",

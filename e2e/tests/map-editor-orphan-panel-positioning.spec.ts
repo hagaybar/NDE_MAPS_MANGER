@@ -1,14 +1,12 @@
 /**
- * Closed-state positioning invariant for the orphan panel.
+ * Layout invariant for the Map Editor side panel (#97 redesign).
  *
- * Issue #23: in Hebrew mode, the panel inherits `direction: ltr` from the
- * canvas's forced-LTR override (kept for SVG coordinate stability — closes
- * issue #2). `inset-inline-end: 0` then anchors the panel to the physical
- * right, while `[dir="rtl"] .map-orphan-panel { transform: translateX(-100%) }`
- * pulls it left — landing it visible inside the canvas instead of off-screen.
- *
- * This test asserts that the panel, when closed, sits fully outside the
- * canvas's visible area, in both en-admin and he-admin projects.
+ * The old orphan overlay (which this file used to test for #23 off-screen
+ * parking) is retired — the worklist is now a panel mode. The panel is a CSS-grid
+ * SIBLING of #map-canvas, and per librarian request the layout is fixed
+ * physically: map on the LEFT, panel on the RIGHT, the SAME in both Hebrew and
+ * English. This test asserts that placement (and that the panel is not nested in
+ * the canvas, so #23 cannot recur) in both en-admin and he-admin projects.
  */
 
 import { test, expect, Page } from '@playwright/test';
@@ -62,28 +60,25 @@ async function openMapEditor(page: Page, locale: 'en' | 'he') {
   await page.waitForSelector('#map-canvas svg #A1', { state: 'visible', timeout: 10_000 });
 }
 
-test.describe('orphan panel — closed-state off-screen invariant', () => {
-  test('en: closed panel is to the right of the canvas', async ({ page }) => {
-    await openMapEditor(page, 'en');
-    const panel = page.locator('.map-orphan-panel');
-    await expect(panel).toBeVisible();
-    await expect(panel).not.toHaveClass(/map-orphan-panel--open/);
-    const panelBox = await panel.boundingBox();
-    const canvasBox = await page.locator('#map-canvas').boundingBox();
-    if (!panelBox || !canvasBox) throw new Error('bounding boxes not measurable');
-    // In LTR, closed panel should be entirely to the RIGHT of canvas (or just touching).
-    expect(panelBox.x).toBeGreaterThanOrEqual(canvasBox.x + canvasBox.width - 1);
-  });
-
-  test('he: closed panel is to the left of the canvas', async ({ page }) => {
-    await openMapEditor(page, 'he');
-    const panel = page.locator('.map-orphan-panel');
-    await expect(panel).toBeVisible();
-    await expect(panel).not.toHaveClass(/map-orphan-panel--open/);
-    const panelBox = await panel.boundingBox();
-    const canvasBox = await page.locator('#map-canvas').boundingBox();
-    if (!panelBox || !canvasBox) throw new Error('bounding boxes not measurable');
-    // In RTL, closed panel should be entirely to the LEFT of canvas (or just touching).
-    expect(panelBox.x + panelBox.width).toBeLessThanOrEqual(canvasBox.x + 1);
-  });
+test.describe('side panel — layout invariant (map left, panel right)', () => {
+  for (const locale of ['en', 'he'] as const) {
+    test(`${locale}: panel sits to the right of the map, the same in both languages (#97)`, async ({ page }) => {
+      await openMapEditor(page, locale);
+      const panel = page.locator('#map-side-panel');
+      const canvas = page.locator('#map-canvas');
+      await expect(panel).toBeVisible();
+      const panelBox = await panel.boundingBox();
+      const canvasBox = await canvas.boundingBox();
+      if (!panelBox || !canvasBox) throw new Error('bounding boxes not measurable');
+      // Map on the LEFT, panel on the RIGHT — fixed physically in BOTH languages
+      // (librarian request). The panel starts after the canvas's right edge.
+      expect(panelBox.x).toBeGreaterThanOrEqual(canvasBox.x + canvasBox.width - 1);
+      // And the panel is NOT a descendant of the canvas — the #23 precondition
+      // (panel trapped inside the force-LTR canvas) no longer exists.
+      const nested = await page.evaluate(() =>
+        document.getElementById('map-canvas').contains(document.getElementById('map-side-panel'))
+      );
+      expect(nested).toBe(false);
+    });
+  }
 });

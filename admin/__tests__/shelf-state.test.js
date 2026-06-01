@@ -168,3 +168,111 @@ describe('shelfState.commit — saved range persists after save (issue #86)', ()
     expect(s.materialize().find(r => r.id === 'r1').rangeEnd).toBe('120'); // back to the saved baseline
   });
 });
+
+describe('shelfState mode state machine (#97 Task 5.2)', () => {
+  const mk = () => createShelfState({
+    ranges: [
+      { id: 'r1', svgCode: 'A1', floor: '1', collectionName: 'GEN', rangeStart: '100', rangeEnd: '110' },
+    ],
+    permittedRowIds: null,
+  });
+
+  test('starts idle; selectSingle → shelf; clearSelection → idle', () => {
+    const s = mk();
+    expect(s.mode()).toBe('idle');
+    s.selectSingle('A1');
+    expect(s.mode()).toBe('shelf');
+    s.clearSelection();
+    expect(s.mode()).toBe('idle');
+  });
+
+  test('openTriage → triage; closeTriage → back to idle', () => {
+    const s = mk();
+    s.openTriage();
+    expect(s.mode()).toBe('triage');
+    s.closeTriage();
+    expect(s.mode()).toBe('idle');
+  });
+
+  test('selecting a shelf closes the triage worklist (triage → shelf)', () => {
+    const s = mk();
+    s.openTriage();
+    s.selectSingle('A1');
+    expect(s.mode()).toBe('shelf');
+  });
+
+  test('enterReassign from shelf → reassign, records descriptor, keeps pending edits', () => {
+    const s = mk();
+    s.selectSingle('A1');
+    s.edit('r1', { rangeEnd: '111' });
+    s.enterReassign({ rangeId: 'r1', intent: 'move' });
+    expect(s.mode()).toBe('reassign');
+    expect(s.reassign()).toMatchObject({ rangeId: 'r1', intent: 'move', originShelfId: 'A1' });
+    expect(s.pendingEdits().size).toBe(1); // Move doesn't drop queued edits
+  });
+
+  test('cancelReassign returns to the prior mode (shelf if a shelf was selected)', () => {
+    const s = mk();
+    s.selectSingle('A1');
+    s.enterReassign({ rangeId: 'r1', intent: 'move' });
+    s.cancelReassign();
+    expect(s.mode()).toBe('shelf');
+    expect(s.reassign()).toBeNull();
+  });
+
+  test('cancelReassign from a triage-origin repair returns to triage', () => {
+    const s = mk();
+    s.openTriage();
+    s.enterReassign({ rangeId: 'r1', intent: 'repair' });
+    expect(s.mode()).toBe('reassign');   // reassign outranks triage
+    s.cancelReassign();
+    expect(s.mode()).toBe('triage');     // …and falls back to it on cancel
+  });
+
+  test('confirmReassignTarget applies an add-safe move, selects the destination, ends reassign', () => {
+    const s = mk();
+    s.selectSingle('A1');
+    s.enterReassign({ rangeId: 'r1', intent: 'move' });
+    s.confirmReassignTarget({ svgCode: 'B2' });
+    expect(s.reassign()).toBeNull();
+    expect(s.mode()).toBe('shelf');
+    expect(s.selection().shelfIds).toEqual(['B2']); // dest selected
+    expect(s.materialize().find(r => r.id === 'r1').svgCode).toBe('B2'); // moved
+  });
+
+  test('confirmReassignTarget carries floor for a cross-floor move', () => {
+    const s = mk();
+    s.selectSingle('A1');
+    s.enterReassign({ rangeId: 'r1', intent: 'move' });
+    s.confirmReassignTarget({ svgCode: 'C3', floor: '2' });
+    const moved = s.materialize().find(r => r.id === 'r1');
+    expect(moved.svgCode).toBe('C3');
+    expect(moved.floor).toBe('2');
+  });
+
+  test('confirmReassignTarget on a freshly-added row keeps it (add-safe move)', () => {
+    const s = createShelfState({ ranges: [], permittedRowIds: null });
+    s.add('temp-1', { svgCode: 'A1', floor: '1', collectionName: 'GEN', rangeStart: '1', rangeEnd: '9' });
+    s.selectSingle('A1');
+    s.enterReassign({ rangeId: 'temp-1', intent: 'move' });
+    s.confirmReassignTarget({ svgCode: 'B2' });
+    const rows = s.materialize().filter(r => r.id === 'temp-1');
+    expect(rows).toHaveLength(1);                 // not dropped
+    expect(rows[0].svgCode).toBe('B2');
+    expect(s.pendingEdits().get('temp-1').type).toBe('add'); // still an add
+  });
+
+  test('pendingCount reflects the number of queued edits across shelves', () => {
+    const s = createShelfState({
+      ranges: [
+        { id: 'r1', svgCode: 'A1', floor: '1', rangeStart: '1', rangeEnd: '9' },
+        { id: 'r2', svgCode: 'B2', floor: '2', rangeStart: '1', rangeEnd: '9' },
+      ],
+      permittedRowIds: null,
+    });
+    expect(s.pendingCount()).toBe(0);
+    s.edit('r1', { rangeEnd: '8' });
+    s.edit('r2', { rangeEnd: '8' });
+    expect(s.pendingCount()).toBe(2);
+  });
+});

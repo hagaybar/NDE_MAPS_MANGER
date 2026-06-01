@@ -1,6 +1,8 @@
 export function createShelfState({ ranges, permittedRowIds }) {
   let _ranges = ranges.slice();
   let _selection = { kind: 'none', shelfIds: [] };
+  let _reassign = null;         // { rangeId, intent, originShelfId } while picking a target, else null
+  let _triageOpen = false;      // the "needs a shelf" worklist is open
   const _pending = new Map();   // session-wide; spans floors
   const _permitted = permittedRowIds; // null = unlimited (admin)
 
@@ -8,11 +10,48 @@ export function createShelfState({ ranges, permittedRowIds }) {
     ranges: () => _ranges,
     selection: () => _selection,
     pendingEdits: () => _pending,
+    pendingCount: () => _pending.size,
+    reassign: () => _reassign,
+
+    // The panel renders one of four modes. Precedence reassign > triage > shelf >
+    // idle means cancelReassign/closeTriage fall back to the prior mode for free —
+    // selection + triage flags are left intact underneath an active reassign.
+    mode() {
+      if (_reassign) return 'reassign';
+      if (_triageOpen) return 'triage';
+      if (_selection.kind === 'single') return 'shelf';
+      return 'idle';
+    },
 
     selectSingle(shelfId) {
       _selection = { kind: 'single', shelfIds: [shelfId] };
+      _triageOpen = false; // picking a shelf leaves the triage worklist (triage → shelf)
     },
     clearSelection() { _selection = { kind: 'none', shelfIds: [] }; },
+
+    openTriage() { _triageOpen = true; },
+    closeTriage() { _triageOpen = false; },
+
+    // shelf|triage → reassign. Records what's being moved (and where from) for the
+    // instruction strip + target filtering; does NOT touch selection/triage/pending,
+    // so cancel restores the prior mode and queued edits survive a Move.
+    enterReassign({ rangeId, intent }) {
+      _reassign = { rangeId, intent, originShelfId: _selection.shelfIds[0] ?? null };
+    },
+    cancelReassign() { _reassign = null; }, // mode() re-derives to shelf/triage/idle
+
+    // Apply the (add-safe) move to the picked target, end reassign + triage, and
+    // select the destination so the panel shows the moved range in its new home.
+    // floor is included only for a cross-floor move.
+    confirmReassignTarget({ svgCode, floor }) {
+      if (_reassign) {
+        const target = floor !== undefined ? { svgCode, floor } : { svgCode };
+        this.move(_reassign.rangeId, target);
+      }
+      _reassign = null;
+      _triageOpen = false;
+      if (svgCode) this.selectSingle(svgCode);
+    },
 
     isAllowed(rangeId) {
       return _permitted === null || _permitted.has(rangeId);

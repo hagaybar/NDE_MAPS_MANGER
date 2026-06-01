@@ -4,16 +4,17 @@ import { showToast } from './toast.js?v=5';
 import { getAuthHeaders, getCurrentUsername } from '../app.js?v=5';
 import { loadFloorSvg, indexShelvesById, buildRangeCountByShelf, buildKnownSvgCodes } from './map-editor/svg-loader.js?v=2';
 import { fetchMappingCsvText } from './map-editor/csv-loader.js?v=1';
+import { buildMapEditorScaffold } from './map-editor/scaffold.js?v=1';
 import { installPromoteRefreshListener, getFloorCacheBust } from './map-editor/promote-refresh.js?v=1';
 import { indexShelfLocations } from './map-editor/location-model.js';
 import { attachInteraction, applySelection } from './map-editor/svg-interaction.js?v=1';
-import { createShelfState } from './map-editor/shelf-state.js?v=1';
+import { createShelfState } from './map-editor/shelf-state.js?v=2';
 import { computeFloorConflicts } from './map-editor/range-validation.js?v=1';
-import { mountDrawer, showSingleShelf, hideDrawer } from './map-editor/shelf-drawer.js?v=2';
+import { mountSidePanel, renderPanel, hidePanel } from './map-editor/side-panel.js?v=1';
 import { startReassign, cancelReassign, isReassignActive } from './map-editor/reassign-mode.js?v=1';
 import { handleEscape } from './map-editor/esc-handler.js?v=1';
 import { deriveOrphansForFloor } from './map-editor/orphan-deriver.js?v=1';
-import { mount as mountOrphanPanel, open as openOrphanPanel, close as closeOrphanPanel, setActiveCard as setOrphanActive, markRepaired as markOrphanRepaired } from './map-editor/orphan-panel.js?v=1';
+import { renderOrphanCard } from './map-editor/orphan-card.js?v=1';
 import { fetchAndParseSvg } from '../services/svg-parser.js';
 
 const CLOUDFRONT_URL = 'https://d3h8i7y9p8lyw7.cloudfront.net';
@@ -113,68 +114,44 @@ function computeOrphanCounts() {
   return byFloor;
 }
 
-async function refreshOrphanPanel({ openIfClosed = false } = {}) {
+// Render the current floor's "needs a shelf" worklist into the panel's triage
+// host (Task 5.7 — replaces the standalone orphan overlay). Repairing an entry
+// pivots to reassign (beginReassign 'repair'); confirming lands on the chosen
+// shelf as a pending move the librarian then Saves — same model as a Move.
+async function renderTriageInto(hostEl) {
+  if (!hostEl) return;
+  hostEl.innerHTML = '';
   if (currentFloor === null || !allRanges) return;
-  // Warm the svg-parser cache for the current floor before deriving.
-  // isValidSvgCode (which validateRow → E006 transitively consults) is
-  // lenient when the cache is cold — it returns `true` so we don't false-
-  // positive during page load. That same leniency makes the orphan deriver
-  // see ZERO orphans on the first click after init, until the cache lands
-  // a moment later. Awaiting fetchAndParseSvg here pins it down: the panel
-  // always opens with the actual list, never with the empty state by
-  // accident.
+  // Warm the svg-parser cache so the deriver sees the real orphans, not zero
+  // (isValidSvgCode is lenient while the cache is cold — see #50 notes).
   await fetchAndParseSvg(String(currentFloor));
+  if (shelfState.mode() !== 'triage') return; // mode changed while awaiting
   const orphans = deriveOrphansForFloor(allRanges, currentFloor);
+  if (orphans.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'map-panel__triage-empty';
+    empty.textContent = i18n.t('mapEditor.triage.empty');
+    hostEl.appendChild(empty);
+    return;
+  }
   const locale = (i18n.getLocale && i18n.getLocale()) || 'en';
-  const options = {
-    floor: currentFloor,
-    locale,
-    readOnly: false, // map-editor uses shelfState.permission per row; orphan-card honors readOnly per-card too — refined later if needed
-    onSetShelf: handleOrphanSetShelf,
-    onEditElsewhere: handleOrphanEditElsewhere,
-  };
-  if (openIfClosed || isOrphanPanelOpen()) {
-    openOrphanPanel(orphans, options);
+  for (const orphan of orphans) {
+    const card = renderOrphanCard({
+      orphan,
+      isActive: false,
+      locale,
+      readOnly: false,
+      onSetShelf: rowId => beginReassign(rowId, 'repair'),
+      onEditElsewhere: handleOrphanEditElsewhere,
+    });
+    card.setAttribute('role', 'listitem');
+    hostEl.appendChild(card);
   }
 }
 
-function isOrphanPanelOpen() {
-  const el = document.querySelector('.map-orphan-panel');
-  return el ? el.classList.contains('map-orphan-panel--open') : false;
-}
-
-function handleOrphanSetShelf(rowId) {
-  const range = shelfState.materialize().find(r => r.id === rowId);
-  if (!range) return;
-  setOrphanActive(rowId);
-  const allShelves = allRanges
-    .filter(r => r.svgCode)
-    .reduce((acc, r) => {
-      const key = `${r.svgCode}|${r.floor}`;
-      if (!acc.has(key)) acc.set(key, { svgCode: r.svgCode, floor: r.floor, label: r.shelfLabel || r.svgCode });
-      return acc;
-    }, new Map());
-  const allShelvesList = Array.from(allShelves.values()).sort((a, b) => a.label.localeCompare(b.label));
-  startReassign({
-    rangeId: rowId,
-    rangeLabel: `${range.collectionName} ${range.rangeStart}-${range.rangeEnd}`,
-    oldShelfLabel: range.shelfLabel || range.svgCode || '',
-    shelfElements: locationElements,
-    allShelves: allShelvesList,
-    onConfirm: ({ newSvgCode, newFloor }) => {
-      const target = { svgCode: newSvgCode };
-      if (newFloor !== undefined) target.floor = newFloor;
-      shelfState.move(rowId, target);
-      refreshConflicts();
-      saveCsv().then(() => {
-        markOrphanRepaired(rowId);
-      });
-    },
-    onCancel: () => {
-      setOrphanActive(null);
-    },
-    intent: 'repair',
-  });
+// Re-render the triage list if it's the active mode (after a save / floor load).
+function refreshTriageIfOpen() {
+  if (shelfState && shelfState.mode() === 'triage') renderDrawer();
 }
 
 function handleOrphanEditElsewhere(rowId) {
@@ -225,10 +202,9 @@ function renderFloorTabs(active) {
         renderFloorTabs(n);
         window.dispatchEvent(new CustomEvent('mapeditor:floor-changed', { detail: { floor: n } }));
       }
-      // Open the orphan panel for the (now) active floor. Await so the
-      // panel always opens with the actual orphan list, never the empty
-      // state due to a cold svg-parser cache (see refreshOrphanPanel).
-      await refreshOrphanPanel({ openIfClosed: true });
+      // Open the triage worklist in the panel for the (now) active floor.
+      shelfState.openTriage();
+      renderDrawer();
     });
     tab.appendChild(badge);
   }
@@ -293,10 +269,16 @@ async function loadFloor(floorNumber) {
   // Re-render floor tabs so the orphan badge picks up this floor's count
   // now that locationElements is indexed.
   renderFloorTabs(currentFloor);
-  // If the orphan panel is open, refresh its contents for the new floor.
-  if (isOrphanPanelOpen()) {
-    refreshOrphanPanel({ openIfClosed: false });
+  // Render the panel for this floor. Drop a selection that isn't on this floor
+  // (e.g. after switching tabs) so the panel shows the idle hint rather than an
+  // empty 'shelf'. This also renders the idle hint on first load — the old drawer
+  // just stayed hidden, but the persistent panel must paint something. renderDrawer
+  // re-derives triage too, so it covers the post-save / floor-change refresh.
+  const sel = shelfState.selection();
+  if (sel.kind === 'single' && !locationElements.has(sel.shelfIds[0])) {
+    shelfState.clearSelection();
   }
+  renderDrawer();
 }
 
 // Issue #70: the Map Editor must show the whole floor map without scrolling at
@@ -330,10 +312,55 @@ installPromoteRefreshListener({
 
 window.addEventListener('mapeditor:selection-changed', () => renderDrawer());
 
+// Re-render the locale-dependent UI when the language toggles. Every other view
+// listens for this; the map editor manages its own DOM (floor tabs + the side
+// panel both render via i18n.t), so without this the panel stayed stuck in the
+// previous language after an EN/HE switch. The panel's text DIRECTION flips for
+// free via the [dir] CSS — this re-renders the STRINGS. (#97)
+document.addEventListener('localeChanged', () => {
+  if (currentFloor === null || !shelfState) return; // not mounted yet
+  renderFloorTabs(currentFloor);
+  renderDrawer();
+});
+
 function renderDrawer() {
-  const sel = shelfState.selection();
-  if (sel.kind === 'none') { hideDrawer(); return; }
-  if (sel.kind === 'single') {
+  // The persistent side panel renders one of four modes, driven by
+  // shelfState.mode(). The active "click a target" instruction strip lives over
+  // the map (reassign-mode.js); the panel shows the passive reassign summary.
+  const mode = shelfState.mode();
+
+  if (mode === 'reassign') {
+    const r = shelfState.reassign();
+    const range = r ? shelfState.materialize().find(x => x.id === r.rangeId) : null;
+    const summary = range
+      ? `${(range.collectionName || '').trim()} ${range.rangeStart || ''}-${range.rangeEnd || ''}`.trim()
+      : '';
+    renderPanel({ mode: 'reassign', reassignSummary: summary, onCancelReassign: () => cancelReassign() });
+    return;
+  }
+
+  if (mode === 'triage') {
+    renderPanel({
+      mode: 'triage',
+      renderTriageList: (hostEl) => { renderTriageInto(hostEl); },
+      onCloseTriage: () => { shelfState.closeTriage(); renderDrawer(); },
+    });
+    return;
+  }
+
+  if (mode !== 'shelf') {
+    // idle — calm hint + a nudge into the triage worklist when the floor has any
+    const orphanCount = currentFloor === null ? 0 : deriveOrphansForFloor(allRanges, currentFloor).length;
+    renderPanel({
+      mode: 'idle',
+      orphanCount,
+      onOpenTriage: () => { shelfState.openTriage(); renderDrawer(); },
+    });
+    return;
+  }
+
+  {
+    const sel = shelfState.selection();
     const locationId = sel.shelfIds[0];
     const merged = shelfState.materialize();
     const mergedFloor = merged.filter(r => String(r.floor) === String(currentFloor));
@@ -361,54 +388,19 @@ function renderDrawer() {
     }
     const conflictingShelves = Array.from(otherShelfMap.values()).sort((a, b) => a.label.localeCompare(b.label));
 
-    showSingleShelf({
-      shelfId: locationId,
+    renderPanel({
+      mode: 'shelf',
       shelfLabel: rangesOnShelf[0]?.shelfLabel || locationId,
       rangesOnShelf,
       conflictsByRangeId,
       conflictingShelves,
       permission: shelfState.permission.bind(shelfState),
       collectionsList,
+      hasPendingEdits: shelfState.pendingEdits().size > 0,
+      pendingCount: shelfState.pendingCount(),
       onChange: (id, patch) => { shelfState.edit(id, patch); refreshConflicts(); renderDrawer(); },
       onAdd: () => addNewRangeToShelf(locationId),
-      onMove: (id) => {
-        const range = shelfState.materialize().find(r => r.id === id);
-        if (!range) return;
-        const allShelves = allRanges
-          .filter(r => r.svgCode)
-          .reduce((acc, r) => {
-            const key = `${r.svgCode}|${r.floor}`;
-            if (!acc.has(key)) acc.set(key, { svgCode: r.svgCode, floor: r.floor, label: r.shelfLabel || r.svgCode });
-            return acc;
-          }, new Map());
-        const allShelvesList = Array.from(allShelves.values()).sort((a, b) => a.label.localeCompare(b.label));
-        startReassign({
-          rangeId: id,
-          rangeLabel: `${range.collectionName} ${range.rangeStart}-${range.rangeEnd}`,
-          oldShelfLabel: range.shelfLabel || range.svgCode || '',
-          shelfElements: new Map([...locationElements].filter(([sid]) => sid !== range.svgCode)),
-          allShelves: allShelvesList,
-          onConfirm: ({ newSvgCode, newFloor }) => {
-            const target = { svgCode: newSvgCode };
-            if (newFloor !== undefined) target.floor = newFloor;
-            shelfState.move(id, target);
-            refreshConflicts();
-            // Reopen-destination behavior for move intent: if the destination
-            // shelf is on the current floor, shift the drawer's selection to
-            // it so the librarian sees the moved range in its new context. If
-            // the destination is on a different floor, the drawer closes
-            // (renderDrawer with no current-floor selection) and the librarian
-            // can switch tabs to inspect.
-            if (locationElements.has(newSvgCode)) {
-              shelfState.selectSingle(newSvgCode);
-              applySelection(locationElements, shelfState.selection().shelfIds);
-            }
-            renderDrawer();
-          },
-          onCancel: () => { /* nothing — banner already removed */ },
-          intent: 'move',
-        });
-      },
+      onMove: (id) => beginReassign(id, 'move'),
       onDelete: (id) => { shelfState.delete(id); renderDrawer(); },
       onDiscard: () => { shelfState.revert(); renderDrawer(); refreshConflicts(); },
       onSave: () => saveCsv(),
@@ -423,9 +415,72 @@ function renderDrawer() {
         applySelection(locationElements, []);
         window.dispatchEvent(new CustomEvent('mapeditor:selection-changed'));
       },
-      hasPendingEdits: shelfState.pendingEdits().size > 0,
     });
   }
+}
+
+// Move (intent 'move') or orphan-repair (intent 'repair'): drive reassign through
+// shelfState so the panel shows the passive "moving …" summary + Cancel, while
+// reusing reassign-mode.js's over-map instruction strip + target picking. The
+// single ESC owner during reassign is reassign-mode.js (the global esc-handler
+// bails while isReassignActive). (#97 Task 5.6, spec §5.4)
+function beginReassign(id, intent) {
+  const range = shelfState.materialize().find(r => r.id === id);
+  if (!range) return;
+  const allShelvesList = Array.from(
+    allRanges.filter(r => r.svgCode).reduce((acc, r) => {
+      const key = `${r.svgCode}|${r.floor}`;
+      if (!acc.has(key)) acc.set(key, { svgCode: r.svgCode, floor: r.floor, label: r.shelfLabel || r.svgCode });
+      return acc;
+    }, new Map()).values()
+  ).sort((a, b) => a.label.localeCompare(b.label));
+
+  shelfState.enterReassign({ rangeId: id, intent });
+  renderDrawer(); // panel → passive reassign summary + Cancel
+
+  startReassign({
+    rangeId: id,
+    rangeLabel: `${range.collectionName} ${range.rangeStart}-${range.rangeEnd}`,
+    oldShelfLabel: range.shelfLabel || range.svgCode || '',
+    shelfElements: new Map([...locationElements].filter(([sid]) => sid !== range.svgCode)),
+    allShelves: allShelvesList,
+    onConfirm: ({ newSvgCode, newFloor }) => {
+      const crossFloor = newFloor !== undefined && String(newFloor) !== String(currentFloor);
+      shelfState.confirmReassignTarget(crossFloor ? { svgCode: newSvgCode, floor: String(newFloor) } : { svgCode: newSvgCode });
+      refreshConflicts();
+      if (crossFloor) {
+        completeCrossFloorMove(newSvgCode, String(newFloor), range);
+      } else {
+        if (locationElements.has(newSvgCode)) {
+          applySelection(locationElements, shelfState.selection().shelfIds);
+        }
+        renderDrawer();
+      }
+    },
+    onCancel: () => { shelfState.cancelReassign(); renderDrawer(); },
+    intent,
+  });
+}
+
+// Cross-floor confirm: the move is already applied and the destination is selected
+// in shelfState. Switch to the destination floor, re-apply the selection on the
+// freshly-bound elements, and toast — never strand the librarian on the origin floor.
+async function completeCrossFloorMove(newSvgCode, newFloor, range) {
+  saveActiveFloor(Number(newFloor));
+  renderFloorTabs(Number(newFloor));
+  await loadFloor(Number(newFloor));
+  if (locationElements.has(newSvgCode)) {
+    applySelection(locationElements, [newSvgCode]);
+  }
+  renderDrawer();
+  const label = `${(range.collectionName || '').trim()} ${range.rangeStart || ''}-${range.rangeEnd || ''}`.trim();
+  showToast(
+    i18n.t('mapEditor.reassign.moved')
+      .replace('{range}', label)
+      .replace('{shelf}', newSvgCode)
+      .replace('{n}', String(newFloor)),
+    'success'
+  );
 }
 
 function refreshConflicts() {
@@ -506,16 +561,10 @@ async function saveCsv() {
 
     // Refresh local state from the new snapshot.
     allRanges = merged;
-    // Refresh orphan panel so newly-resolved rows animate out and any new
-    // orphans appear. markOrphanRepaired is called from handleOrphanSetShelf
-    // for the specific row that was just repaired; the wholesale refresh
-    // covers the case where the save included edits to other rows.
-    if (isOrphanPanelOpen()) {
-      refreshOrphanPanel({ openIfClosed: false });
-    }
     shelfState.commit(merged);  // adopt saved snapshot as the new baseline + clear pending (#86)
     refreshConflicts();
-    renderDrawer();             // drawer stays open with fresh values
+    renderDrawer();             // panel re-renders the current mode with fresh, saved values
+    refreshTriageIfOpen();      // if the worklist is showing, re-derive it from the saved data
     showToast(i18n.t('csv.saveSuccess'), 'success');
   } catch (err) {
     console.error('[MapEditor] Failed to save CSV:', err);
@@ -533,21 +582,13 @@ export async function initMapEditor() {
   if (initialized) { fitMapEditorViewport(); return; }
   initialized = true;
   const container = document.getElementById('map-editor');
-  container.innerHTML = `
-    <div id="map-editor-view">
-      <div class="bg-white rounded-lg shadow p-4 map-editor__header">
-        <div id="map-floor-tabs" class="flex gap-2 border-b border-gray-200" role="tablist"></div>
-        <p id="map-editor-empty" class="text-gray-500 text-sm mt-3">${i18n.t('mapEditor.empty')}</p>
-      </div>
-      <div id="map-canvas" class="relative bg-gray-50 border border-gray-200 rounded"></div>
-      <div id="map-drawer" class="map-drawer map-drawer--hidden"></div>
-    </div>
-  `;
-  mountDrawer('map-drawer');
-  const orphanHost = document.createElement('div');
-  orphanHost.id = 'map-orphan-host';
-  container.querySelector('#map-canvas').appendChild(orphanHost);
-  mountOrphanPanel('map-orphan-host');
+  // Scaffold lives in scaffold.js so the #23 grid-sibling invariant is unit-tested
+  // (map-editor-scaffold.test.js). The panel now sits in #map-editor-split beside
+  // the canvas instead of as a bottom drawer.
+  container.innerHTML = buildMapEditorScaffold();
+  mountSidePanel('map-side-panel');
+  // The "unassigned" worklist is now a panel mode (triage), not a separate
+  // canvas overlay — no orphan host to mount (Task 5.7).
 
   // Inject hatch pattern definition once (used by .map-shelf--locked)
   const defs = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
