@@ -14,7 +14,7 @@ import { mountSidePanel, renderPanel, hidePanel } from './map-editor/side-panel.
 import { startReassign, cancelReassign, isReassignActive } from './map-editor/reassign-mode.js?v=1';
 import { handleEscape } from './map-editor/esc-handler.js?v=1';
 import { deriveOrphansForFloor } from './map-editor/orphan-deriver.js?v=1';
-import { mount as mountOrphanPanel, open as openOrphanPanel, close as closeOrphanPanel, setActiveCard as setOrphanActive, markRepaired as markOrphanRepaired } from './map-editor/orphan-panel.js?v=1';
+import { renderOrphanCard } from './map-editor/orphan-card.js?v=1';
 import { fetchAndParseSvg } from '../services/svg-parser.js';
 
 const CLOUDFRONT_URL = 'https://d3h8i7y9p8lyw7.cloudfront.net';
@@ -114,68 +114,44 @@ function computeOrphanCounts() {
   return byFloor;
 }
 
-async function refreshOrphanPanel({ openIfClosed = false } = {}) {
+// Render the current floor's "needs a shelf" worklist into the panel's triage
+// host (Task 5.7 — replaces the standalone orphan overlay). Repairing an entry
+// pivots to reassign (beginReassign 'repair'); confirming lands on the chosen
+// shelf as a pending move the librarian then Saves — same model as a Move.
+async function renderTriageInto(hostEl) {
+  if (!hostEl) return;
+  hostEl.innerHTML = '';
   if (currentFloor === null || !allRanges) return;
-  // Warm the svg-parser cache for the current floor before deriving.
-  // isValidSvgCode (which validateRow → E006 transitively consults) is
-  // lenient when the cache is cold — it returns `true` so we don't false-
-  // positive during page load. That same leniency makes the orphan deriver
-  // see ZERO orphans on the first click after init, until the cache lands
-  // a moment later. Awaiting fetchAndParseSvg here pins it down: the panel
-  // always opens with the actual list, never with the empty state by
-  // accident.
+  // Warm the svg-parser cache so the deriver sees the real orphans, not zero
+  // (isValidSvgCode is lenient while the cache is cold — see #50 notes).
   await fetchAndParseSvg(String(currentFloor));
+  if (shelfState.mode() !== 'triage') return; // mode changed while awaiting
   const orphans = deriveOrphansForFloor(allRanges, currentFloor);
+  if (orphans.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'map-panel__triage-empty';
+    empty.textContent = i18n.t('mapEditor.triage.empty');
+    hostEl.appendChild(empty);
+    return;
+  }
   const locale = (i18n.getLocale && i18n.getLocale()) || 'en';
-  const options = {
-    floor: currentFloor,
-    locale,
-    readOnly: false, // map-editor uses shelfState.permission per row; orphan-card honors readOnly per-card too — refined later if needed
-    onSetShelf: handleOrphanSetShelf,
-    onEditElsewhere: handleOrphanEditElsewhere,
-  };
-  if (openIfClosed || isOrphanPanelOpen()) {
-    openOrphanPanel(orphans, options);
+  for (const orphan of orphans) {
+    const card = renderOrphanCard({
+      orphan,
+      isActive: false,
+      locale,
+      readOnly: false,
+      onSetShelf: rowId => beginReassign(rowId, 'repair'),
+      onEditElsewhere: handleOrphanEditElsewhere,
+    });
+    card.setAttribute('role', 'listitem');
+    hostEl.appendChild(card);
   }
 }
 
-function isOrphanPanelOpen() {
-  const el = document.querySelector('.map-orphan-panel');
-  return el ? el.classList.contains('map-orphan-panel--open') : false;
-}
-
-function handleOrphanSetShelf(rowId) {
-  const range = shelfState.materialize().find(r => r.id === rowId);
-  if (!range) return;
-  setOrphanActive(rowId);
-  const allShelves = allRanges
-    .filter(r => r.svgCode)
-    .reduce((acc, r) => {
-      const key = `${r.svgCode}|${r.floor}`;
-      if (!acc.has(key)) acc.set(key, { svgCode: r.svgCode, floor: r.floor, label: r.shelfLabel || r.svgCode });
-      return acc;
-    }, new Map());
-  const allShelvesList = Array.from(allShelves.values()).sort((a, b) => a.label.localeCompare(b.label));
-  startReassign({
-    rangeId: rowId,
-    rangeLabel: `${range.collectionName} ${range.rangeStart}-${range.rangeEnd}`,
-    oldShelfLabel: range.shelfLabel || range.svgCode || '',
-    shelfElements: locationElements,
-    allShelves: allShelvesList,
-    onConfirm: ({ newSvgCode, newFloor }) => {
-      const target = { svgCode: newSvgCode };
-      if (newFloor !== undefined) target.floor = newFloor;
-      shelfState.move(rowId, target);
-      refreshConflicts();
-      saveCsv().then(() => {
-        markOrphanRepaired(rowId);
-      });
-    },
-    onCancel: () => {
-      setOrphanActive(null);
-    },
-    intent: 'repair',
-  });
+// Re-render the triage list if it's the active mode (after a save / floor load).
+function refreshTriageIfOpen() {
+  if (shelfState && shelfState.mode() === 'triage') renderDrawer();
 }
 
 function handleOrphanEditElsewhere(rowId) {
@@ -226,10 +202,9 @@ function renderFloorTabs(active) {
         renderFloorTabs(n);
         window.dispatchEvent(new CustomEvent('mapeditor:floor-changed', { detail: { floor: n } }));
       }
-      // Open the orphan panel for the (now) active floor. Await so the
-      // panel always opens with the actual orphan list, never the empty
-      // state due to a cold svg-parser cache (see refreshOrphanPanel).
-      await refreshOrphanPanel({ openIfClosed: true });
+      // Open the triage worklist in the panel for the (now) active floor.
+      shelfState.openTriage();
+      renderDrawer();
     });
     tab.appendChild(badge);
   }
@@ -294,10 +269,8 @@ async function loadFloor(floorNumber) {
   // Re-render floor tabs so the orphan badge picks up this floor's count
   // now that locationElements is indexed.
   renderFloorTabs(currentFloor);
-  // If the orphan panel is open, refresh its contents for the new floor.
-  if (isOrphanPanelOpen()) {
-    refreshOrphanPanel({ openIfClosed: false });
-  }
+  // If the triage worklist is showing, refresh it for the new floor.
+  refreshTriageIfOpen();
 }
 
 // Issue #70: the Map Editor must show the whole floor map without scrolling at
@@ -347,13 +320,22 @@ function renderDrawer() {
     return;
   }
 
+  if (mode === 'triage') {
+    renderPanel({
+      mode: 'triage',
+      renderTriageList: (hostEl) => { renderTriageInto(hostEl); },
+      onCloseTriage: () => { shelfState.closeTriage(); renderDrawer(); },
+    });
+    return;
+  }
+
   if (mode !== 'shelf') {
-    // idle (triage is wired in Task 5.7; the nudge opens the worklist overlay for now)
+    // idle — calm hint + a nudge into the triage worklist when the floor has any
     const orphanCount = currentFloor === null ? 0 : deriveOrphansForFloor(allRanges, currentFloor).length;
     renderPanel({
       mode: 'idle',
       orphanCount,
-      onOpenTriage: () => refreshOrphanPanel({ openIfClosed: true }),
+      onOpenTriage: () => { shelfState.openTriage(); renderDrawer(); },
     });
     return;
   }
@@ -560,16 +542,10 @@ async function saveCsv() {
 
     // Refresh local state from the new snapshot.
     allRanges = merged;
-    // Refresh orphan panel so newly-resolved rows animate out and any new
-    // orphans appear. markOrphanRepaired is called from handleOrphanSetShelf
-    // for the specific row that was just repaired; the wholesale refresh
-    // covers the case where the save included edits to other rows.
-    if (isOrphanPanelOpen()) {
-      refreshOrphanPanel({ openIfClosed: false });
-    }
     shelfState.commit(merged);  // adopt saved snapshot as the new baseline + clear pending (#86)
     refreshConflicts();
-    renderDrawer();             // drawer stays open with fresh values
+    renderDrawer();             // panel re-renders the current mode with fresh, saved values
+    refreshTriageIfOpen();      // if the worklist is showing, re-derive it from the saved data
     showToast(i18n.t('csv.saveSuccess'), 'success');
   } catch (err) {
     console.error('[MapEditor] Failed to save CSV:', err);
@@ -592,10 +568,8 @@ export async function initMapEditor() {
   // the canvas instead of as a bottom drawer.
   container.innerHTML = buildMapEditorScaffold();
   mountSidePanel('map-side-panel');
-  const orphanHost = document.createElement('div');
-  orphanHost.id = 'map-orphan-host';
-  container.querySelector('#map-canvas').appendChild(orphanHost);
-  mountOrphanPanel('map-orphan-host');
+  // The "unassigned" worklist is now a panel mode (triage), not a separate
+  // canvas overlay — no orphan host to mount (Task 5.7).
 
   // Inject hatch pattern definition once (used by .map-shelf--locked)
   const defs = document.createElementNS('http://www.w3.org/2000/svg', 'svg');

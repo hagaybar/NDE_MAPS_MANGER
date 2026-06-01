@@ -2833,6 +2833,10 @@ textarea:focus-visible,
  * not carried over). Hover/selected recolour the shelf's own fill only. ── */
 .map-shelf--selected { fill: rgb(245 158 11); stroke: none; }
 
+/* triage list (orphan worklist now lives in the panel) */
+.map-panel__triage-list { display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
+.map-panel__triage-empty { color: var(--me-muted); font-size: 14px; padding: 8px 2px; }
+
 /* ── responsive: the panel width tracks the viewport via the clamp above; below
  * the desktop target the map keeps min-width:0 so it never overflows. ── */
 @media (max-width: 1180px) {
