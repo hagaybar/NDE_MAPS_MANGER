@@ -139,11 +139,11 @@ describe('Validation Service', () => {
         {
           libraryName: 'Test2',
           libraryNameHe: 'Test2',
-          collectionName: 'Test2',
-          collectionNameHe: 'Test2',
+          collectionName: 'Test',      // same collection as row 0 — identity includes collection (#9)
+          collectionNameHe: 'Test',
           rangeStart: '100',
           rangeEnd: '200',
-          svgCode: 'shelf_a', // Same key as first row
+          svgCode: 'shelf_a', // Same key as first row (collection|start|end|svgCode)
           floor: '1'
         }
       ];
