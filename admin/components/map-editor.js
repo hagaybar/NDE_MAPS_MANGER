@@ -3,6 +3,7 @@ import { applyRoleBasedUI, getPermittedRowIds } from '../auth-guard.js?v=5';
 import { showToast } from './toast.js?v=5';
 import { getAuthHeaders, getCurrentUsername } from '../app.js?v=5';
 import { loadFloorSvg, indexShelvesById, buildRangeCountByShelf, buildKnownSvgCodes } from './map-editor/svg-loader.js?v=2';
+import { fetchMappingCsvText } from './map-editor/csv-loader.js?v=1';
 import { installPromoteRefreshListener, getFloorCacheBust } from './map-editor/promote-refresh.js?v=1';
 import { indexShelfLocations } from './map-editor/location-model.js';
 import { attachInteraction, applySelection } from './map-editor/svg-interaction.js?v=1';
@@ -26,11 +27,8 @@ const STORAGE_KEY_FLOOR = `mapEditor.activeFloor.${DEPLOYMENT_ID}`;
  * (no shared service module exists yet — see deviations note for Task 7).
  */
 async function loadMappingCsv() {
-  const response = await fetch(`${CLOUDFRONT_URL}/data/mapping.csv`);
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
-  }
-  const text = await response.text();
+  // cache:'no-cache' lives in csv-loader.js so it stays testable (#91).
+  const text = await fetchMappingCsvText(CLOUDFRONT_URL);
   return parseCsv(text);
 }
 
