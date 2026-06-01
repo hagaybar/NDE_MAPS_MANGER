@@ -399,9 +399,28 @@ Editor + Data Quality Dashboard and inspect the floors/collections #87 reference
 
 ---
 
+## Refresh 2026-06-01 — post-mockup-feedback + #86 reality (READ BEFORE Phase 5)
+
+Phases 1–4 are **SHIPPED, deployed, and owner-verified live** (PRs #108/#109/#110/#112; bug cluster done; owner confirmed "the cursor is now staying in place"). Two things changed since this plan was written; they revise Phase 5 only.
+
+**A. How #86 actually landed (revises Tasks 3.3/3.4 assumptions used by Phase 5).** #86's focus fix did NOT use "stop full re-render + `updateRowInPlace`/`applyRowValidation`." It kept the full re-render canonical and added **focus + caret capture/restore around the rebuild** in `shelf-drawer.js` (`captureFocus`/`restoreFocus`/`cssAttr`), proven in real Chromium. So in Phase 5:
+- `side-panel.js` / `shelf-card.js` MUST carry the **capture/restore mechanism** (capture focused `[data-field]` + caret before re-render, restore after). Do NOT introduce `updateRowInPlace`; the input handler may keep calling `onChange → renderPanel` (full re-render) because the panel render preserves focus.
+- The same-shelf vs cross-shelf overlap wording (#87: `overlapSameShelf` vs `overlap`, chosen by `c.otherShelf === range.svgCode`) must move into `shelf-card.js`'s inline message.
+
+**B. Mockup feedback to fold in (owner chose the Classic skin).** Concrete acceptance criteria:
+- **W1 — idle copy.** Idle-mode panel text = EN: *"To see the range and collection, pick a shelf on the map. At the top of the page you can choose a floor and display style."* · HE: *"להצגת הטווח והאוסף, בחרו מדף במפה. בראש העמוד תוכלו לבחור קומה וסגנון תצוגה."* Drop the "switch between three views" line. (Goes in Task 5.5 i18n + 5.3 idle render.)
+- **W2 — close affordance.** No "back to map" button. The panel closes via an **✕ in the corner** (the close affordance #86 already added to the drawer header — carry it into the panel header). (Task 5.3.)
+- **M1/M2 — selection highlight.** Selecting a shelf currently draws a line so thick it hides the neighbouring shelf (and the transparent fat hit-stroke makes some selections look like they span two shelves). The selected state must be a **non-covering outline** (e.g. inset/`paint-order`-aware stroke or an overlaid outline that does not bleed onto adjacent shelf geometry). (Task 5.8 — CSS on `.map-shelf--selected` + the hit-area stroke in `svg-loader.js`.)
+- **P1 — remove confirmation.** Removing a range must raise a **prominent, separate confirmation modal centred on the screen** (Remove / Cancel), not an inline confirm. (Task 5.4 — new centred modal; reuse for both shelf-card delete and any other destructive row action.)
+- **Skin = Classic.** Lift the Classic palette/type from `mockups/map-editor/themes.css` (the chosen skin) into the panel CSS. Out of scope: #3 Warm contrast and #5 Modern underlines (skins we are not shipping). #4 is the same root cause as M1/M2.
+
+Everything else in Phase 5 below stands. Deploy ritual (Task 5.10) is confirmed correct: CloudFront admin JS has **no `Cache-Control`** (etag/last-modified only), so invalidation + hard-refresh suffices; the `?v=` bump is convention/belt-and-braces, not load-bearing — still do it to spare a hard-refresh.
+
+---
+
 ## Phase 5 — Side-panel layout (the move)
 
-> Branch off `main` as `feat/map-editor-side-panel`. Tag `pre-mapeditor-panel-2026-05-31` on `main` first. This is the only phase needing e2e/visual rebaselining; isolate it so the rebaseline diff is expected and reviewable. Deploy **only from this branch** while it is deployed-but-unmerged for QA.
+> Branch off `main` as `feat/map-editor-side-panel`. Tag `pre-mapeditor-panel-2026-06-01` on `main` first. This is the only phase needing e2e/visual rebaselining; isolate it so the rebaseline diff is expected and reviewable. Deploy **only from this branch** while it is deployed-but-unmerged for QA.
 
 ### Task 5.1: Grid split scaffold — move the panel host OUT of `#map-canvas`
 

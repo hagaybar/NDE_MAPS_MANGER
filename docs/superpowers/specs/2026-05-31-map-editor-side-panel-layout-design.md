@@ -1,10 +1,22 @@
 # Map Editor — side-panel layout redesign (design spec)
 
-**Date:** 2026-05-31
-**Status:** Approved (direction + two revisions confirmed by user 2026-05-31)
-**Mock-up:** `docs/map_editor_new_layout.png`
+**Date:** 2026-05-31 (refreshed 2026-06-01)
+**Status:** Approved; bug cluster (Phases 1–4) SHIPPED + owner-verified live 2026-06-01. Phase 5 (layout) approved to build with the refresh below.
+**Mock-up:** `docs/map_editor_new_layout.png` · interactive 3-skin mockup `mockups/map-editor/` (Classic skin chosen)
 **Plan:** `docs/superpowers/plans/2026-05-31-map-editor-side-panel-layout.md`
 **Tracking issue:** [#97](https://github.com/hagaybar/NDE_MAPS_MANGER/issues/97)
+
+---
+
+## 0. Refresh 2026-06-01 (post-mockup-feedback + #86 reality)
+
+Folded into Phase 5 (full detail in the plan's "Refresh 2026-06-01" block):
+- **Skin = Classic** (owner pick) — lift palette/type from `mockups/map-editor/themes.css`.
+- **W1** idle copy → EN: *"To see the range and collection, pick a shelf on the map. At the top of the page you can choose a floor and display style."* / HE: *"להצגת הטווח והאוסף, בחרו מדף במפה. בראש העמוד תוכלו לבחור קומה וסגנון תצוגה."* (drop "three views" line) — revises §6.1/§6.5.
+- **W2** no "back to map"; panel closes via a corner **✕** (carry the #86 close affordance) — revises §6.
+- **M1/M2** selected-shelf highlight must be a **non-covering outline** that doesn't hide adjacent shelves — revises §4 map styling.
+- **P1** Remove → **centred, separate confirmation modal** (not inline) — revises §6.4.
+- **#86 reality:** the focus fix shipped as **capture/restore around full re-render** (not `updateRowInPlace`); `side-panel.js`/`shelf-card.js` must carry the `captureFocus`/`restoreFocus` mechanism. The #87 same-shelf-vs-cross-shelf wording (`overlapSameShelf`) moves into the card's inline message.
 
 ---
 
