@@ -4,6 +4,7 @@ import { showToast } from './toast.js?v=5';
 import { getAuthHeaders, getCurrentUsername } from '../app.js?v=5';
 import { loadFloorSvg, indexShelvesById, buildRangeCountByShelf, buildKnownSvgCodes } from './map-editor/svg-loader.js?v=2';
 import { fetchMappingCsvText } from './map-editor/csv-loader.js?v=1';
+import { buildMapEditorScaffold } from './map-editor/scaffold.js?v=1';
 import { installPromoteRefreshListener, getFloorCacheBust } from './map-editor/promote-refresh.js?v=1';
 import { indexShelfLocations } from './map-editor/location-model.js';
 import { attachInteraction, applySelection } from './map-editor/svg-interaction.js?v=1';
@@ -533,16 +534,10 @@ export async function initMapEditor() {
   if (initialized) { fitMapEditorViewport(); return; }
   initialized = true;
   const container = document.getElementById('map-editor');
-  container.innerHTML = `
-    <div id="map-editor-view">
-      <div class="bg-white rounded-lg shadow p-4 map-editor__header">
-        <div id="map-floor-tabs" class="flex gap-2 border-b border-gray-200" role="tablist"></div>
-        <p id="map-editor-empty" class="text-gray-500 text-sm mt-3">${i18n.t('mapEditor.empty')}</p>
-      </div>
-      <div id="map-canvas" class="relative bg-gray-50 border border-gray-200 rounded"></div>
-      <div id="map-drawer" class="map-drawer map-drawer--hidden"></div>
-    </div>
-  `;
+  // Scaffold lives in scaffold.js so the #23 grid-sibling invariant is unit-tested
+  // (map-editor-scaffold.test.js). The panel now sits in #map-editor-split beside
+  // the canvas instead of as a bottom drawer.
+  container.innerHTML = buildMapEditorScaffold({ emptyMessage: i18n.t('mapEditor.empty') });
   mountDrawer('map-drawer');
   const orphanHost = document.createElement('div');
   orphanHost.id = 'map-orphan-host';

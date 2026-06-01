@@ -2676,15 +2676,34 @@ textarea:focus-visible,
   min-height: 0;
 }
 
+/* Side-panel layout (#97): the editing surface moves from a bottom drawer into a
+ * CSS-grid column beside the map. #map-editor-split is the direction-aware parent
+ * (it inherits document dir; the panel lands at inline-end → right in LTR, left in
+ * RTL — for free, no physical CSS). The panel is a SIBLING of #map-canvas, never a
+ * child, so #23 (RTL panel displacement inside force-LTR canvas) cannot recur. */
+#map-editor-split {
+  display: grid;
+  grid-template-columns: 1fr var(--panel-w, 360px);  /* canvas | panel */
+  flex: 1;                /* fill the column below the header */
+  min-height: 0;
+}
+#map-editor-split.is-collapsed { grid-template-columns: 1fr 0; }
+
 #map-canvas {
-  flex: 1;
+  min-width: 0;           /* grid item: allow it to shrink so the map reflows */
   min-height: 0;
   /* The map fills the canvas width (it letterboxes via viewBox), so it never
-   * needs a horizontal scrollbar. The closed orphan panel parks off-canvas to
-   * the right (transform: translateX(100%)); clip the x-axis so that parked
+   * needs a horizontal scrollbar. The orphan panel still parks off-canvas to the
+   * right (transform: translateX(100%)) while it lives in the canvas (it moves
+   * into the side panel's triage mode later); clip the x-axis so that parked
    * position doesn't grow the scroll region and reintroduce the #70 overflow.
-   * Keep y-axis scrollable for short-viewport / drawer-open edge cases. */
+   * Keep y-axis scrollable for short-viewport edge cases. */
   overflow-x: hidden;
+  overflow-y: auto;
+}
+
+#map-side-panel {
+  min-width: 0;           /* grid item: don't force the column wider than --panel-w */
   overflow-y: auto;
 }
 
