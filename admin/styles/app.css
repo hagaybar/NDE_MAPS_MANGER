@@ -2705,6 +2705,138 @@ textarea:focus-visible,
 #map-side-panel {
   min-width: 0;           /* grid item: don't force the column wider than --panel-w */
   overflow-y: auto;
+  background: var(--me-surface);
+  border-inline-start: 1px solid var(--me-border);  /* logical: sits between map & panel in both dirs */
+  font-family: var(--me-font-body);
+  color: var(--me-ink);
+}
+#map-side-panel.map-side-panel--hidden { display: none; }
+
+/* ── Map Editor side-panel redesign (#97) — Classic skin ──────────────────────
+ * Tokens scoped to the editor so the redesign doesn't touch the rest of the SPA.
+ * Palette/type lifted from the chosen "Library Classic" mockup skin. */
+#map-editor-view {
+  --me-accent: #2563eb;  --me-accent-strong: #1d4ed8;  --me-accent-weak: #dbeafe;  --me-on-accent: #ffffff;
+  --me-surface: #ffffff; --me-canvas: #f7f9fc; --me-sunken: #f3f4f6;
+  --me-border: #e3e7ee;  --me-border-strong: #cbd5e1;
+  --me-ink: #1e293b;     --me-muted: #64748b; --me-faint: #94a3b8;
+  --me-danger: #dc2626;  --me-danger-bg: #fee2e2;
+  --me-warn: #b45309;    --me-warn-bg: #fef3c7;  --me-warn-border: #fcd34d;
+  --me-radius-card: 8px; --me-radius-control: 6px;
+  --me-shadow-card: 0 1px 2px rgba(15,23,42,.05), 0 1px 3px rgba(15,23,42,.06);
+  --me-font-body: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --panel-w: clamp(320px, 26vw, 400px);
+}
+
+.map-panel { display: flex; flex-direction: column; gap: 12px; padding: 16px; height: 100%; box-sizing: border-box; }
+
+/* idle: calm hint + optional nudge */
+.map-panel--idle { justify-content: flex-start; gap: 16px; }
+.map-panel__hint { margin: 0; color: var(--me-muted); font-size: 14px; line-height: 1.6; }
+.map-panel__nudge {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  width: 100%; text-align: start; cursor: pointer;
+  background: var(--me-warn-bg); border: 1px solid var(--me-warn-border);
+  color: #92400e; border-radius: var(--me-radius-card); padding: 10px 12px; font-size: 13px;
+}
+.map-panel__nudge:hover { filter: brightness(0.98); }
+.map-panel__nudge-expand { color: var(--me-accent-strong); font-weight: 600; white-space: nowrap; }
+
+/* header (shelf + triage) */
+.map-panel__header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.map-panel__title { margin: 0; font-size: 15px; font-weight: 700; color: var(--me-ink); }
+.map-panel__header-actions { display: flex; align-items: center; gap: 6px; }
+.map-panel__btn {
+  border: 1px solid var(--me-border-strong); background: var(--me-surface); color: var(--me-ink);
+  border-radius: var(--me-radius-control); padding: 5px 12px; font-size: 13px; cursor: pointer;
+}
+.map-panel__btn:hover:not(:disabled) { background: var(--me-sunken); }
+.map-panel__btn:disabled { opacity: .5; cursor: default; }
+.map-panel__btn--primary { background: var(--me-accent); border-color: var(--me-accent); color: var(--me-on-accent); }
+.map-panel__btn--primary:hover:not(:disabled) { background: var(--me-accent-strong); }
+.map-panel__pending-chip {
+  background: var(--me-accent-weak); color: var(--me-accent-strong); font-weight: 700; font-size: 12px;
+  border-radius: 999px; min-width: 20px; height: 20px; padding: 0 6px;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.map-panel__close {
+  border: 0; background: transparent; color: var(--me-faint); font-size: 20px; line-height: 1;
+  cursor: pointer; padding: 0 4px; border-radius: var(--me-radius-control);
+}
+.map-panel__close:hover { color: var(--me-ink); background: var(--me-sunken); }
+
+/* warning banner */
+.map-panel__warn-banner {
+  background: var(--me-warn-bg); border: 1px solid var(--me-warn-border); color: #92400e;
+  border-radius: var(--me-radius-control); padding: 8px 10px; font-size: 13px;
+}
+.map-panel__warn-link {
+  border: 0; background: transparent; color: var(--me-accent-strong); text-decoration: underline;
+  cursor: pointer; font-size: 13px; padding: 0 2px;
+}
+
+.map-panel__cards { display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
+.map-panel__add {
+  align-self: flex-start; border: 1px dashed var(--me-border-strong); background: transparent;
+  color: var(--me-accent-strong); border-radius: var(--me-radius-control); padding: 6px 12px;
+  font-size: 13px; cursor: pointer;
+}
+.map-panel__add:hover { background: var(--me-accent-weak); }
+
+.map-panel__empty { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; padding: 8px 0; }
+.map-panel__empty-msg { margin: 0; color: var(--me-muted); font-size: 14px; }
+
+.map-panel__reassign-summary { margin: 0; color: var(--me-ink); font-size: 14px; }
+
+/* ── per-entry card (§6.3) ── */
+.map-card {
+  display: flex; flex-direction: column; gap: 8px;
+  background: var(--me-surface); border: 1px solid var(--me-border);
+  border-radius: var(--me-radius-card); padding: 12px; box-shadow: var(--me-shadow-card);
+}
+.map-card--locked { opacity: .7; background: var(--me-sunken); }
+.map-card__collection { width: 100%; padding: 6px 8px; font-size: 13px; border: 1px solid var(--me-border-strong); border-radius: var(--me-radius-control); background: var(--me-surface); }
+.map-card__range { display: flex; gap: 10px; }
+.map-card__field { display: flex; flex-direction: column; gap: 3px; flex: 1; font-size: 12px; color: var(--me-muted); }
+.map-card__label { font-weight: 600; }
+.map-card__input { padding: 6px 8px; font-size: 14px; border: 1px solid var(--me-border-strong); border-radius: var(--me-radius-control); }
+.map-card__cell--invalid { border-color: var(--me-warn-border); background: var(--me-warn-bg); }
+.map-card__warn { color: #92400e; background: var(--me-warn-bg); border-radius: var(--me-radius-control); padding: 6px 8px; font-size: 12.5px; white-space: pre-line; }
+.map-card__actions { display: flex; justify-content: space-between; gap: 8px; }
+.map-card__move { border: 0; background: transparent; color: var(--me-accent-strong); font-size: 13px; cursor: pointer; padding: 2px 4px; }
+.map-card__move:hover:not(:disabled) { text-decoration: underline; }
+.map-card__remove { border: 0; background: transparent; color: var(--me-danger); font-size: 13px; cursor: pointer; padding: 2px 4px; }
+.map-card__remove:hover:not(:disabled) { text-decoration: underline; }
+.map-card__move:disabled, .map-card__remove:disabled { color: var(--me-faint); cursor: default; }
+
+/* ── P1: centred remove-confirm modal ── */
+.map-modal-overlay {
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(15, 23, 42, .45);
+  display: flex; align-items: center; justify-content: center;
+}
+.map-modal {
+  background: var(--me-surface, #fff); color: var(--me-ink, #1e293b);
+  border-radius: 12px; padding: 24px; width: min(420px, 92vw);
+  box-shadow: 0 18px 48px rgba(15, 23, 42, .28);
+  font-family: var(--me-font-body, system-ui, sans-serif);
+}
+.map-modal__title { margin: 0 0 8px; font-size: 17px; font-weight: 700; }
+.map-modal__body { margin: 0 0 20px; font-size: 14px; line-height: 1.6; color: var(--me-muted, #64748b); }
+.map-modal__actions { display: flex; justify-content: flex-end; gap: 10px; }
+.map-modal__cancel { border: 1px solid var(--me-border-strong, #cbd5e1); background: #fff; color: var(--me-ink, #1e293b); border-radius: 8px; padding: 8px 16px; font-size: 14px; cursor: pointer; }
+.map-modal__confirm { border: 0; background: var(--me-danger, #dc2626); color: #fff; border-radius: 8px; padding: 8px 16px; font-size: 14px; font-weight: 600; cursor: pointer; }
+.map-modal__confirm:hover { filter: brightness(1.05); }
+
+/* ── M1/M2: selection stays a fill change — NEVER a thick stroke that would
+ * bleed onto the adjacent shelf (the mockup's covering outline is deliberately
+ * not carried over). Hover/selected recolour the shelf's own fill only. ── */
+.map-shelf--selected { fill: rgb(245 158 11); stroke: none; }
+
+/* ── responsive: the panel width tracks the viewport via the clamp above; below
+ * the desktop target the map keeps min-width:0 so it never overflows. ── */
+@media (max-width: 1180px) {
+  #map-editor-view { --panel-w: clamp(280px, 30vw, 360px); }
 }
 
 /* Issue #70 — fit the floor map to the canvas at default zoom (no scrolling).
