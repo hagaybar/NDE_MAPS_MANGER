@@ -76,6 +76,29 @@ const LIBRARY_OPTIONS = [
   { value: 'Sourasky Central Library', label: 'Sourasky Central Library' }
 ];
 
+// Single-library deployment — every row carries the same library name (+ Hebrew).
+// Used to auto-complete the library fields (which this dialog doesn't render) so a
+// row missing them is still fixable via Fix → Save (#117).
+export const SINGLE_LIBRARY = { name: 'Sourasky Central Library', nameHe: 'הספרייה המרכזית סוראסקי' };
+
+/**
+ * Complete the fields the dialog doesn't surface so a row missing them can be
+ * fully fixed via Fix → Save (#117): the single library's name + Hebrew, and
+ * collectionNameHe derived from the chosen collection (falling back to the
+ * English collection name when there's no Hebrew mapping). Pure — returns a new
+ * row, never mutates the input. Only fills EMPTY values; never overwrites.
+ */
+export function fillDerivedFields(row, collections = []) {
+  const out = { ...row };
+  if (!out.libraryName) out.libraryName = SINGLE_LIBRARY.name;
+  if (!out.libraryNameHe) out.libraryNameHe = SINGLE_LIBRARY.nameHe;
+  if (out.collectionName && !out.collectionNameHe) {
+    const match = collections.find(c => c.value === out.collectionName || c.name === out.collectionName);
+    out.collectionNameHe = (match && match.nameHe) ? match.nameHe : out.collectionName;
+  }
+  return out;
+}
+
 // Collection options (will be populated from data)
 let collectionOptions = [];
 
@@ -172,8 +195,8 @@ export function showEditLocationDialog(options = {}) {
  */
 function createEmptyRow() {
   return {
-    libraryName: 'Sourasky Central Library',
-    libraryNameHe: 'הספרייה המרכזית סוראסקי',
+    libraryName: SINGLE_LIBRARY.name,
+    libraryNameHe: SINGLE_LIBRARY.nameHe,
     collectionName: '',
     collectionNameHe: '',
     rangeStart: '',
@@ -578,6 +601,12 @@ function updateFieldError(name, error) {
  */
 async function handleSave(allRows, onSave, isNew) {
   if (isLoading) return;
+
+  // Complete the fields the dialog doesn't surface (the single library's name +
+  // Hebrew, and collectionNameHe derived from the chosen collection) so a row
+  // missing them — e.g. an Errors-page row with empty Hebrew names — can be
+  // resolved here with the available fields (#117).
+  currentRow = fillDerivedFields(currentRow, collectionOptions);
 
   // Validate all required fields
   const requiredFields = ['rangeStart', 'rangeEnd', 'svgCode', 'floor', 'collectionName'];
