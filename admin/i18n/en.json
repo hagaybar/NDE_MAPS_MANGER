@@ -458,9 +458,10 @@
       }
     },
     "warning": {
-      "overlap": "Overlaps {otherRangeLabel} on shelf {otherShelfLabel}",
+      "overlap": "Overlaps {otherRangeLabel} on shelf {otherShelfLabel} — a call number in the overlap could point to either shelf.",
+      "overlapSameShelf": "Overlaps {otherRangeLabel}, another range on this shelf — these call numbers are listed twice here.",
       "startGtEnd": "Start is greater than end.",
-      "banner": "{n} conflict(s) on this shelf",
+      "banner": "{n} overlap(s) on this shelf",
       "with": "— also on:"
     },
     "shelf": {

@@ -151,11 +151,21 @@ function buildRow(range, { isLocked, conflicts, collectionsList, onChange, onMov
     row.querySelector('[data-field="rangeStart"]').title = i18n.t('mapEditor.warning.startGtEnd');
     row.querySelector('[data-field="rangeEnd"]').title = i18n.t('mapEditor.warning.startGtEnd');
   }
-  // Apply conflict tints + tooltips
+  // Apply conflict tints + tooltips. Same-shelf overlaps still warn (the
+  // librarian asked to keep flagging them) but get a message that explains the
+  // overlap means these call numbers are listed twice — not that the range is
+  // pointing at the wrong place. Cross-shelf overlaps say which other shelf and
+  // why it's ambiguous (a call number in the overlap could resolve to either
+  // shelf). Issue #87.
   if (conflicts.length > 0) {
-    const tip = conflicts.map(c => i18n.t('mapEditor.warning.overlap')
-      .replace('{otherRangeLabel}', c.otherRangeLabel)
-      .replace('{otherShelfLabel}', c.otherShelf)).join('\n');
+    const tip = conflicts.map(c => {
+      const key = c.otherShelf === range.svgCode
+        ? 'mapEditor.warning.overlapSameShelf'
+        : 'mapEditor.warning.overlap';
+      return i18n.t(key)
+        .replace('{otherRangeLabel}', c.otherRangeLabel)
+        .replace('{otherShelfLabel}', c.otherShelf);
+    }).join('\n');
     row.querySelector('[data-field="rangeStart"]').classList.add('map-drawer__cell--invalid');
     row.querySelector('[data-field="rangeEnd"]').classList.add('map-drawer__cell--invalid');
     row.querySelector('[data-field="rangeStart"]').title = tip;
