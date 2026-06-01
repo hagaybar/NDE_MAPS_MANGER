@@ -245,9 +245,11 @@ describe('EditUserDialog Component', () => {
 
       await new Promise(resolve => setTimeout(resolve, 50));
 
+      // Editors also carry allowedRanges in the payload now (#9); assert the
+      // fields this test is about without coupling to the ranges shape.
       expect(mockUserService.updateUser).toHaveBeenCalledWith(
         'testuser@example.com',
-        { role: 'editor', enabled: false }
+        expect.objectContaining({ role: 'editor', enabled: false })
       );
     });
   });
@@ -379,12 +381,14 @@ describe('EditUserDialog Component', () => {
       saveBtn.click();
 
       const result = await dialogPromise;
-      expect(result).toEqual({
+      // Editors also carry allowedRanges in the result now (#9); assert the core
+      // fields without coupling to the ranges shape.
+      expect(result).toEqual(expect.objectContaining({
         success: true,
         username: 'testuser@example.com',
         role: 'editor',
         enabled: true
-      });
+      }));
     });
 
     test('should close dialog after showing success message', async () => {

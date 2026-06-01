@@ -46,13 +46,15 @@ describe('Data Model Service', () => {
   });
 
   describe('getRowKey', () => {
-    test('generates key from rangeStart, rangeEnd, and svgCode', () => {
+    test('generates key from collection, rangeStart, rangeEnd, and svgCode', () => {
       const row = {
+        collectionName: 'General',
         rangeStart: '100',
         rangeEnd: '200',
         svgCode: 'shelf_a'
       };
-      expect(getRowKey(row)).toBe('100|200|shelf_a');
+      // A row's identity includes its (normalized) collection name (#9-confirmed).
+      expect(getRowKey(row)).toBe('general|100|200|shelf_a');
     });
 
     test('handles empty values', () => {
@@ -61,12 +63,12 @@ describe('Data Model Service', () => {
         rangeEnd: '',
         svgCode: ''
       };
-      expect(getRowKey(row)).toBe('||');
+      expect(getRowKey(row)).toBe('|||');
     });
 
     test('handles undefined values', () => {
       const row = {};
-      expect(getRowKey(row)).toBe('||');
+      expect(getRowKey(row)).toBe('|||');
     });
 
     test('handles null values', () => {
@@ -75,16 +77,17 @@ describe('Data Model Service', () => {
         rangeEnd: null,
         svgCode: null
       };
-      expect(getRowKey(row)).toBe('||');
+      expect(getRowKey(row)).toBe('|||');
     });
 
     test('trims whitespace', () => {
       const row = {
+        collectionName: '  General  ',
         rangeStart: '  100  ',
         rangeEnd: '  200  ',
         svgCode: '  shelf_a  '
       };
-      expect(getRowKey(row)).toBe('100|200|shelf_a');
+      expect(getRowKey(row)).toBe('general|100|200|shelf_a');
     });
   });
 
@@ -126,7 +129,8 @@ describe('Data Model Service', () => {
       const duplicates = findDuplicateRows(rows);
       expect(duplicates).toHaveLength(1);
       expect(duplicates[0].indices).toEqual([0, 1]);
-      expect(duplicates[0].key).toBe('100|200|shelf_a');
+      // key is collection|start|end|svgCode; these rows have no collection.
+      expect(duplicates[0].key).toBe('|100|200|shelf_a');
     });
 
     test('finds multiple groups of duplicates', () => {
@@ -154,10 +158,13 @@ describe('Data Model Service', () => {
       expect(result.prefix).toBe('');
     });
 
-    test('parses Dewey with parentheses', () => {
+    test('parses Dewey with parentheses as a prefix-less numeric token', () => {
       const result = parseRangeValue('396(44)');
-      expect(result.numeric).toBeCloseTo(396.044, 3);
       expect(result.prefix).toBe('');
+      expect(Number.isFinite(result.numeric)).toBe(true);
+      // NOTE: ordering of parenthetical call numbers is by string comparison now
+      // (see call-number-ordering.test.js / issue #100), NOT this numeric value,
+      // which is retained only for prefix/format detection.
     });
 
     test('parses alphanumeric prefixes', () => {
@@ -208,10 +215,13 @@ describe('Data Model Service', () => {
       expect(doRangesOverlap(range1, range2)).toBe(false);
     });
 
-    test('returns true for adjacent ranges (touching)', () => {
+    test('returns false for adjacent ranges (touching)', () => {
+      // Spec Dispute resolved (#9 / #87 audit): a single-point boundary touch is
+      // NOT a conflict — this is how the catalog abuts shelves (292-471.7 next to
+      // 471.7-475). The old assertion (expect true) encoded the wrong rule.
       const range1 = { start: '100', end: '200' };
       const range2 = { start: '200', end: '300' };
-      expect(doRangesOverlap(range1, range2)).toBe(true);
+      expect(doRangesOverlap(range1, range2)).toBe(false);
     });
 
     test('returns false for different prefixes', () => {

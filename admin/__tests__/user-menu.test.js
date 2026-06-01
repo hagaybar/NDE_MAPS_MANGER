@@ -52,6 +52,11 @@ const mockI18n = {
   },
   setLocale(locale) {
     this.locale = locale;
+  },
+  // App bootstrap calls i18n.init() at startup; the mock has translations inline,
+  // so this is a no-op. (Was missing → "i18n.init is not a function" broke the menu render.)
+  async init() {
+    return this;
   }
 };
 
@@ -221,30 +226,33 @@ describe('UserMenu Component', () => {
       expect(loginButton).toBeNull();
     });
 
-    test('should display username in user menu', () => {
+    // The menu deliberately shows the user's EMAIL as the display name
+    // (user-menu.js: "more recognizable than internal username"). These tests
+    // previously expected the username; updated to the live behavior (#9).
+    test('should display the user email in user menu', () => {
       initUserMenu('user-menu-container');
 
       const usernameElement = document.querySelector('[data-testid="username-display"]');
       expect(usernameElement).not.toBeNull();
-      expect(usernameElement.textContent).toContain('testuser');
+      expect(usernameElement.textContent).toContain('test@example.com');
     });
 
-    test('should display welcome message with username in English', () => {
+    test('should display welcome message with the user email in English', () => {
       mockI18n.locale = 'en';
 
       initUserMenu('user-menu-container');
 
       const welcomeElement = document.querySelector('[data-testid="welcome-message"]');
-      expect(welcomeElement.textContent).toContain('Welcome, testuser');
+      expect(welcomeElement.textContent).toContain('Welcome, test@example.com');
     });
 
-    test('should display welcome message with username in Hebrew', () => {
+    test('should display welcome message with the user email in Hebrew', () => {
       mockI18n.locale = 'he';
 
       initUserMenu('user-menu-container');
 
       const welcomeElement = document.querySelector('[data-testid="welcome-message"]');
-      expect(welcomeElement.textContent).toContain('שלום, testuser');
+      expect(welcomeElement.textContent).toContain('שלום, test@example.com');
     });
   });
 
