@@ -134,3 +134,37 @@ describe('shelfState add-then-move / add-then-delete (issue #92)', () => {
     expect(s.materialize().find(r => r.id === 'r1').svgCode).toBe('Z9');
   });
 });
+
+describe('shelfState.commit — saved range persists after save (issue #86)', () => {
+  test('adopting the saved snapshot keeps an added row and clears pending', () => {
+    const s = createShelfState({
+      ranges: [{ id: 'r1', svgCode: 'A1', floor: '1', rangeStart: '100', rangeEnd: '110' }],
+      permittedRowIds: null,
+    });
+    s.add('temp-1', { svgCode: 'A1', floor: '1', rangeStart: '200', rangeEnd: '299' });
+
+    const merged = s.materialize();        // what the app PUTs to the server
+    s.commit(merged);                      // server accepted it → new baseline
+
+    expect(s.pendingEdits().size).toBe(0); // nothing outstanding after a save
+    const after = s.materialize();
+    // The just-added range must still be present — re-deriving from the new
+    // baseline, NOT the stale pre-save one (the #86 regression).
+    expect(after.find(r => r.id === 'temp-1')).toMatchObject({ rangeStart: '200', rangeEnd: '299' });
+    expect(after.filter(r => r.svgCode === 'A1')).toHaveLength(2);
+  });
+
+  test('an edit made after commit applies on top of the new baseline', () => {
+    const s = createShelfState({
+      ranges: [{ id: 'r1', svgCode: 'A1', floor: '1', rangeStart: '100', rangeEnd: '110' }],
+      permittedRowIds: null,
+    });
+    s.edit('r1', { rangeEnd: '120' });
+    s.commit(s.materialize());             // r1 now saved as 100-120
+
+    s.edit('r1', { rangeEnd: '130' });     // a fresh edit after the save
+    expect(s.materialize().find(r => r.id === 'r1').rangeEnd).toBe('130');
+    s.revert();                            // discard the fresh edit
+    expect(s.materialize().find(r => r.id === 'r1').rangeEnd).toBe('120'); // back to the saved baseline
+  });
+});

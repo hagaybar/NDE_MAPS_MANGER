@@ -513,7 +513,7 @@ async function saveCsv() {
     if (isOrphanPanelOpen()) {
       refreshOrphanPanel({ openIfClosed: false });
     }
-    shelfState.revert();        // clears pendingEdits
+    shelfState.commit(merged);  // adopt saved snapshot as the new baseline + clear pending (#86)
     refreshConflicts();
     renderDrawer();             // drawer stays open with fresh values
     showToast(i18n.t('csv.saveSuccess'), 'success');

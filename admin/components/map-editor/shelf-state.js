@@ -61,6 +61,15 @@ export function createShelfState({ ranges, permittedRowIds }) {
     },
     revert() { _pending.clear(); },
 
+    // Adopt `rows` as the new saved baseline and drop all pending edits. Called
+    // after a successful save: without this, _ranges still holds the pre-save
+    // baseline, so materialize() (with pending now cleared) re-derives the OLD
+    // data and the just-saved range disappears from the drawer (issue #86).
+    commit(rows) {
+      _ranges = rows.slice();
+      _pending.clear();
+    },
+
     materialize() {
       // Apply pendingEdits to _ranges, filtering out anything not allowed.
       const result = _ranges.filter(r => {
