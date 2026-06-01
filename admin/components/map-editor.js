@@ -10,7 +10,7 @@ import { indexShelfLocations } from './map-editor/location-model.js';
 import { attachInteraction, applySelection } from './map-editor/svg-interaction.js?v=1';
 import { createShelfState } from './map-editor/shelf-state.js?v=1';
 import { computeFloorConflicts } from './map-editor/range-validation.js?v=1';
-import { mountDrawer, showSingleShelf, hideDrawer } from './map-editor/shelf-drawer.js?v=2';
+import { mountSidePanel, renderPanel, hidePanel } from './map-editor/side-panel.js?v=1';
 import { startReassign, cancelReassign, isReassignActive } from './map-editor/reassign-mode.js?v=1';
 import { handleEscape } from './map-editor/esc-handler.js?v=1';
 import { deriveOrphansForFloor } from './map-editor/orphan-deriver.js?v=1';
@@ -332,9 +332,21 @@ installPromoteRefreshListener({
 window.addEventListener('mapeditor:selection-changed', () => renderDrawer());
 
 function renderDrawer() {
-  const sel = shelfState.selection();
-  if (sel.kind === 'none') { hideDrawer(); return; }
-  if (sel.kind === 'single') {
+  // The persistent side panel renders one of four modes. shelf vs idle is driven
+  // by shelfState.mode(); reassign/triage panel modes are wired in later tasks
+  // (the idle nudge currently opens the existing orphan worklist overlay).
+  if (shelfState.mode() !== 'shelf') {
+    const orphanCount = currentFloor === null ? 0 : deriveOrphansForFloor(allRanges, currentFloor).length;
+    renderPanel({
+      mode: 'idle',
+      orphanCount,
+      onOpenTriage: () => refreshOrphanPanel({ openIfClosed: true }),
+    });
+    return;
+  }
+
+  {
+    const sel = shelfState.selection();
     const locationId = sel.shelfIds[0];
     const merged = shelfState.materialize();
     const mergedFloor = merged.filter(r => String(r.floor) === String(currentFloor));
@@ -362,14 +374,16 @@ function renderDrawer() {
     }
     const conflictingShelves = Array.from(otherShelfMap.values()).sort((a, b) => a.label.localeCompare(b.label));
 
-    showSingleShelf({
-      shelfId: locationId,
+    renderPanel({
+      mode: 'shelf',
       shelfLabel: rangesOnShelf[0]?.shelfLabel || locationId,
       rangesOnShelf,
       conflictsByRangeId,
       conflictingShelves,
       permission: shelfState.permission.bind(shelfState),
       collectionsList,
+      hasPendingEdits: shelfState.pendingEdits().size > 0,
+      pendingCount: shelfState.pendingCount(),
       onChange: (id, patch) => { shelfState.edit(id, patch); refreshConflicts(); renderDrawer(); },
       onAdd: () => addNewRangeToShelf(locationId),
       onMove: (id) => {
@@ -424,7 +438,6 @@ function renderDrawer() {
         applySelection(locationElements, []);
         window.dispatchEvent(new CustomEvent('mapeditor:selection-changed'));
       },
-      hasPendingEdits: shelfState.pendingEdits().size > 0,
     });
   }
 }
@@ -537,8 +550,8 @@ export async function initMapEditor() {
   // Scaffold lives in scaffold.js so the #23 grid-sibling invariant is unit-tested
   // (map-editor-scaffold.test.js). The panel now sits in #map-editor-split beside
   // the canvas instead of as a bottom drawer.
-  container.innerHTML = buildMapEditorScaffold({ emptyMessage: i18n.t('mapEditor.empty') });
-  mountDrawer('map-drawer');
+  container.innerHTML = buildMapEditorScaffold();
+  mountSidePanel('map-side-panel');
   const orphanHost = document.createElement('div');
   orphanHost.id = 'map-orphan-host';
   container.querySelector('#map-canvas').appendChild(orphanHost);

@@ -9,16 +9,18 @@
  * displacement); keeping it a grid sibling lets it mirror by document `dir` for
  * free and makes #23 impossible to recur. See the side-panel layout spec §4.1.
  */
-export function buildMapEditorScaffold({ emptyMessage = '' } = {}) {
+export function buildMapEditorScaffold() {
+  // The idle hint now lives in the side panel (idle mode), so the old header
+  // empty-message <p> is gone. The panel host is the grid sibling that
+  // side-panel.js mounts onto.
   return `
     <div id="map-editor-view">
       <div class="bg-white rounded-lg shadow p-4 map-editor__header">
         <div id="map-floor-tabs" class="flex gap-2 border-b border-gray-200" role="tablist"></div>
-        <p id="map-editor-empty" class="text-gray-500 text-sm mt-3">${emptyMessage}</p>
       </div>
       <div id="map-editor-split">
         <div id="map-canvas" class="relative bg-gray-50 border border-gray-200 rounded"></div>
-        <div id="map-side-panel"><div id="map-drawer" class="map-drawer map-drawer--hidden"></div></div>
+        <div id="map-side-panel"></div>
       </div>
     </div>
   `;
