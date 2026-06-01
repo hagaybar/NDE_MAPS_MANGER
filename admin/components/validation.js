@@ -33,9 +33,12 @@ const VALIDATION_RULES = {
   libraryNameHe: { required: true },
   collectionName: { required: true },
   collectionNameHe: { required: true },
-  // Updated pattern to allow Dewey with parentheses: 396(44), 355.1(6)
-  rangeStart: { required: true, pattern: /^[\d.]+(?:\(\d+\))?$|^[A-Z]+\d*$/ },
-  rangeEnd: { required: true, pattern: /^[\d.]+(?:\(\d+\))?$|^[A-Z]+\d*$/ },
+  // Call-number format (#106): optional letter prefix, a number, optional
+  // decimal, then zero-or-more parenthetical sub-parts. Accepts 323.67, 396(44),
+  // 327(47)(56), 382.1(54)(47), E990.4, ML336.5, ML5, M1812. Rejects pure
+  // letters with no number, and stray characters.
+  rangeStart: { required: true, pattern: /^[A-Za-z]*\d+(?:\.\d+)?(?:\(\d+\))*$/ },
+  rangeEnd: { required: true, pattern: /^[A-Za-z]*\d+(?:\.\d+)?(?:\(\d+\))*$/ },
   svgCode: { required: true },
   floor: { required: true, pattern: /^[0-2]$/ }
 };

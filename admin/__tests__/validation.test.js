@@ -92,6 +92,38 @@ describe('Validation Service', () => {
       expect(formatErrors).toHaveLength(0);
     });
 
+    test('accepts real call-number formats: double-parens + alpha-with-decimal (#106)', () => {
+      const valid = [
+        '327(47)(56)', '327(73)(47)', '382.1(54)(47)', '382.1(56)(5694)',  // double parens
+        'E990.4', 'E114.5', 'ML336.5', 'ML336.7',                          // alpha + decimal
+        '396(44)', '323.67', 'ML5', 'M1812', '100'                         // already-valid baselines
+      ];
+      for (const v of valid) {
+        const result = validateRow({
+          libraryName: 'T', libraryNameHe: 'T', collectionName: 'T', collectionNameHe: 'T',
+          rangeStart: v, rangeEnd: v, svgCode: 'shelf_a', floor: '1'
+        });
+        const fmt = result.errors.filter(
+          e => (e.field === 'rangeStart' || e.field === 'rangeEnd') && e.message.toLowerCase().includes('format')
+        );
+        expect({ value: v, formatErrors: fmt.length }).toEqual({ value: v, formatErrors: 0 });
+      }
+    });
+
+    test('rejects malformed range values incl. pure-letters with no number (#106)', () => {
+      const invalid = ['ML', 'abc', '12.3.4xyz', '(44)', '396((44))'];
+      for (const v of invalid) {
+        const result = validateRow({
+          libraryName: 'T', libraryNameHe: 'T', collectionName: 'T', collectionNameHe: 'T',
+          rangeStart: v, rangeEnd: '500', svgCode: 'shelf_a', floor: '1'
+        });
+        const fmt = result.errors.filter(
+          e => e.field === 'rangeStart' && e.message.toLowerCase().includes('format')
+        );
+        expect({ value: v, flagged: fmt.length > 0 }).toEqual({ value: v, flagged: true });
+      }
+    });
+
     test('validates floor values', () => {
       const row = {
         libraryName: 'Test',
