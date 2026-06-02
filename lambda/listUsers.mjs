@@ -61,6 +61,10 @@ const mapUser = (cognitoUser) => {
     username: cognitoUser.Username,
     email: getAttribute(attributes, 'email'),
     status: cognitoUser.UserStatus,
+    // #122: surface Cognito's Enabled boolean so the admin edit dialog initializes
+    // its Enabled/Disabled toggle from the real state. Without it the client
+    // defaulted the toggle to ON and an unrelated save re-enabled disabled accounts.
+    enabled: cognitoUser.Enabled,
     role: getAttribute(attributes, 'custom:role'),
     allowedRanges: parseAllowedRanges(allowedRangesStr),
     createdAt: cognitoUser.UserCreateDate ? cognitoUser.UserCreateDate.toISOString() : null,
