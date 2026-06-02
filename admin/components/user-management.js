@@ -166,11 +166,18 @@ async function handleDeleteUser(user) {
  * @param {object} user - The user to reset password for
  */
 async function handleResetPassword(user) {
+    // #7 follow-up: drive the per-row control state so the admin sees the request
+    // in flight, then the persistent "✓ Sent · Resend" affordance (clicking it
+    // re-enters this same handler to resend).
     try {
+        userListInstance?.setResetInFlight(user.username, true);
         await userService.resetPassword(user.username);
-        showToast(i18n.t('users.resetSuccess'), 'success');
+        userListInstance?.markResetSent(user.username);
+        const sentTo = user.email || user.username;
+        showToast(i18n.t('users.resetSuccess').replace('{email}', sentTo), 'success');
     } catch (error) {
         console.error('Failed to reset password:', error);
+        userListInstance?.setResetInFlight(user.username, false);
         showToast(i18n.t('users.resetError'), 'error');
     }
 }
