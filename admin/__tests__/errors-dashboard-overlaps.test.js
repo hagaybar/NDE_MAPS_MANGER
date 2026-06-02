@@ -59,3 +59,16 @@ test('overlap category renders a root-cause group with its blast-radius count an
   const children = group.querySelector('.overlap-cluster-children');
   expect(children.hidden).toBe(true);
 });
+
+test('Print expands collapsed cluster children before printing', async () => {
+  document.body.innerHTML = '<div id="dash"></div>';
+  const printSpy = jest.spyOn(window, 'print').mockImplementation(() => {});
+  initErrorsDashboard('dash');
+  await flush();
+  openCategory('overlap');
+  await flush();
+  document.querySelector('.print-btn').click();
+  expect(printSpy).toHaveBeenCalled();
+  expect(document.querySelector('.overlap-cluster-children').hidden).toBe(false);
+  printSpy.mockRestore();
+});

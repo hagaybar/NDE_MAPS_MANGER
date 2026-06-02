@@ -4,7 +4,7 @@ import { validateRow, VALIDATION_ERRORS, VALIDATION_WARNINGS } from '../services
 import { showEditLocationDialog, setCollections } from './edit-location-dialog.js?v=7';
 import { getAuthHeaders } from '../app.js?v=5';
 import logger from '../services/logger.js?v=1';
-import { reportFilename } from './errors-dashboard/report-export.js';
+import { buildReportWorkbookModel, writeWorkbook, reportFilename } from './errors-dashboard/report-export.js';
 import { buildOverlapClusters } from './errors-dashboard/overlap-clusters.js';
 import { showToast } from './toast.js?v=5';
 
@@ -45,7 +45,8 @@ const FALLBACKS = {
   'errorsDashboard.overlap.affects': { en: 'affects {n} ranges', he: 'משפיע על {n} טווחים' },
   'errorsDashboard.overlap.fixRange': { en: 'Fix this range →', he: '← תקן את הטווח הזה' },
   'errorsDashboard.overlap.other': { en: 'Other overlaps', he: 'חפיפות אחרות' },
-  'errorsDashboard.overlap.expand': { en: 'Show affected ranges', he: 'הצג טווחים מושפעים' }
+  'errorsDashboard.overlap.expand': { en: 'Show affected ranges', he: 'הצג טווחים מושפעים' },
+  'errorsDashboard.print.cta': { en: '🖨 Print report', he: '🖨 הדפס דוח' }
 };
 
 /**
@@ -533,6 +534,9 @@ function renderSummaryView(stats, dir) {
           </svg>
           ${escapeHtml(t('errorsDashboard.refresh'))}
         </button>
+        <button class="btn btn-secondary print-btn">
+          ${escapeHtml(t('errorsDashboard.print.cta'))}
+        </button>
         <button class="btn btn-secondary export-btn" ${(!allIssues || allIssues.length === 0) ? `disabled title="${escapeHtml(t('errorsDashboard.export.empty'))}"` : ''}>
           ${escapeHtml(t('errorsDashboard.export.cta'))}
         </button>
@@ -660,6 +664,9 @@ function renderCategoryView(dir) {
             </button>
             <h2 class="dashboard-title">${escapeHtml(t('errorsDashboard.category.overlap'))}</h2>
           </div>
+          <button class="btn btn-secondary print-btn">
+            ${escapeHtml(t('errorsDashboard.print.cta'))}
+          </button>
           <button class="btn btn-secondary export-btn" ${(!allIssues || allIssues.length === 0) ? `disabled title="${escapeHtml(t('errorsDashboard.export.empty'))}"` : ''}>
             ${escapeHtml(t('errorsDashboard.export.cta'))}
           </button>
@@ -759,17 +766,31 @@ function getCategoryIcon(iconName) {
 }
 
 /**
- * Build and trigger the download of the comprehensive errors CSV.
- * Reads from `allIssues` (already aggregated by validateAllRows).
+ * Build and trigger the download of the comprehensive errors report as a
+ * styled .xlsx. Root-cause overlap groups come from the cluster engine; all
+ * other categories come from `allIssues`.
  */
-function handleDownloadReport() {
-  // NOTE (Task 2 interim stub): the CSV builders (buildReportRows/toCsv/
-  // downloadCsv) were replaced by the pure workbook model + writeWorkbook
-  // adapter. The .xlsx export UI is wired in Task 4/5. Until then this is a
-  // no-op so the module keeps loading and the suite stays green.
+async function handleDownloadReport() {
   if (!allIssues || allIssues.length === 0) return;
-  // reportFilename() retained for the upcoming xlsx export wiring.
-  void reportFilename;
+  try {
+    const clusterModel = buildOverlapClusters(csvData);
+    const otherIssues = allIssues.filter(i => i.category !== 'overlap');
+    const model = buildReportWorkbookModel(clusterModel, otherIssues, csvData);
+    await writeWorkbook(model, reportFilename());
+    logger.userAction('click', 'Download errors report', { count: model.rows.length });
+  } catch (err) {
+    logger.error('errors-dashboard', 'Report export failed', { error: String(err) });
+    showToast(t('errorsDashboard.export.error'), 'error');
+  }
+}
+
+/**
+ * Expand every overlap cluster group, then trigger the browser print dialog
+ * so paper output shows the affected ranges (which are collapsed on screen).
+ */
+function handlePrintReport() {
+  containerElement.querySelectorAll('.overlap-cluster-children').forEach(el => { el.hidden = false; });
+  window.print();
 }
 
 /**
@@ -792,6 +813,9 @@ function setupEventHandlers() {
   if (exportBtn && !exportBtn.disabled) {
     exportBtn.addEventListener('click', handleDownloadReport);
   }
+
+  // Print button(s) — expand cluster groups then open the print dialog
+  containerElement.querySelectorAll('.print-btn').forEach(btn => btn.addEventListener('click', handlePrintReport));
 
   // Back button
   const backBtn = containerElement.querySelector('.back-btn');
