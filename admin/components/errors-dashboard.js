@@ -4,7 +4,7 @@ import { validateRow, VALIDATION_ERRORS, VALIDATION_WARNINGS } from '../services
 import { showEditLocationDialog, setCollections } from './edit-location-dialog.js?v=7';
 import { getAuthHeaders } from '../app.js?v=5';
 import logger from '../services/logger.js?v=1';
-import { buildReportRows, toCsv, downloadCsv, reportFilename } from './errors-dashboard/report-export.js';
+import { reportFilename } from './errors-dashboard/report-export.js';
 import { showToast } from './toast.js?v=5';
 
 // CloudFront URL for fetching CSV data
@@ -695,16 +695,13 @@ function getCategoryIcon(iconName) {
  * Reads from `allIssues` (already aggregated by validateAllRows).
  */
 function handleDownloadReport() {
+  // NOTE (Task 2 interim stub): the CSV builders (buildReportRows/toCsv/
+  // downloadCsv) were replaced by the pure workbook model + writeWorkbook
+  // adapter. The .xlsx export UI is wired in Task 4/5. Until then this is a
+  // no-op so the module keeps loading and the suite stays green.
   if (!allIssues || allIssues.length === 0) return;
-  try {
-    const rows = buildReportRows(allIssues);
-    const csv = toCsv(rows);
-    downloadCsv(reportFilename(), csv);
-    logger.userAction('click', 'Download errors report', { count: rows.length });
-  } catch (err) {
-    logger.error('errors-dashboard', 'Report export failed', { error: String(err) });
-    showToast(t('errorsDashboard.export.error'), 'error');
-  }
+  // reportFilename() retained for the upcoming xlsx export wiring.
+  void reportFilename;
 }
 
 /**

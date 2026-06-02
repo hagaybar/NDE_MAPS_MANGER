@@ -1,104 +1,113 @@
+// admin/components/errors-dashboard/report-export.js
 /**
- * Report export helpers for the errors dashboard.
+ * Report export for the errors dashboard.
  *
- * Pure functions for shaping issues into export rows and serialising them
- * to CSV, plus a thin DOM helper that triggers a browser download. The
- * CSV-encoding rules mirror the toCSV / escapeCSVField helpers in
- * map-editor.js — intentional duplication for module isolation (see
- * issue-15 spec).
+ * `buildReportWorkbookModel` is a PURE description of the export sheet (rows,
+ * styles, outline grouping) — no ExcelJS, fully unit-tested. `writeWorkbook` is
+ * a thin adapter that maps that model onto a lazily-imported ExcelJS workbook
+ * and triggers a browser download (not unit-tested on bytes; e2e/manual).
  *
  * @module components/errors-dashboard/report-export
  */
 
-const COLUMNS = [
-  'floor',
-  'libraryName',
-  'collectionName',
-  'shelfLabel',
-  'svgCode',
-  'rangeStart',
-  'rangeEnd',
-  'csvRowIndex',
-  'category',
-  'code',
-  'severity',
-  'field',
-  'message',
+export const WORKBOOK_COLUMNS = [
+  { key: 'floor', header: 'Floor', width: 8 },
+  { key: 'libraryName', header: 'Library', width: 22 },
+  { key: 'collectionName', header: 'Collection', width: 28 },
+  { key: 'shelfLabel', header: 'Shelf', width: 12 },
+  { key: 'svgCode', header: 'SVG code', width: 14 },
+  { key: 'rangeStart', header: 'Range start', width: 12 },
+  { key: 'rangeEnd', header: 'Range end', width: 12 },
+  { key: 'csvRow', header: 'CSV row', width: 9 },
+  { key: 'rootCause', header: 'Root cause', width: 12 },
+  { key: 'affects', header: 'Affects', width: 9 },
+  { key: 'category', header: 'Category', width: 12 },
+  { key: 'code', header: 'Code', width: 8 },
+  { key: 'severity', header: 'Severity', width: 10 },
+  { key: 'message', header: 'Message', width: 90 },
 ];
 
-/**
- * Map an internal `allIssues` list to flat export rows.
- *
- * @param {Array<{type, rowIndex, row, category, code, field, message}>} allIssues
- * @returns {Array<object>}
- */
-export function buildReportRows(allIssues) {
-  return allIssues.map(issue => ({
-    floor: issue.row?.floor ?? '',
-    libraryName: issue.row?.libraryName ?? '',
-    collectionName: issue.row?.collectionName ?? '',
-    shelfLabel: issue.row?.shelfLabel ?? '',
-    svgCode: issue.row?.svgCode ?? '',
-    rangeStart: issue.row?.rangeStart ?? '',
-    rangeEnd: issue.row?.rangeEnd ?? '',
-    csvRowIndex: issue.rowIndex + 2,
-    category: issue.category ?? '',
-    code: issue.code ?? '',
-    severity: issue.type ?? '',
-    field: issue.field ?? '',
-    message: issue.message ?? '',
-  }));
+function cells(row, extra) {
+  return {
+    floor: row?.floor ?? '',
+    libraryName: row?.libraryName ?? '',
+    collectionName: row?.collectionName ?? '',
+    shelfLabel: row?.shelfLabel ?? '',
+    svgCode: row?.svgCode ?? '',
+    rangeStart: row?.rangeStart ?? '',
+    rangeEnd: row?.rangeEnd ?? '',
+    csvRow: extra.rowIndex != null ? extra.rowIndex + 2 : '',
+    rootCause: extra.rootCause ?? '',
+    affects: extra.affects ?? '',
+    category: extra.category ?? '',
+    code: extra.code ?? '',
+    severity: extra.severity ?? '',
+    message: extra.message ?? '',
+  };
 }
 
 /**
- * Wrap a value in double quotes when CSV escaping rules require it.
- * Doubles any inner double quotes. Stringifies non-strings.
+ * @param {{clusters, otherOverlaps}} clusterModel - from buildOverlapClusters
+ * @param {Array<{rowIndex,row,category,code,type,message}>} otherIssues - non-overlap issues
+ * @param {Object[]} csvData - all rows (to resolve otherOverlaps indices)
+ * @returns {{ columns: typeof WORKBOOK_COLUMNS, rows: Array<{cells, style, outlineLevel, blastRadius?}> }}
  */
-export function escapeCsvField(value) {
-  const str = String(value);
-  if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
-    return '"' + str.replace(/"/g, '""') + '"';
+export function buildReportWorkbookModel(clusterModel, otherIssues = [], csvData = []) {
+  const rows = [];
+  const { clusters = [], otherOverlaps = [] } = clusterModel || {};
+
+  for (const c of clusters) {
+    rows.push({
+      style: 'hub',
+      outlineLevel: 0,
+      blastRadius: c.blastRadius,
+      cells: cells(c.hubRow, {
+        rowIndex: c.hubRowIndex, rootCause: 'ROOT CAUSE', affects: c.blastRadius,
+        category: 'overlap', code: 'W001', severity: 'warning',
+        message: `Overlaps ${c.blastRadius} ranges in "${c.collection}" (Floor ${c.floor})`,
+      }),
+    });
+    for (const a of c.affected) {
+      rows.push({
+        style: 'affected',
+        outlineLevel: 1,
+        cells: cells(a.row, {
+          rowIndex: a.rowIndex, category: 'overlap', code: 'W001', severity: 'warning',
+          message: `Overlaps root-cause Row ${c.hubRowIndex + 2}`,
+        }),
+      });
+    }
   }
-  return str;
-}
 
-/**
- * Serialise an array of report rows to a CSV string.
- * Always emits the header row, even for empty input.
- */
-export function toCsv(rows) {
-  const header = COLUMNS.join(',');
-  const lines = [header];
-  for (const row of rows) {
-    lines.push(COLUMNS.map(c => escapeCsvField(row[c] != null ? row[c] : '')).join(','));
+  for (const p of otherOverlaps) {
+    rows.push({
+      style: 'plain',
+      outlineLevel: 0,
+      cells: cells(csvData[p.row1Index], {
+        rowIndex: p.row1Index, category: 'overlap', code: 'W001', severity: 'warning',
+        message: `Overlaps Row ${p.row2Index + 2} in "${p.collection}" (Floor ${p.floor})`,
+      }),
+    });
   }
-  return lines.join('\n');
+
+  for (const issue of otherIssues) {
+    rows.push({
+      style: 'plain',
+      outlineLevel: 0,
+      cells: cells(issue.row, {
+        rowIndex: issue.rowIndex, category: issue.category, code: issue.code,
+        severity: issue.type, message: issue.message,
+      }),
+    });
+  }
+
+  return { columns: WORKBOOK_COLUMNS, rows };
 }
 
 /**
- * Build the canonical export filename for a given date.
- * Uses UTC so the filename is stable across timezones.
- *
- * @param {Date} [now] defaults to `new Date()`
- * @returns {string} e.g. "errors-report-2026-05-12.csv"
+ * Canonical export filename. UTC date so it is timezone-stable.
+ * @param {Date} [now]
  */
 export function reportFilename(now = new Date()) {
-  const iso = now.toISOString().slice(0, 10);
-  return `errors-report-${iso}.csv`;
-}
-
-/**
- * Trigger a browser download of `content` as `filename`.
- * Side-effecting; not unit-tested directly (covered by Playwright e2e).
- */
-export function downloadCsv(filename, content) {
-  const blob = new Blob([content], { type: 'text/csv;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  return `errors-report-${now.toISOString().slice(0, 10)}.xlsx`;
 }
