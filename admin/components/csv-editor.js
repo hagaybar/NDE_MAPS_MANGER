@@ -175,6 +175,21 @@ function renderBrokenRefsToggle() {
   if (!toolbar) return;
   let toggle = toolbar.querySelector('[data-action="toggle-broken-refs"]');
   const broken = getBrokenRefs(getCsvRowsForValidation(), svgShelfIdsByFloor);
+
+  // No broken refs → nothing to filter, so don't show the toggle at all (same
+  // "hide at count 0" rule as the Map Editor orphan badge). If the filter was
+  // on (e.g. the user just fixed the last broken ref), turn it off and restore
+  // every row so nothing stays hidden.
+  if (broken.length === 0) {
+    if (toggle) toggle.remove();
+    if (brokenRefsFilterActive) {
+      brokenRefsFilterActive = false;
+      applyBrokenRefsFilter();
+      applyOrphanFilter(); // re-assert the orphan view filter if it was active
+    }
+    return;
+  }
+
   const countLabel = t('csv.brokenRefsCount').replace('{count}', broken.length);
   const label = `${t('csv.brokenRefs')} ${countLabel}`;
   const className = 'px-3 py-1.5 text-sm rounded ' + (brokenRefsFilterActive

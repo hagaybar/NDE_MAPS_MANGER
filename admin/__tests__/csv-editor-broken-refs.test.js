@@ -81,6 +81,33 @@ describe('CSV Editor — Broken refs filter', () => {
     expect(toggle.textContent).toMatch(/\(1\)/);
   });
 
+  // The toggle is a no-op at count 0 (you can't filter to nothing), so it must
+  // not appear — same "hide at count 0" rule as the Map Editor orphan badge.
+  test('does NOT render the toggle when there are zero broken refs', async () => {
+    const mock = await import('../services/data-model.js');
+    mock.getBrokenRefs.mockReturnValue([]);
+    initCSVEditor();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(document.querySelector('[data-action="toggle-broken-refs"]')).toBeNull();
+  });
+
+  // Fixing the last broken ref should make the toggle disappear on the next
+  // recompute, not linger as "(0)".
+  test('removes the toggle once the broken-ref count drops to zero', async () => {
+    initCSVEditor();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const toggle = document.querySelector('[data-action="toggle-broken-refs"]');
+    expect(toggle).not.toBeNull(); // default mock has 1 broken ref
+
+    const mock = await import('../services/data-model.js');
+    mock.getBrokenRefs.mockReturnValue([]); // user fixed the last broken ref
+    toggle.click(); // any re-render of the toggle now recomputes the count
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(document.querySelector('[data-action="toggle-broken-refs"]')).toBeNull();
+  });
+
   test('clicking the toggle filters the table to only broken-ref rows', async () => {
     initCSVEditor();
     await new Promise((resolve) => setTimeout(resolve, 0));
