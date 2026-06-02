@@ -111,3 +111,86 @@ export function buildReportWorkbookModel(clusterModel, otherIssues = [], csvData
 export function reportFilename(now = new Date()) {
   return `errors-report-${now.toISOString().slice(0, 10)}.xlsx`;
 }
+
+const STYLE = {
+  hub:      { bold: true,  fill: 'FFFDE68A' },  // amber-200
+  affected: { bold: false, fill: null },
+  plain:    { bold: false, fill: null },
+};
+
+/**
+ * Lazily load the vendored ExcelJS UMD build and resolve `window.ExcelJS`.
+ *
+ * The vendored file is the cdnjs UMD build (esm.sh only returned a redirect
+ * stub), so it sets a `window.ExcelJS` global rather than exposing ESM exports.
+ * We inject a one-time classic `<script>` and resolve once the global appears.
+ * Cached on `window` so repeated exports don't re-inject.
+ *
+ * @returns {Promise<object>} the ExcelJS namespace (with `.Workbook`)
+ */
+function loadExcelJS() {
+  if (typeof window !== 'undefined' && window.ExcelJS) {
+    return Promise.resolve(window.ExcelJS);
+  }
+  if (typeof window !== 'undefined' && window.__exceljsLoading) {
+    return window.__exceljsLoading;
+  }
+  const p = new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = new URL('../../vendor/exceljs.min.js', import.meta.url).href;
+    script.async = true;
+    script.onload = () => {
+      if (window.ExcelJS) resolve(window.ExcelJS);
+      else reject(new Error('ExcelJS loaded but window.ExcelJS is undefined'));
+    };
+    script.onerror = () => reject(new Error('Failed to load vendored ExcelJS'));
+    document.head.appendChild(script);
+  });
+  if (typeof window !== 'undefined') window.__exceljsLoading = p;
+  return p;
+}
+
+/**
+ * Write the workbook model to a styled .xlsx and trigger a browser download.
+ * ExcelJS is lazy-loaded here so it is not part of normal dashboard load.
+ * Side-effecting; covered by e2e/manual, not unit tests.
+ *
+ * @param {ReturnType<typeof buildReportWorkbookModel>} model
+ * @param {string} filename
+ */
+export async function writeWorkbook(model, filename) {
+  const ExcelJS = await loadExcelJS();
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet('Errors');
+
+  ws.columns = model.columns.map(c => ({ header: c.header, key: c.key, width: c.width }));
+  ws.getRow(1).font = { bold: true };
+  ws.views = [{ state: 'frozen', ySplit: 1 }];
+
+  for (const r of model.rows) {
+    const row = ws.addRow(r.cells);
+    row.outlineLevel = r.outlineLevel || 0;
+    const s = STYLE[r.style] || STYLE.plain;
+    if (s.bold) row.font = { bold: true };
+    if (s.fill) {
+      row.eachCell((cell) => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: s.fill } };
+      });
+    }
+  }
+  ws.properties.outlineLevelRow = 1;       // enable the outline
+  ws.properties.summaryBelow = false;       // hub (summary) sits ABOVE its group
+
+  const buffer = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buffer], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
