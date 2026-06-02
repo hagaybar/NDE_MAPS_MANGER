@@ -82,7 +82,11 @@ beforeEach(() => {
 
 describe('getVersion Lambda', () => {
   describe('successful operations', () => {
-    test('should return CSV content with 200 status for valid versionId', async () => {
+    // #123 CONTRACT CHANGE (spec dispute — see PR): getVersion now returns JSON
+    // { content, timestamp, username } instead of a raw text/csv body, because the
+    // ONLY consumer (version-preview) calls response.json() and reads those three
+    // fields. timestamp + username are parsed from the versionId filename.
+    test('should return JSON { content, timestamp, username } with 200 for a valid versionId', async () => {
       // Arrange
       const mockCsvContent = 'id,name,location\n1,Test,Floor1';
       const versionId = 'mapping_2026-03-01T12-00-00-000Z_admin.csv';
@@ -104,8 +108,11 @@ describe('getVersion Lambda', () => {
 
       // Assert
       expect(result.statusCode).toBe(200);
-      expect(result.body).toBe(mockCsvContent);
-      expect(result.headers['Content-Type']).toBe('text/csv; charset=utf-8');
+      expect(result.headers['Content-Type']).toBe('application/json');
+      const body = JSON.parse(result.body);
+      expect(body.content).toBe(mockCsvContent);
+      expect(body.timestamp).toBe('2026-03-01T12:00:00.000Z'); // ISO, parsed from filename
+      expect(body.username).toBe('admin');
     });
 
     test('should call S3 with correct bucket and key path', async () => {
@@ -151,8 +158,10 @@ describe('getVersion Lambda', () => {
       // Act
       const result = await handler(event);
 
-      // Assert
+      // Assert (#123: username with underscores is parsed correctly from the filename)
       expect(result.statusCode).toBe(200);
+      const body = JSON.parse(result.body);
+      expect(body.username).toBe('john_doe');
     });
   });
 
