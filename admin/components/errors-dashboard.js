@@ -5,6 +5,7 @@ import { showEditLocationDialog, setCollections } from './edit-location-dialog.j
 import { getAuthHeaders } from '../app.js?v=5';
 import logger from '../services/logger.js?v=1';
 import { reportFilename } from './errors-dashboard/report-export.js';
+import { buildOverlapClusters } from './errors-dashboard/overlap-clusters.js';
 import { showToast } from './toast.js?v=5';
 
 // CloudFront URL for fetching CSV data
@@ -38,7 +39,13 @@ const FALLBACKS = {
   'errorsDashboard.category.svgCode': { en: 'SVG Code Issues', he: 'בעיות קוד SVG' },
   'errorsDashboard.category.overlap': { en: 'Overlapping Ranges', he: 'טווחים חופפים' },
   'errorsDashboard.category.description': { en: 'Missing Descriptions', he: 'תיאורים חסרים' },
-  'errorsDashboard.category.format': { en: 'Format Issues', he: 'בעיות פורמט' }
+  'errorsDashboard.category.format': { en: 'Format Issues', he: 'בעיות פורמט' },
+  'errorsDashboard.overlap.summary': { en: '{causes} root causes · {affected} ranges affected', he: '{causes} גורמי שורש · {affected} טווחים מושפעים' },
+  'errorsDashboard.overlap.rootCause': { en: 'ROOT CAUSE', he: 'גורם שורש' },
+  'errorsDashboard.overlap.affects': { en: 'affects {n} ranges', he: 'משפיע על {n} טווחים' },
+  'errorsDashboard.overlap.fixRange': { en: 'Fix this range →', he: '← תקן את הטווח הזה' },
+  'errorsDashboard.overlap.other': { en: 'Other overlaps', he: 'חפיפות אחרות' },
+  'errorsDashboard.overlap.expand': { en: 'Show affected ranges', he: 'הצג טווחים מושפעים' }
 };
 
 /**
@@ -602,6 +609,67 @@ function renderCategoryView(dir) {
   const issues = categorizedIssues[currentCategory] || [];
   const meta = CATEGORY_META[currentCategory] || { color: 'gray', severity: 'error' };
 
+  if (currentCategory === 'overlap') {
+    const { clusters, otherOverlaps } = buildOverlapClusters(csvData);
+    const affectedTotal = clusters.reduce((n, c) => n + c.blastRadius, 0);
+    const summary = t('errorsDashboard.overlap.summary')
+      .replace('{causes}', clusters.length)
+      .replace('{affected}', affectedTotal);
+
+    const clusterHtml = clusters.map((c, ci) => `
+      <div class="overlap-cluster" data-cluster="${ci}">
+        <div class="overlap-cluster-header">
+          <button class="overlap-cluster-toggle" aria-expanded="false" data-cluster-toggle="${ci}">▸</button>
+          <strong>⚠ ${escapeHtml(t('errorsDashboard.overlap.rootCause'))}</strong>
+          · ${escapeHtml(t('errorsDashboard.row'))} ${c.hubRowIndex + 1}
+          "${escapeHtml(c.hubRow.rangeStart)}–${escapeHtml(c.hubRow.rangeEnd)}"
+          · ${escapeHtml(t('errorsDashboard.overlap.affects').replace('{n}', c.blastRadius))}
+          · Floor ${escapeHtml(String(c.floor))} · ${escapeHtml(c.collection)}
+          <button class="btn btn-primary overlap-fix-btn" data-row-index="${c.hubRowIndex}">
+            ${escapeHtml(t('errorsDashboard.overlap.fixRange'))}
+          </button>
+        </div>
+        <div class="overlap-cluster-children" data-cluster-children="${ci}" hidden>
+          ${c.affected.map(a => `
+            <div class="overlap-affected">
+              ${escapeHtml(t('errorsDashboard.row'))} ${a.rowIndex + 1}
+              · ${escapeHtml(a.row.shelfLabel || '')}
+              · "${escapeHtml(a.row.rangeStart)}–${escapeHtml(a.row.rangeEnd)}"
+            </div>`).join('')}
+        </div>
+      </div>`).join('');
+
+    const otherHtml = otherOverlaps.length ? `
+      <div class="overlap-other">
+        <h3>${escapeHtml(t('errorsDashboard.overlap.other'))}</h3>
+        ${otherOverlaps.map(p => `
+          <div class="overlap-affected">
+            ${escapeHtml(t('errorsDashboard.row'))} ${p.row1Index + 1} ↔ ${escapeHtml(t('errorsDashboard.row'))} ${p.row2Index + 1}
+          </div>`).join('')}
+      </div>` : '';
+
+    containerElement.innerHTML = `
+      <div class="errors-dashboard" dir="${dir}">
+        <div class="dashboard-header">
+          <div class="dashboard-header-content">
+            <button class="back-btn">
+              <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+              </svg>
+              ${escapeHtml(t('errorsDashboard.back'))}
+            </button>
+            <h2 class="dashboard-title">${escapeHtml(t('errorsDashboard.category.overlap'))}</h2>
+          </div>
+          <button class="btn btn-secondary export-btn" ${(!allIssues || allIssues.length === 0) ? `disabled title="${escapeHtml(t('errorsDashboard.export.empty'))}"` : ''}>
+            ${escapeHtml(t('errorsDashboard.export.cta'))}
+          </button>
+        </div>
+        <p class="overlap-summary">${escapeHtml(summary)}</p>
+        <div class="overlap-clusters">${clusterHtml}${otherHtml}</div>
+      </div>`;
+    return;
+  }
+
   containerElement.innerHTML = `
     <div class="errors-dashboard" dir="${dir}">
       <!-- Header -->
@@ -764,6 +832,27 @@ function setupEventHandlers() {
       if (issue) {
         handleFixClick(issue);
       }
+    });
+  });
+
+  // Overlap cluster expand/collapse toggles
+  containerElement.querySelectorAll('[data-cluster-toggle]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const ci = btn.dataset.clusterToggle;
+      const children = containerElement.querySelector(`[data-cluster-children="${ci}"]`);
+      const open = children.hidden;
+      children.hidden = !open;
+      btn.setAttribute('aria-expanded', String(open));
+      btn.textContent = open ? '▾' : '▸';
+    });
+  });
+
+  // Overlap cluster "Fix this range" buttons (jump to the hub row)
+  containerElement.querySelectorAll('.overlap-fix-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const rowIndex = parseInt(btn.dataset.rowIndex, 10);
+      handleFixClick({ row: csvData[rowIndex], rowIndex });
     });
   });
 
