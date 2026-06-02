@@ -1,98 +1,190 @@
+// admin/components/errors-dashboard/report-export.js
 /**
- * Report export helpers for the errors dashboard.
+ * Report export for the errors dashboard.
  *
- * Pure functions for shaping issues into export rows and serialising them
- * to CSV, plus a thin DOM helper that triggers a browser download. The
- * CSV-encoding rules mirror the toCSV / escapeCSVField helpers in
- * map-editor.js — intentional duplication for module isolation (see
- * issue-15 spec).
+ * `buildReportWorkbookModel` is a PURE description of the export sheet (rows,
+ * styles, outline grouping) — no ExcelJS, fully unit-tested. `writeWorkbook` is
+ * a thin adapter that maps that model onto a lazily-imported ExcelJS workbook
+ * and triggers a browser download (not unit-tested on bytes; e2e/manual).
  *
  * @module components/errors-dashboard/report-export
  */
 
-const COLUMNS = [
-  'floor',
-  'libraryName',
-  'collectionName',
-  'shelfLabel',
-  'svgCode',
-  'rangeStart',
-  'rangeEnd',
-  'csvRowIndex',
-  'category',
-  'code',
-  'severity',
-  'field',
-  'message',
+export const WORKBOOK_COLUMNS = [
+  { key: 'floor', header: 'Floor', width: 8 },
+  { key: 'libraryName', header: 'Library', width: 22 },
+  { key: 'collectionName', header: 'Collection', width: 28 },
+  { key: 'shelfLabel', header: 'Shelf', width: 12 },
+  { key: 'svgCode', header: 'SVG code', width: 14 },
+  { key: 'rangeStart', header: 'Range start', width: 12 },
+  { key: 'rangeEnd', header: 'Range end', width: 12 },
+  { key: 'csvRow', header: 'CSV row', width: 9 },
+  { key: 'rootCause', header: 'Root cause', width: 12 },
+  { key: 'affects', header: 'Affects', width: 9 },
+  { key: 'category', header: 'Category', width: 12 },
+  { key: 'code', header: 'Code', width: 8 },
+  { key: 'severity', header: 'Severity', width: 10 },
+  { key: 'message', header: 'Message', width: 90 },
 ];
 
-/**
- * Map an internal `allIssues` list to flat export rows.
- *
- * @param {Array<{type, rowIndex, row, category, code, field, message}>} allIssues
- * @returns {Array<object>}
- */
-export function buildReportRows(allIssues) {
-  return allIssues.map(issue => ({
-    floor: issue.row?.floor ?? '',
-    libraryName: issue.row?.libraryName ?? '',
-    collectionName: issue.row?.collectionName ?? '',
-    shelfLabel: issue.row?.shelfLabel ?? '',
-    svgCode: issue.row?.svgCode ?? '',
-    rangeStart: issue.row?.rangeStart ?? '',
-    rangeEnd: issue.row?.rangeEnd ?? '',
-    csvRowIndex: issue.rowIndex + 2,
-    category: issue.category ?? '',
-    code: issue.code ?? '',
-    severity: issue.type ?? '',
-    field: issue.field ?? '',
-    message: issue.message ?? '',
-  }));
+function cells(row, extra) {
+  return {
+    floor: row?.floor ?? '',
+    libraryName: row?.libraryName ?? '',
+    collectionName: row?.collectionName ?? '',
+    shelfLabel: row?.shelfLabel ?? '',
+    svgCode: row?.svgCode ?? '',
+    rangeStart: row?.rangeStart ?? '',
+    rangeEnd: row?.rangeEnd ?? '',
+    csvRow: extra.rowIndex != null ? extra.rowIndex + 2 : '',
+    rootCause: extra.rootCause ?? '',
+    affects: extra.affects ?? '',
+    category: extra.category ?? '',
+    code: extra.code ?? '',
+    severity: extra.severity ?? '',
+    message: extra.message ?? '',
+  };
 }
 
 /**
- * Wrap a value in double quotes when CSV escaping rules require it.
- * Doubles any inner double quotes. Stringifies non-strings.
+ * @param {{clusters, otherOverlaps}} clusterModel - from buildOverlapClusters
+ * @param {Array<{rowIndex,row,category,code,type,message}>} otherIssues - non-overlap issues
+ * @param {Object[]} csvData - all rows (to resolve otherOverlaps indices)
+ * @returns {{ columns: typeof WORKBOOK_COLUMNS, rows: Array<{cells, style, outlineLevel, blastRadius?}> }}
  */
-export function escapeCsvField(value) {
-  const str = String(value);
-  if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
-    return '"' + str.replace(/"/g, '""') + '"';
+export function buildReportWorkbookModel(clusterModel, otherIssues = [], csvData = []) {
+  const rows = [];
+  const { clusters = [], otherOverlaps = [] } = clusterModel || {};
+
+  for (const c of clusters) {
+    rows.push({
+      style: 'hub',
+      outlineLevel: 0,
+      blastRadius: c.blastRadius,
+      cells: cells(c.hubRow, {
+        rowIndex: c.hubRowIndex, rootCause: 'ROOT CAUSE', affects: c.blastRadius,
+        category: 'overlap', code: 'W001', severity: 'warning',
+        message: `Overlaps ${c.blastRadius} ranges in "${c.collection}" (Floor ${c.floor})`,
+      }),
+    });
+    for (const a of c.affected) {
+      rows.push({
+        style: 'affected',
+        outlineLevel: 1,
+        cells: cells(a.row, {
+          rowIndex: a.rowIndex, category: 'overlap', code: 'W001', severity: 'warning',
+          message: `Overlaps root-cause Row ${c.hubRowIndex + 2}`,
+        }),
+      });
+    }
   }
-  return str;
-}
 
-/**
- * Serialise an array of report rows to a CSV string.
- * Always emits the header row, even for empty input.
- */
-export function toCsv(rows) {
-  const header = COLUMNS.join(',');
-  const lines = [header];
-  for (const row of rows) {
-    lines.push(COLUMNS.map(c => escapeCsvField(row[c] != null ? row[c] : '')).join(','));
+  for (const p of otherOverlaps) {
+    rows.push({
+      style: 'plain',
+      outlineLevel: 0,
+      cells: cells(csvData[p.row1Index], {
+        rowIndex: p.row1Index, category: 'overlap', code: 'W001', severity: 'warning',
+        message: `Overlaps Row ${p.row2Index + 2} in "${p.collection}" (Floor ${p.floor})`,
+      }),
+    });
   }
-  return lines.join('\n');
+
+  for (const issue of otherIssues) {
+    rows.push({
+      style: 'plain',
+      outlineLevel: 0,
+      cells: cells(issue.row, {
+        rowIndex: issue.rowIndex, category: issue.category, code: issue.code,
+        severity: issue.type, message: issue.message,
+      }),
+    });
+  }
+
+  return { columns: WORKBOOK_COLUMNS, rows };
 }
 
 /**
- * Build the canonical export filename for a given date.
- * Uses UTC so the filename is stable across timezones.
- *
- * @param {Date} [now] defaults to `new Date()`
- * @returns {string} e.g. "errors-report-2026-05-12.csv"
+ * Canonical export filename. UTC date so it is timezone-stable.
+ * @param {Date} [now]
  */
 export function reportFilename(now = new Date()) {
-  const iso = now.toISOString().slice(0, 10);
-  return `errors-report-${iso}.csv`;
+  return `errors-report-${now.toISOString().slice(0, 10)}.xlsx`;
+}
+
+const STYLE = {
+  hub:      { bold: true,  fill: 'FFFDE68A' },  // amber-200
+  affected: { bold: false, fill: null },
+  plain:    { bold: false, fill: null },
+};
+
+/**
+ * Lazily load the vendored ExcelJS UMD build and resolve `window.ExcelJS`.
+ *
+ * The vendored file is the cdnjs UMD build (esm.sh only returned a redirect
+ * stub), so it sets a `window.ExcelJS` global rather than exposing ESM exports.
+ * We inject a one-time classic `<script>` and resolve once the global appears.
+ * Cached on `window` so repeated exports don't re-inject.
+ *
+ * @returns {Promise<object>} the ExcelJS namespace (with `.Workbook`)
+ */
+function loadExcelJS() {
+  if (typeof window !== 'undefined' && window.ExcelJS) {
+    return Promise.resolve(window.ExcelJS);
+  }
+  if (typeof window !== 'undefined' && window.__exceljsLoading) {
+    return window.__exceljsLoading;
+  }
+  const p = new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = new URL('../../vendor/exceljs.min.js', import.meta.url).href;
+    script.async = true;
+    script.onload = () => {
+      if (window.ExcelJS) resolve(window.ExcelJS);
+      else reject(new Error('ExcelJS loaded but window.ExcelJS is undefined'));
+    };
+    script.onerror = () => reject(new Error('Failed to load vendored ExcelJS'));
+    document.head.appendChild(script);
+  });
+  if (typeof window !== 'undefined') window.__exceljsLoading = p;
+  return p;
 }
 
 /**
- * Trigger a browser download of `content` as `filename`.
- * Side-effecting; not unit-tested directly (covered by Playwright e2e).
+ * Write the workbook model to a styled .xlsx and trigger a browser download.
+ * ExcelJS is lazy-loaded here so it is not part of normal dashboard load.
+ * Side-effecting; covered by e2e/manual, not unit tests.
+ *
+ * @param {ReturnType<typeof buildReportWorkbookModel>} model
+ * @param {string} filename
  */
-export function downloadCsv(filename, content) {
-  const blob = new Blob([content], { type: 'text/csv;charset=utf-8' });
+export async function writeWorkbook(model, filename) {
+  const ExcelJS = await loadExcelJS();
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet('Errors');
+
+  ws.columns = model.columns.map(c => ({ header: c.header, key: c.key, width: c.width }));
+  ws.getRow(1).font = { bold: true };
+  ws.views = [{ state: 'frozen', ySplit: 1 }];
+
+  for (const r of model.rows) {
+    const row = ws.addRow(r.cells);
+    row.outlineLevel = r.outlineLevel || 0;
+    const s = STYLE[r.style] || STYLE.plain;
+    if (s.bold) row.font = { bold: true };
+    if (s.fill) {
+      row.eachCell((cell) => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: s.fill } };
+      });
+    }
+  }
+  ws.properties.outlineLevelRow = 1;       // enable the outline
+  ws.properties.summaryBelow = false;       // hub (summary) sits ABOVE its group
+
+  const buffer = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buffer], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;

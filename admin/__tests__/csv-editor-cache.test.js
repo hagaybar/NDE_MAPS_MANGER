@@ -48,6 +48,7 @@ describe('csv-editor — CSV fetch cache behavior', () => {
       parseRangeBoundary: jest.fn().mockReturnValue(null),
       compareCallNumbers: jest.fn((a, b) => (a < b ? -1 : a > b ? 1 : 0)),
       doRangesOverlap: jest.fn().mockReturnValue(false),
+      findOverlappingRanges: jest.fn().mockReturnValue([]),
       loadCsv: jest.fn().mockResolvedValue({ rows: [], svgShelfIdsByFloor: {} }),
     }));
 
