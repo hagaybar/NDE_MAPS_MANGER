@@ -539,7 +539,8 @@
       "affects": "affects {n} ranges",
       "fixRange": "Fix this range →",
       "other": "Other overlaps",
-      "expand": "Show affected ranges"
+      "expand": "Show affected ranges",
+      "goToRow": "Go to Row {n}"
     },
     "print": {
       "cta": "🖨 Print report"
