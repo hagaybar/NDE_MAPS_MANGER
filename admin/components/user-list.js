@@ -544,8 +544,15 @@ class UserList {
       });
     }
 
-    // Action buttons
-    this.container.addEventListener('click', (e) => {
+    // Action buttons. #7: bind this delegated container listener EXACTLY ONCE.
+    // render() replaces innerHTML but the container element itself persists, so
+    // re-binding on every setupEventListeners() call accumulated listeners — a
+    // single "Reset password" click then dispatched user-reset-password N times
+    // → N Cognito reset emails. The handler reads this.users live and uses
+    // closest(), so it keeps working across re-renders without re-binding.
+    if (!this._actionClickBound) {
+      this._actionClickBound = true;
+      this.container.addEventListener('click', (e) => {
       const editButton = e.target.closest('[data-testid="edit-button"]');
       const resetButton = e.target.closest('[data-testid="reset-password-button"]');
       const deleteButton = e.target.closest('[data-testid="delete-button"]');
@@ -576,7 +583,8 @@ class UserList {
           bubbles: true
         }));
       }
-    });
+      });
+    }
   }
 }
 

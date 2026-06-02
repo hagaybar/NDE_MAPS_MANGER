@@ -519,6 +519,30 @@ describe('UserList Component', () => {
       expect(resetEventHandler.mock.calls[0][0].detail.username).toBe('admin_user');
     });
 
+    // #7: render() replaces innerHTML but the container element persists, and
+    // every render() was followed by setupEventListeners(), which re-bound the
+    // delegated container click listener. They accumulated, so after a normal
+    // refresh cycle one "Reset password" click dispatched the event N times →
+    // N reset emails. After a refresh, a single click must dispatch exactly once.
+    test('dispatches user-reset-password exactly once per click after a list refresh (#7)', async () => {
+      const container = document.getElementById('user-list');
+      const userList = new UserList(container);
+      await userList.init({ users: mockUsers });
+
+      // Mirror the loadUsers() refresh cycle (setLoading→updateUsers→setLoading)
+      // that accumulates the duplicate container click listeners.
+      userList.setLoading(true);
+      userList.updateUsers(mockUsers);
+      userList.setLoading(false);
+
+      const resetEventHandler = jest.fn();
+      container.addEventListener('user-reset-password', resetEventHandler);
+
+      document.querySelector('[data-testid="reset-password-button"]').click();
+
+      expect(resetEventHandler).toHaveBeenCalledTimes(1);
+    });
+
     test('should emit user-delete event when Delete is clicked', async () => {
       const container = document.getElementById('user-list');
       const userList = new UserList(container);
