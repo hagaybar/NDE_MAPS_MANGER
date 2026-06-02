@@ -290,9 +290,16 @@ function applyBrokenRefsFilter() {
         .replace('{idx}', idx)
         .replace('{code}', code);
       if (!window.confirm(confirmMsg)) return;
-      csvData.splice(Number(idx), 1);
+      // #120: route through deleteRow() so the filtered-editor bookkeeping runs
+      // (null-mark allCsvData[originalIndex] + splice originalIndices), keeping
+      // the filteredIndex→originalIndex map aligned. A bare csvData.splice() here
+      // desynced that map, so buildFullCsvData() wrote the wrong rows and the
+      // "deleted" row survived — silent corruption for range-restricted editors.
+      // deleteRow() already calls markChanged()+renderTable(); the extra
+      // markChanged() keeps Save enabled even for a DOM-only row with no csvData
+      // entry (test fixtures), and renderBrokenRefsToggle() recomputes the count.
+      deleteRow(Number(idx));
       markChanged();
-      renderTable();
       renderBrokenRefsToggle();  // recompute count after row removed
     });
     tr.appendChild(actions);
