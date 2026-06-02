@@ -531,5 +531,18 @@
     "incompleteRange": "Filter Group {group}, Range {range}: Both start and end are required",
     "note": "Note",
     "orLogicExplanation": "Multiple filter groups use OR logic - the editor can access locations matching ANY of the defined groups."
+  },
+  "errorsDashboard": {
+    "overlap": {
+      "summary": "{causes} root causes · {affected} ranges affected",
+      "rootCause": "ROOT CAUSE",
+      "affects": "affects {n} ranges",
+      "fixRange": "Fix this range →",
+      "other": "Other overlaps",
+      "expand": "Show affected ranges"
+    },
+    "print": {
+      "cta": "🖨 Print report"
+    }
   }
 }
