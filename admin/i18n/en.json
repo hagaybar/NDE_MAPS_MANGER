@@ -37,7 +37,9 @@
     "filteredRows": "Showing {shown} of {total} rows (filtered by your permissions)",
     "noAccess": "No Access to Data",
     "noAccessDescription": "Your account does not have permission to edit any locations. Range restrictions are either disabled or no filter groups are defined.",
-    "contactAdmin": "Please contact an administrator to configure your access permissions."
+    "contactAdmin": "Please contact an administrator to configure your access permissions.",
+    "orphanFilter": "Showing only unassigned shelves on floor {floor}. Saving still writes the whole file.",
+    "orphanFilterClear": "Show all rows"
   },
   "svg": {
     "title": "Map Files",

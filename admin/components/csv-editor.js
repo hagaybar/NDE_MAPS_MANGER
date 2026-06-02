@@ -20,6 +20,8 @@ const FALLBACKS = {
   'csv.noAccess': { en: 'No Access to Data', he: 'אין גישה לנתונים' },
   'csv.noAccessDescription': { en: 'Your account does not have permission to edit any locations.', he: 'לחשבון שלך אין הרשאה לערוך מיקומים.' },
   'csv.contactAdmin': { en: 'Please contact an administrator to configure your access permissions.', he: 'נא לפנות למנהל כדי להגדיר את הרשאות הגישה שלך.' },
+  'csv.orphanFilter': { en: 'Showing only unassigned shelves on floor {floor}. Saving still writes the whole file.', he: 'מציג רק מדפים לא משויכים בקומה {floor}. השמירה עדיין כותבת את כל הקובץ.' },
+  'csv.orphanFilterClear': { en: 'Show all rows', he: 'הצג את כל השורות' },
   'csv.brokenRefs': { en: 'Show only broken refs', he: 'הצג רק רפרנסים שבורים' },
   'csv.brokenRefsCount': { en: '({count})', he: '({count})' },
   'csv.deleteRow':           { en: 'Delete row',                                he: 'מחק שורה' },
@@ -49,6 +51,7 @@ let isFiltered = false;     // Whether data is filtered by range restrictions
 let hasNoAccess = false;    // Whether editor has no access (disabled ranges or no filter groups)
 let _hashListenerAttached = false;  // Module-singleton guard for the deep-link hashchange listener
 let brokenRefsFilterActive = false;
+let orphanFilterFloor = null;       // Floor (string) when the #119 orphan deep-link VIEW filter is active; null otherwise
 let svgShelfIdsByFloor = { 0: new Set(), 1: new Set(), 2: new Set() };
 const API_ENDPOINT = 'https://tt3xt4tr09.execute-api.us-east-1.amazonaws.com/prod';
 const CLOUDFRONT_URL = 'https://d3h8i7y9p8lyw7.cloudfront.net';
@@ -288,7 +291,38 @@ function renderFilterBanner() {
   const bannerContainer = document.getElementById('filter-info-banner');
   if (!bannerContainer) return;
 
-  // Admin users don't see the banner
+  // Orphan deep-link view filter (#119) — shown to ALL users, including admins,
+  // so it is obvious the table is showing a subset and how to clear it. This is
+  // purely a view filter: the banner spells out that Save still writes the whole
+  // file. Takes precedence over the editor-restriction banner below.
+  if (orphanFilterFloor !== null) {
+    const msg = t('csv.orphanFilter').replace('{floor}', String(orphanFilterFloor));
+    bannerContainer.innerHTML = `
+      <div class="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <svg class="w-5 h-5 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L14 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 018 21v-7.586L3.293 6.707A1 1 0 013 6V4z"/>
+          </svg>
+          <p class="text-amber-800 text-sm">${escapeHtml(msg)}</p>
+        </div>
+        <button data-action="clear-orphan-filter" class="px-3 py-1.5 text-sm rounded bg-white border border-amber-300 text-amber-800 hover:bg-amber-100 whitespace-nowrap">
+          ${escapeHtml(t('csv.orphanFilterClear'))}
+        </button>
+      </div>
+    `;
+    const clearBtn = bannerContainer.querySelector('[data-action="clear-orphan-filter"]');
+    clearBtn?.addEventListener('click', () => {
+      orphanFilterFloor = null;
+      // Drop the deep-link hash so re-entry / hashchange doesn't re-apply it.
+      if (/orphans=floor=\d+/.test(location.hash)) location.hash = '#csv-editor';
+      renderFilterBanner();
+      renderTable();
+      applyRoleBasedUI();
+    });
+    return;
+  }
+
+  // Admin users don't see the (editor-restriction) banner
   if (isAdmin()) {
     bannerContainer.innerHTML = '';
     return;
@@ -426,31 +460,48 @@ async function loadCSV() {
  */
 function applyUrlFilter() {
   const m = location.hash.match(/orphans=floor=(\d+)/);
-  if (!m) return;
+  if (!m) {
+    // Hash no longer requests the orphan filter — clear it if it was active.
+    // (The old code returned early here and never restored the full view, so the
+    // only escape from the filter was a full reload — part of #119.)
+    if (orphanFilterFloor !== null) {
+      orphanFilterFloor = null;
+      renderFilterBanner();
+      renderTable();
+      applyRoleBasedUI();
+    }
+    return;
+  }
   if (!Array.isArray(allCsvData) || allCsvData.length === 0) return;
-  const floor = m[1];
-  const filtered = allCsvData
-    .filter(row => row !== null)
-    .filter(row =>
-      String(row.floor) === floor && (!row.svgCode || String(row.svgCode).trim() === '')
-    )
-    .map(row => JSON.parse(JSON.stringify(row)));
 
-  csvData = filtered;
-  originalData = JSON.parse(JSON.stringify(filtered));
-  // Rebuild originalIndices so save/delete still map back to allCsvData correctly.
-  originalIndices = filtered.map(row => allCsvData.findIndex(orig => orig === row || (orig &&
-    String(orig.floor) === String(row.floor) &&
-    String(orig.svgCode || '') === String(row.svgCode || '') &&
-    String(orig.collection || '') === String(row.collection || '') &&
-    String(orig.rangeStart || '') === String(row.rangeStart || '') &&
-    String(orig.rangeEnd || '') === String(row.rangeEnd || '')
-  )));
-  isFiltered = true;
-  hasNoAccess = false;
+  // #119: this is a VIEW filter only. We must NOT repoint csvData / originalData
+  // / originalIndices or set isFiltered — those drive what Save writes, and for
+  // an admin buildFullCsvData() returns csvData verbatim, so saving the filtered
+  // subset would silently overwrite mapping.csv with just the orphan rows.
+  // Instead we keep the full dataset and only hide non-matching rows in the DOM
+  // (mirrors the "Broken refs" filter). Save always writes the complete file.
+  orphanFilterFloor = m[1];
   renderFilterBanner();
-  renderTable();
+  renderTable();        // re-render the full table; applyOrphanFilter() then hides non-orphans
   applyRoleBasedUI();
+}
+
+/**
+ * View-only row filter for the orphan deep-link (#119). When
+ * orphanFilterFloor is set, hide every rendered row except the unassigned
+ * (empty-svgCode) rows on that floor. Never touches csvData, so the save source
+ * stays the complete dataset. Called from renderTable() so it re-applies after
+ * every re-render. No-op when the filter is inactive.
+ */
+function applyOrphanFilter() {
+  if (orphanFilterFloor === null) return;
+  document.querySelectorAll('#csv-table tr[data-row-index]').forEach(tr => {
+    const row = csvData[Number(tr.dataset.rowIndex)];
+    const isOrphanOnFloor = row &&
+      String(row.floor) === String(orphanFilterFloor) &&
+      (!row.svgCode || String(row.svgCode).trim() === '');
+    if (!isOrphanOnFloor) tr.style.display = 'none';
+  });
 }
 
 /**
@@ -593,6 +644,8 @@ function renderTable() {
   // Re-apply the broken-refs filter after every re-render so the visible
   // row set stays consistent with the toggle state.
   applyBrokenRefsFilter();
+  // Re-apply the orphan deep-link view filter (#119) after every re-render too.
+  applyOrphanFilter();
 }
 
 /**
