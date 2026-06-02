@@ -2,7 +2,7 @@
 
 **Date:** 2026-06-02
 **Status:** design (awaiting owner review)
-**Scope:** client-side admin SPA only (`admin/components/errors-dashboard*`). No server / Lambda / S3 / CloudFront changes. Fully jest-testable.
+**Scope:** client-side admin SPA only (`admin/components/errors-dashboard*`). No server / Lambda / S3 / CloudFront changes. Adds one self-hosted, lazy-loaded vendor library (ExcelJS) used only for the Excel export. The cluster logic and the workbook *model* are jest-testable; the thin ExcelJS write/download is covered by e2e/manual.
 
 ## Problem
 
@@ -24,8 +24,10 @@ first. This must hold both on screen **and** in the report they download/print.
 - Group each root cause's affected ranges beneath it; rank root causes by blast
   radius (biggest first).
 - Keep the screen view uncluttered (affected ranges collapsed by default).
-- Give the **downloaded report** and the **printed report** the *same*
-  root-cause structure and marking — no drift between views.
+- Give the **downloaded Excel report** and the **printed report** the *same*
+  root-cause structure and visual marking as the screen — no drift between views.
+  (The Excel file gets full visual parity: bold root-cause rows, colour fills,
+  and Excel's native collapsible row-grouping.)
 
 ## Non-goals (YAGNI)
 
@@ -39,7 +41,7 @@ first. This must hold both on screen **and** in the report they download/print.
 ## Architecture: one model, three views
 
 The core principle is a single **cluster model** computed once and consumed
-identically by the screen view, the print view, and the CSV export. This keeps
+identically by the screen view, the print view, and the Excel export. This keeps
 the three from drifting and isolates the only non-trivial logic into one pure,
 unit-testable function.
 
@@ -109,25 +111,42 @@ print stylesheet on the dashboard plus an expand-for-print step:
 - Because print renders the **same DOM** as the screen view, visual parity is
   automatic — there is no second layout to maintain.
 
-### 4. CSV export (same structure, carried into the data file)
+### 4. Excel (.xlsx) export via ExcelJS (full visual parity in the file)
 
-`report-export.js` is extended so the downloaded `errors-report-YYYY-MM-DD.csv`
-carries the cluster structure (a spreadsheet/print can't bold, so the
-enhancement is expressed structurally):
+The downloaded report is a real `.xlsx` (`errors-report-YYYY-MM-DD.xlsx`),
+generated with **ExcelJS** so the file carries the *same* visual enhancement as
+the screen — not just structure:
 
-- **Row order** follows the cluster model: for each cluster (biggest blast
-  radius first) the hub row, then its affected ranges; then "Other overlaps";
-  then all non-overlap issues (today's order) after the overlap block.
-- **New columns** appended to the existing column set:
-  - `rootCause` — `"ROOT CAUSE"` on a hub row, else empty.
-  - `affectsCount` — the hub's blast radius (only on the hub row).
-  - `rootCauseRow` — on an affected range, the CSV row number of its hub (so
-    grouping survives sorting/filtering in a spreadsheet).
-- Existing columns and CSV-escaping rules are unchanged; only ordering + three
-  columns are added, so existing consumers keep working.
+- **Bold root-cause rows** with a coloured fill; affected ranges in a normal
+  style indented beneath.
+- **Native Excel row-grouping (outline)**: each hub's affected ranges are an
+  outline group under the hub row, so the librarian can **collapse/expand them
+  inside Excel** — mirroring the on-screen collapsible groups. Groups collapsed
+  by default.
+- **Row order** = the cluster model: each cluster (biggest blast radius first) =
+  hub row then its affected ranges; then an "Other overlaps" block; then the
+  non-overlap issues. A blast-radius value sits on each hub row.
+- Same data columns as today (floor, library, collection, shelf, svgCode, range,
+  CSV row, category, code, severity, field, message) plus a `Root cause` / 
+  `Affects` marker; column widths set for readability; a frozen header row.
 
-`buildReportRows(allIssues)` gains an overload/variant that takes the cluster
-model so the export and the screen share the same ordering and markers.
+**Dependency handling.** ExcelJS is **vendored** into the app
+(`admin/vendor/exceljs.min.js`, an ESM/browser build served from our own S3 —
+no new external runtime dependency, consistent with self-hosting) and
+**lazy-loaded** via dynamic `import()` only when the export button is clicked, so
+normal dashboard load is unchanged. It is excluded from `redeploy.sh`'s lint of
+hand-written modules but synced like other static assets.
+
+**Testability split.** A pure function
+`buildReportWorkbookModel(clusters, otherOverlaps, otherIssues) -> { sheetName, columns, rows:[{ cells, style:'hub'|'affected'|'plain', outlineLevel, blastRadius }] }`
+produces an abstract, ExcelJS-agnostic description of the sheet (order, styles,
+grouping). This is fully unit-tested. A thin adapter
+(`writeWorkbook(model) -> Blob` + download) maps that model onto ExcelJS calls;
+it has no branching logic and is covered by e2e/manual verification rather than
+asserting on binary `.xlsx` bytes. `report-export.js` is repurposed to hold the
+workbook model + adapter (the old CSV `buildReportRows`/`toCsv` are superseded;
+a raw-CSV option can be re-added trivially later if anyone needs machine-readable
+data — out of scope now).
 
 ### 5. The "Fix this range →" action
 
@@ -148,7 +167,8 @@ loadCSVData() -> csvData
    └─ buildOverlapClusters(csvData)  (new: the cluster model)
          ├─ screen renderer  -> collapsible groups + summary
          ├─ print (@media print + expand) -> same DOM, paper-styled
-         └─ buildReportRows(..., clusters) -> toCsv() -> downloadCsv()
+         └─ buildReportWorkbookModel(clusters, ...) -> writeWorkbook() -> .xlsx download
+                                            (ExcelJS lazy-loaded on click)
 ```
 
 ## Edge cases
@@ -160,11 +180,14 @@ loadCSVData() -> csvData
 - **Two hubs overlap each other** (two oversized ranges): the higher-blast-radius
   hub claims the shared edge; both still appear as their own groups for their
   other partners. No range is listed twice.
-- **Zero overlaps:** overlaps section hidden; CSV omits the overlap block;
-  "Print report" still works for the remaining categories.
+- **Zero overlaps:** overlaps section hidden; the Excel file omits the overlap
+  block; "Print report" still works for the remaining categories.
 - **Threshold boundary:** a range overlapping exactly 1 other (a plain pair) is
   **not** a root cause → it appears under "Other overlaps" on screen and in the
-  CSV's other-overlaps block.
+  Excel file's other-overlaps block.
+- **ExcelJS fails to load** (offline / asset missing): the export button shows
+  the existing "Could not generate the report" toast; the dashboard view and
+  Print are unaffected.
 
 ## Testing (jest, client-side)
 
@@ -177,9 +200,12 @@ loadCSVData() -> csvData
 - Tie-break by `rowIndex` when blast radii are equal.
 - Threshold: a single pair (blastRadius 1 each) is not a root cause.
 
-`report-export.test.js` (extend): rows ordered by cluster; `rootCause`,
-`affectsCount`, `rootCauseRow` columns populated correctly; header includes the
-new columns; empty input still emits the header.
+`report-export.test.js` (rework for the workbook model): `buildReportWorkbookModel`
+emits rows in cluster order; hub rows carry `style:'hub'` + `blastRadius` +
+`outlineLevel:0`; affected rows carry `style:'affected'` + `outlineLevel:1`;
+"Other overlaps" then non-overlap issues follow; empty input yields a model with
+just the header/columns. (The ExcelJS adapter `writeWorkbook` is not unit-tested
+on bytes — see Scope.)
 
 `errors-dashboard` render test: root-cause header shows the count, children are
 collapsed by default and expand on click, the summary line is correct, the
@@ -193,9 +219,10 @@ the expand-before-print toggle is, via the same render test.)
 
 - `admin/components/errors-dashboard/overlap-clusters.js` — **new**, pure cluster engine.
 - `admin/components/errors-dashboard.js` — render clusters; summary line; "Fix" + "Print report" actions; expand-before-print.
-- `admin/components/errors-dashboard/report-export.js` — cluster-ordered rows + 3 new columns.
+- `admin/components/errors-dashboard/report-export.js` — repurposed: `buildReportWorkbookModel` (pure) + thin `writeWorkbook` ExcelJS adapter + `.xlsx` download.
+- `admin/vendor/exceljs.min.js` — **new**, vendored ExcelJS browser/ESM build (self-hosted, lazy-loaded on export).
 - `admin/styles/*` (dashboard CSS) — cluster group styling + `@media print` block.
-- `admin/i18n/en.json` + `he.json` — new strings (summary, root-cause label, affects-count, print, fix).
+- `admin/i18n/en.json` + `he.json` — new strings (summary, root-cause label, affects-count, print, download-excel, fix).
 - `admin/__tests__/` — `overlap-clusters.test.js` (new), extend `report-export` + dashboard render tests.
 
 ## Out of scope / follow-ups
