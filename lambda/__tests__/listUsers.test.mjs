@@ -144,6 +144,34 @@ describe('listUsers Lambda', () => {
       expect(user).toHaveProperty('lastModified');
     });
 
+    // #122: the admin edit-user dialog reads `enabled` to set the Enabled/Disabled
+    // toggle and to build the save payload. listUsers must surface Cognito's
+    // `Enabled` boolean per user; otherwise the client defaults the toggle to ON
+    // and an unrelated save silently re-enables a disabled account.
+    test('maps Cognito Enabled into each user\'s `enabled` field (#122)', async () => {
+      const activeUser = createMockCognitoUser('active', 'active@example.com', 'CONFIRMED', 'editor');
+      const revokedUser = createMockCognitoUser('revoked', 'revoked@example.com', 'CONFIRMED', 'editor');
+      revokedUser.Enabled = false; // admin disabled this account
+
+      cognitoMock.on(ListUsersCommand).resolves({
+        Users: [activeUser, revokedUser],
+        PaginationToken: null
+      });
+
+      const result = await handler({
+        headers: { Authorization: 'Bearer valid-token' },
+        queryStringParameters: {}
+      });
+
+      expect(result.statusCode).toBe(200);
+      const body = JSON.parse(result.body);
+      const active = body.users.find(u => u.username === 'active');
+      const revoked = body.users.find(u => u.username === 'revoked');
+
+      expect(active).toHaveProperty('enabled', true);
+      expect(revoked).toHaveProperty('enabled', false);
+    });
+
     test('should include CORS headers in response', async () => {
       // Arrange
       cognitoMock.on(ListUsersCommand).resolves({
