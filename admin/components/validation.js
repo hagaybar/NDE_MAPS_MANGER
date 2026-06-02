@@ -168,8 +168,12 @@ export function validateRow(row, options = {}) {
     }
   }
 
-  // Range overlap warning (same collection, same floor)
+  // Range overlap warning (same library, same collection, same floor).
+  // #98: grouping must include libraryName, mirroring the Map Editor's
+  // library|floor|collection grouping — two ranges in different libraries are
+  // never ambiguous (different buildings) even with the same collection name.
   if (checkOverlaps && allRows.length > 0 && rowIndex >= 0) {
+    const currentLibrary = (row.libraryName ?? '').toString().trim().toLowerCase();
     const currentCollection = (row.collectionName ?? '').toString().trim().toLowerCase();
     const currentFloor = floor;
 
@@ -177,11 +181,12 @@ export function validateRow(row, options = {}) {
       if (i === rowIndex) continue;
 
       const otherRow = allRows[i];
+      const otherLibrary = (otherRow.libraryName ?? '').toString().trim().toLowerCase();
       const otherCollection = (otherRow.collectionName ?? '').toString().trim().toLowerCase();
       const otherFloor = (otherRow.floor ?? '').toString().trim();
 
-      // Only check same collection and floor
-      if (currentCollection === otherCollection && currentFloor === otherFloor) {
+      // Only check same library, collection, and floor
+      if (currentLibrary === otherLibrary && currentCollection === otherCollection && currentFloor === otherFloor) {
         const range1 = { start: row.rangeStart, end: row.rangeEnd };
         const range2 = { start: otherRow.rangeStart, end: otherRow.rangeEnd };
 
