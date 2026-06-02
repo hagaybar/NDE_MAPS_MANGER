@@ -202,10 +202,88 @@ describe('Validation Service', () => {
           floor: '1'
         },
         {
-          libraryName: 'Test2',
-          libraryNameHe: 'Test2',
+          // #98: this row shares the SAME library as the first row. It
+          // previously used 'Test2' (a different library) only to keep the two
+          // rows non-identical; under #98 the overlap check groups by
+          // library|collection|floor, so a different library would no longer
+          // overlap. Same library here preserves this test's intent — that an
+          // overlap within one library IS detected.
+          libraryName: 'Test',
+          libraryNameHe: 'Test',
           collectionName: 'Same Collection',
-          collectionNameHe: 'Test2',
+          collectionNameHe: 'Test',
+          rangeStart: '150',
+          rangeEnd: '250',
+          svgCode: 'shelf_b',
+          floor: '1'
+        }
+      ];
+
+      const result = validateRow(allRows[1], {
+        allRows,
+        rowIndex: 1,
+        checkOverlaps: true
+      });
+
+      expect(result.warnings.some(w => w.field === 'rangeStart')).toBe(true);
+    });
+
+    // #98: the overlap grouping must include libraryName, mirroring the Map
+    // Editor's library|floor|collection grouping. Two overlapping ranges that
+    // share a collection name + floor but live in DIFFERENT libraries are not
+    // ambiguous (different buildings) and must NOT be flagged.
+    test('does NOT flag range overlap across different libraries (#98)', () => {
+      const allRows = [
+        {
+          libraryName: 'Library A',
+          libraryNameHe: 'Library A',
+          collectionName: 'Same Collection',
+          collectionNameHe: 'Same Collection',
+          rangeStart: '100',
+          rangeEnd: '200',
+          svgCode: 'shelf_a',
+          floor: '1'
+        },
+        {
+          libraryName: 'Library B',
+          libraryNameHe: 'Library B',
+          collectionName: 'Same Collection',
+          collectionNameHe: 'Same Collection',
+          rangeStart: '150',
+          rangeEnd: '250',
+          svgCode: 'shelf_b',
+          floor: '1'
+        }
+      ];
+
+      const result = validateRow(allRows[1], {
+        allRows,
+        rowIndex: 1,
+        checkOverlaps: true
+      });
+
+      expect(result.warnings.some(w => w.field === 'rangeStart')).toBe(false);
+    });
+
+    // #98 regression guard: same library + same collection + same floor with
+    // overlapping ranges must STILL be flagged.
+    test('still flags range overlap within the same library/collection/floor (#98)', () => {
+      const allRows = [
+        {
+          libraryName: 'Library A',
+          libraryNameHe: 'Library A',
+          collectionName: 'Same Collection',
+          collectionNameHe: 'Same Collection',
+          rangeStart: '100',
+          rangeEnd: '200',
+          svgCode: 'shelf_a',
+          floor: '1'
+        },
+        {
+          libraryName: 'Library A',
+          libraryNameHe: 'Library A',
+          collectionName: 'Same Collection',
+          collectionNameHe: 'Same Collection',
           rangeStart: '150',
           rangeEnd: '250',
           svgCode: 'shelf_b',
