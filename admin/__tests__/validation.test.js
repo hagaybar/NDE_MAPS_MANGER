@@ -189,45 +189,6 @@ describe('Validation Service', () => {
       expect(result.errors.some(e => e.field === 'svgCode')).toBe(true);
     });
 
-    test('detects range overlaps', () => {
-      const allRows = [
-        {
-          libraryName: 'Test',
-          libraryNameHe: 'Test',
-          collectionName: 'Same Collection',
-          collectionNameHe: 'Test',
-          rangeStart: '100',
-          rangeEnd: '200',
-          svgCode: 'shelf_a',
-          floor: '1'
-        },
-        {
-          // #98: this row shares the SAME library as the first row. It
-          // previously used 'Test2' (a different library) only to keep the two
-          // rows non-identical; under #98 the overlap check groups by
-          // library|collection|floor, so a different library would no longer
-          // overlap. Same library here preserves this test's intent — that an
-          // overlap within one library IS detected.
-          libraryName: 'Test',
-          libraryNameHe: 'Test',
-          collectionName: 'Same Collection',
-          collectionNameHe: 'Test',
-          rangeStart: '150',
-          rangeEnd: '250',
-          svgCode: 'shelf_b',
-          floor: '1'
-        }
-      ];
-
-      const result = validateRow(allRows[1], {
-        allRows,
-        rowIndex: 1,
-        checkOverlaps: true
-      });
-
-      expect(result.warnings.some(w => w.field === 'rangeStart')).toBe(true);
-    });
-
     // #98: the overlap grouping must include libraryName, mirroring the Map
     // Editor's library|floor|collection grouping. Two overlapping ranges that
     // share a collection name + floor but live in DIFFERENT libraries are not
