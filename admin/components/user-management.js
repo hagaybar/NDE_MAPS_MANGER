@@ -10,6 +10,58 @@ import { showEditUserDialog, hideEditUserDialog } from './edit-user-dialog.js';
 import { showDeleteUserConfirmDialog, hideDeleteUserConfirmDialog } from './delete-user-confirm-dialog.js';
 import * as userService from '../user-service.js';
 import { showToast } from '../app.js';
+import { fetchMappingCsvText } from './map-editor/csv-loader.js';
+
+const CLOUDFRONT_URL = 'https://d3h8i7y9p8lyw7.cloudfront.net';
+
+/**
+ * #127: the editor range editor's Collections picker is populated only from the
+ * `collections` option passed to showEditUserDialog. Load the unique
+ * collectionName values from the live mapping.csv so the picker isn't empty.
+ * Quote-aware (a collectionName may contain a comma); never throws — collections
+ * are a convenience, so on any failure the dialog just opens without them.
+ * @returns {Promise<string[]>}
+ */
+async function loadCollectionNames() {
+  try {
+    const text = await fetchMappingCsvText(CLOUDFRONT_URL);
+    const lines = text.split(/\r?\n/).filter((l) => l.trim());
+    if (lines.length < 2) return [];
+    const idx = splitCsvLine(lines[0]).map((h) => h.trim()).indexOf('collectionName');
+    if (idx < 0) return [];
+    const seen = new Set();
+    for (let i = 1; i < lines.length; i++) {
+      const value = (splitCsvLine(lines[i])[idx] || '').trim();
+      if (value) seen.add(value);
+    }
+    return [...seen];
+  } catch (error) {
+    console.error('Failed to load collection names for the range editor:', error);
+    return [];
+  }
+}
+
+/**
+ * Split one CSV line into fields, honoring double-quoted fields that contain
+ * commas / "" escapes (only used to read the collectionName column above).
+ */
+function splitCsvLine(line) {
+  const out = [];
+  let cur = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQuotes) {
+      if (ch === '"' && line[i + 1] === '"') { cur += '"'; i++; }
+      else if (ch === '"') inQuotes = false;
+      else cur += ch;
+    } else if (ch === '"') inQuotes = true;
+    else if (ch === ',') { out.push(cur); cur = ''; }
+    else cur += ch;
+  }
+  out.push(cur);
+  return out;
+}
 
 let userListInstance = null;
 let currentUsers = [];
@@ -127,9 +179,13 @@ async function handleAddUser() {
  */
 async function handleEditUser(user) {
     try {
+        // #127: supply the collection names so the range editor's Collections
+        // picker isn't always empty.
+        const collections = await loadCollectionNames();
         const result = await showEditUserDialog({
             user,
-            userService
+            userService,
+            collections
         });
 
         if (result.success) {
