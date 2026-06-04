@@ -529,8 +529,12 @@ function applyOrphanFilter() {
 /**
  * Parse CSV text into array of objects
  * Handles quoted fields with commas inside
+ *
+ * Exported for the client-side CSV-parser parity test (#95): this and the
+ * Lambda `parseCsvContent` in lambda/range-validation.mjs must stay
+ * behaviorally equivalent (see the CSV parser parity rule in CLAUDE.md).
  */
-function parseCSV(text) {
+export function parseCSV(text) {
   const lines = text.split(/\r?\n/).filter(line => line.trim());
   if (lines.length === 0) return [];
 
@@ -551,8 +555,13 @@ function parseCSV(text) {
 
 /**
  * Parse a single CSV line, handling quoted fields
+ *
+ * Exported for the CSV-parser parity test (#95). NOTE: this trims each field
+ * here, whereas the Lambda `parseCsvLine` trims later (in parseCsvContent) — a
+ * benign stage difference that nets out at the content level (see the parity
+ * test, which guards parseCSV ↔ parseCsvContent).
  */
-function parseCSVLine(line) {
+export function parseCSVLine(line) {
   const result = [];
   let current = '';
   let inQuotes = false;
