@@ -34,6 +34,7 @@ const READONLY_FIELDS = ['svgCode', 'floor'];
 const FALLBACKS = {
   'svg.staging.reconcile.title':          { en: 'Before you publish: a few shelves on Floor {floor} changed — tell me what happened', he: 'לפני הפרסום: כמה מדפים בקומה {floor} השתנו — ספרו לי מה קרה' },
   'svg.staging.reconcile.renameHeading':  { en: 'Looks like a shelf was renamed', he: 'נראה שמדף שונה בשמו' },
+  'svg.staging.reconcile.choosePlaceholder': { en: 'choose ▾', he: 'בחר ▾' },
   'svg.staging.reconcile.sameShelf':      { en: 'Same shelf on the map — it just has a new label.', he: 'אותו מדף במפה — פשוט עם תווית חדשה.' },
   'svg.staging.reconcile.entriesUse':     { en: '{entries} currently use "{code}".', he: '{entries} משתמשות כרגע ב"{code}".' },
   'svg.staging.reconcile.applyRename':    { en: 'Yes, same shelf — keep the entries', he: 'כן, אותו מדף — לשמור את הרשומות' },
@@ -97,7 +98,7 @@ export function renderReconcileWizard(host, diff, onSubmit, onCancel) {
       const otherTargets = candidates.filter(c => c !== det);
       const entriesUse = t('svg.staging.reconcile.entriesUse')
         .replace('{entries}', entries)
-        .replace('{code}', `<span class="font-mono">${escapeHtml(code)}</span>`);
+        .replace('{code}', `<bdi class="font-mono">${escapeHtml(code)}</bdi>`);
       return `
         <div data-reconcile-card data-svg-code="${escapeAttr(code)}" data-detected="${escapeAttr(det)}"
              class="rounded border border-gray-200 bg-white p-4 mb-3">
@@ -133,7 +134,7 @@ export function renderReconcileWizard(host, diff, onSubmit, onCancel) {
 
     // Non-detected removed ref: no default; user must choose.
     const goneHeading = t('svg.staging.reconcile.goneHeading')
-      .replace('{code}', `<span class="font-mono">${escapeHtml(code)}</span>`);
+      .replace('{code}', `<bdi class="font-mono">${escapeHtml(code)}</bdi>`);
     return `
       <div data-reconcile-card data-svg-code="${escapeAttr(code)}"
            class="rounded border border-gray-200 bg-white p-4 mb-3">
@@ -417,7 +418,7 @@ function renderAddedGroup(host, diff, added, onSubmit, onCancel) {
 
 function renderTargetOptions(codes) {
   return [
-    `<option value="">choose ▾</option>`,
+    `<option value="">${escapeHtml(t('svg.staging.reconcile.choosePlaceholder'))}</option>`,
     ...codes.map(c => `<option value="${escapeAttr(c)}">${escapeHtml(c)}</option>`),
   ].join('');
 }

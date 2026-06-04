@@ -102,6 +102,7 @@
       "reconcile": {
         "title": "Before you publish: a few shelves on Floor {floor} changed — tell me what happened",
         "renameHeading": "Looks like a shelf was renamed",
+        "choosePlaceholder": "choose ▾",
         "sameShelf": "Same shelf on the map — it just has a new label.",
         "entriesUse": "{entries} currently use \"{code}\".",
         "applyRename": "Yes, same shelf — keep the entries",
