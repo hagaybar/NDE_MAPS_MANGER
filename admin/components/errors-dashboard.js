@@ -45,6 +45,11 @@ const FALLBACKS = {
   'errorsDashboard.overlap.affects': { en: 'affects {n} ranges', he: 'משפיע על {n} טווחים' },
   'errorsDashboard.overlap.fixRange': { en: 'Fix this range →', he: '← תקן את הטווח הזה' },
   'errorsDashboard.overlap.other': { en: 'Other overlaps', he: 'חפיפות אחרות' },
+  'errorsDashboard.overlap.goToRow': { en: 'Go to Row {n}', he: 'מעבר לשורה {n}' },
+  'errorsDashboard.floor': { en: 'Floor {n}', he: 'קומה {n}' },
+  'errorsDashboard.related': { en: 'Related', he: 'קשור' },
+  'errorsDashboard.duplicateOf': { en: 'Duplicate of', he: 'כפילות של' },
+  'errorsDashboard.goToRow': { en: 'Go to Row {n}', he: 'מעבר לשורה {n}' },
   'errorsDashboard.overlap.expand': { en: 'Show affected ranges', he: 'הצג טווחים מושפעים' },
   'errorsDashboard.print.cta': { en: '🖨 Print report', he: '🖨 הדפס דוח' }
 };
@@ -251,7 +256,8 @@ function validateAllRows() {
         field: error.field,
         code: error.code,
         message: error.message,
-        category
+        category,
+        details: error.details  // #131: carry duplicateRowIndex etc. for "Go to Row"
       };
       allIssues.push(issue);
       categorizedIssues[category].push(issue);
@@ -266,7 +272,8 @@ function validateAllRows() {
         field: warning.field,
         code: warning.code,
         message: warning.message,
-        category
+        category,
+        details: warning.details  // #131: carry overlappingRowIndex etc. for "Go to Row"
       };
       allIssues.push(issue);
       categorizedIssues[category].push(issue);
@@ -615,40 +622,57 @@ function renderCategoryView(dir) {
 
   if (currentCategory === 'overlap') {
     const { clusters, otherOverlaps } = buildOverlapClusters(csvData);
-    const affectedTotal = clusters.reduce((n, c) => n + c.blastRadius, 0);
+    // Count what we actually list (distinct affected rows), not the raw blast
+    // degree — blastRadius includes hub/claimed neighbors that get filtered out
+    // of the children below, so it would over-report vs the rows shown.
+    const affectedTotal = new Set(
+      clusters.flatMap((c) => c.affected.map((a) => a.rowIndex))
+    ).size;
     const summary = t('errorsDashboard.overlap.summary')
       .replace('{causes}', clusters.length)
       .replace('{affected}', affectedTotal);
 
-    const clusterHtml = clusters.map((c, ci) => `
-      <div class="overlap-cluster" data-cluster="${ci}">
+    // Reusable "Go to Row N" jump button (wired below via .overlap-goto-btn).
+    const gotoBtn = (rowIndex) =>
+      `<button class="overlap-goto-btn" data-row-index="${rowIndex}">${escapeHtml(t('errorsDashboard.overlap.goToRow').replace('{n}', rowIndex + 1))}</button>`;
+
+    const clusterHtml = clusters.map((c, ci) => {
+      // One source for the displayed "affects N" count AND the data-affected
+      // hook, so the header can never disagree with the rows actually listed.
+      const affectsShown = c.affected.length;
+      return `
+      <div class="overlap-cluster" data-cluster="${ci}" data-affected="${affectsShown}">
         <div class="overlap-cluster-header">
-          <button class="overlap-cluster-toggle" aria-expanded="false" data-cluster-toggle="${ci}">▸</button>
+          <button type="button" class="overlap-cluster-toggle" aria-expanded="false" aria-controls="overlap-children-${ci}" aria-label="${escapeHtml(t('errorsDashboard.overlap.expand'))}" data-cluster-toggle="${ci}">▸</button>
           <strong>⚠ ${escapeHtml(t('errorsDashboard.overlap.rootCause'))}</strong>
           · ${escapeHtml(t('errorsDashboard.row'))} ${c.hubRowIndex + 1}
-          "${escapeHtml(c.hubRow.rangeStart)}–${escapeHtml(c.hubRow.rangeEnd)}"
-          · ${escapeHtml(t('errorsDashboard.overlap.affects').replace('{n}', c.blastRadius))}
-          · Floor ${escapeHtml(String(c.floor))} · ${escapeHtml(c.collection)}
+          · <bdi>${escapeHtml(c.hubRow.shelfLabel || '')}</bdi>
+          "<bdi>${escapeHtml(c.hubRow.rangeStart)}–${escapeHtml(c.hubRow.rangeEnd)}</bdi>"
+          · ${escapeHtml(t('errorsDashboard.overlap.affects').replace('{n}', affectsShown))}
+          · ${escapeHtml(t('errorsDashboard.floor').replace('{n}', c.floor))} · <bdi>${escapeHtml(c.collection)}</bdi>
           <button class="btn btn-primary overlap-fix-btn" data-row-index="${c.hubRowIndex}">
             ${escapeHtml(t('errorsDashboard.overlap.fixRange'))}
           </button>
         </div>
-        <div class="overlap-cluster-children" data-cluster-children="${ci}" hidden>
+        <div class="overlap-cluster-children" id="overlap-children-${ci}" data-cluster-children="${ci}" hidden>
           ${c.affected.map(a => `
             <div class="overlap-affected">
               ${escapeHtml(t('errorsDashboard.row'))} ${a.rowIndex + 1}
-              · ${escapeHtml(a.row.shelfLabel || '')}
-              · "${escapeHtml(a.row.rangeStart)}–${escapeHtml(a.row.rangeEnd)}"
+              · <bdi>${escapeHtml(a.row.shelfLabel || '')}</bdi>
+              · "<bdi>${escapeHtml(a.row.rangeStart)}–${escapeHtml(a.row.rangeEnd)}</bdi>"
+              ${gotoBtn(a.rowIndex)}
             </div>`).join('')}
         </div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
 
     const otherHtml = otherOverlaps.length ? `
       <div class="overlap-other">
         <h3>${escapeHtml(t('errorsDashboard.overlap.other'))}</h3>
         ${otherOverlaps.map(p => `
           <div class="overlap-affected">
-            ${escapeHtml(t('errorsDashboard.row'))} ${p.row1Index + 1} ↔ ${escapeHtml(t('errorsDashboard.row'))} ${p.row2Index + 1}
+            ${escapeHtml(t('errorsDashboard.row'))} ${p.row1Index + 1} ${gotoBtn(p.row1Index)}
+            ↔ ${escapeHtml(t('errorsDashboard.row'))} ${p.row2Index + 1} ${gotoBtn(p.row2Index)}
           </div>`).join('')}
       </div>` : '';
 
@@ -713,24 +737,24 @@ function renderCategoryView(dir) {
               </div>
               <div class="issue-location">
                 <span class="issue-label">${escapeHtml(getRowLabel(issue.row))}</span>
-                ${issue.row.floor !== undefined ? `<span class="issue-floor">Floor ${escapeHtml(issue.row.floor)}</span>` : ''}
+                ${issue.row.floor !== undefined ? `<span class="issue-floor">${escapeHtml(t('errorsDashboard.floor').replace('{n}', issue.row.floor))}</span>` : ''}
               </div>
               <div class="issue-message-box">
                 <span class="issue-message">${escapeHtml(issue.message)}</span>
               </div>
               ${issue.details?.overlappingRowIndex ? `
                 <div class="issue-related">
-                  <span class="related-label">Related:</span>
+                  <span class="related-label">${escapeHtml(t('errorsDashboard.related'))}:</span>
                   <button class="related-link" data-go-to-row="${issue.details.overlappingRowIndex - 1}">
-                    Go to Row ${issue.details.overlappingRowIndex}
+                    ${escapeHtml(t('errorsDashboard.goToRow').replace('{n}', issue.details.overlappingRowIndex))}
                   </button>
                 </div>
               ` : ''}
               ${issue.details?.duplicateRowIndex ? `
                 <div class="issue-related">
-                  <span class="related-label">Duplicate of:</span>
+                  <span class="related-label">${escapeHtml(t('errorsDashboard.duplicateOf'))}:</span>
                   <button class="related-link" data-go-to-row="${issue.details.duplicateRowIndex - 1}">
-                    Go to Row ${issue.details.duplicateRowIndex}
+                    ${escapeHtml(t('errorsDashboard.goToRow').replace('{n}', issue.details.duplicateRowIndex))}
                   </button>
                 </div>
               ` : ''}
@@ -873,6 +897,16 @@ function setupEventHandlers() {
 
   // Overlap cluster "Fix this range" buttons (jump to the hub row)
   containerElement.querySelectorAll('.overlap-fix-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const rowIndex = parseInt(btn.dataset.rowIndex, 10);
+      handleFixClick({ row: csvData[rowIndex], rowIndex });
+    });
+  });
+
+  // "Go to Row N" buttons on affected children + Other-overlaps endpoints —
+  // so every overlapping row is reachable, not just the hub (committee / #131).
+  containerElement.querySelectorAll('.overlap-goto-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       const rowIndex = parseInt(btn.dataset.rowIndex, 10);

@@ -89,11 +89,44 @@ const USE_STAGING_FLOW = window.__USE_STAGING_FLOW__ === true;
 // Module variables
 let svgFiles = [];
 
+// Module-singleton guards for document listeners (leak class #133): initSVGManager
+// runs on every Map-Files visit, so unguarded anonymous listeners accumulated one
+// handler per visit (N re-renders per language toggle).
+let _localeListenerAttached = false;
+let _stagingRefreshListenerAttached = false;
+
 // #57: session flag — true once the operator has reviewed this staging's
 // newly-added shelves (added entries or explicitly left unmapped). Gates the
 // Promote button in the passed-state panel. Reset on every new upload/validate
 // so a fresh staging requires a fresh review.
 let addsReviewed = false;
+
+/**
+ * Re-render the SVG manager in place on a language toggle. Named handler bound
+ * exactly once (leak class #133) — reads the persistent #svg-manager element by
+ * id rather than closing over a per-visit `container` arg.
+ */
+function handleSvgManagerLocaleChanged() {
+  const container = document.getElementById('svg-manager');
+  if (!container) return;
+  container.innerHTML = renderManager();
+  setupManagerEvents();
+  renderGrid();
+  applyRoleBasedUI();
+  if (USE_STAGING_FLOW) {
+    refreshStagingPanel().catch(err => console.error('Failed to refresh staging panel:', err));
+  }
+}
+
+/**
+ * Refresh the staging panel when external code requests it. Named handler bound
+ * exactly once (leak class #133).
+ */
+function handleSvgStagingRefresh() {
+  if (USE_STAGING_FLOW) {
+    refreshStagingPanel().catch(err => console.error('Failed to refresh staging panel:', err));
+  }
+}
 
 /**
  * Initialize the SVG Manager component
@@ -109,23 +142,18 @@ export function initSVGManager() {
   setupManagerEvents();
   loadFiles();
 
-  // Listen for locale changes to re-render
-  document.addEventListener('localeChanged', () => {
-    container.innerHTML = renderManager();
-    setupManagerEvents();
-    renderGrid();
-    applyRoleBasedUI();
-    if (USE_STAGING_FLOW) {
-      refreshStagingPanel().catch(err => console.error('Failed to refresh staging panel:', err));
-    }
-  });
+  // Listen for locale changes to re-render. Bind exactly once (leak class #133).
+  if (!_localeListenerAttached) {
+    _localeListenerAttached = true;
+    document.addEventListener('localeChanged', handleSvgManagerLocaleChanged);
+  }
 
   // External code can request a staging panel refresh (e.g. after an upload).
-  document.addEventListener('staging:refresh', () => {
-    if (USE_STAGING_FLOW) {
-      refreshStagingPanel().catch(err => console.error('Failed to refresh staging panel:', err));
-    }
-  });
+  // Bind exactly once (same leak class — init runs on every Map-Files visit).
+  if (!_stagingRefreshListenerAttached) {
+    _stagingRefreshListenerAttached = true;
+    document.addEventListener('staging:refresh', handleSvgStagingRefresh);
+  }
 }
 
 /**

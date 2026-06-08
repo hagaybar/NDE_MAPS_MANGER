@@ -105,8 +105,30 @@ function getNumAttr(tag, name) {
   return Number.isFinite(n) ? n : null;
 }
 
+// Structural well-formedness scan (kept byte-identical with lambda/shared/svg-shelves.mjs).
+// A '>' only closes a tag when we're inside one and not inside a quoted attribute
+// value, so a literal '>' in an attribute, a <style> block, or a text node is fine
+// (#132). A '<' while already inside a tag is malformed, and any unclosed tag or
+// quote at the end fails.
 function isWellFormedXml(s) {
-  const opens = (s.match(/</g) || []).length;
-  const closes = (s.match(/>/g) || []).length;
-  return opens === closes;
+  let inTag = false;
+  let quote = null; // "'" or '"' while inside an attribute value, else null
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (inTag) {
+      if (quote) {
+        if (ch === quote) quote = null;
+      } else if (ch === '"' || ch === "'") {
+        quote = ch;
+      } else if (ch === '<') {
+        return false; // '<' inside a tag => malformed
+      } else if (ch === '>') {
+        inTag = false;
+      }
+    } else if (ch === '<') {
+      inTag = true;
+    }
+    // a '>' outside a tag is literal text content — ignored
+  }
+  return !inTag && !quote;
 }

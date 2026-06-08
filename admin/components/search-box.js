@@ -4,6 +4,12 @@ import i18n from '../i18n.js?v=5';
 // Module-level variables
 let debounceTimer = null;
 const DEBOUNCE_DELAY = 300; // milliseconds
+// Module-singleton guards for document listeners (leak class #133): initSearchBox
+// is re-run alongside the location editor, so unguarded anonymous listeners
+// accumulated one handler per init.
+let _localeListenerAttached = false;
+let _searchResultsListenerAttached = false;
+let _searchContainerId = 'search-box-container'; // last container id, re-resolved by the named locale handler
 
 // Fallback translations
 const FALLBACKS = {
@@ -43,6 +49,38 @@ function escapeHtml(str) {
 }
 
 /**
+ * Re-render the search box in place on a language toggle. Named handler bound
+ * exactly once (leak class #133) — re-resolves the container by its last id
+ * rather than closing over a per-init `container` arg.
+ */
+function handleSearchBoxLocaleChanged() {
+  const container = document.getElementById(_searchContainerId);
+  if (!container) return;
+  const currentQuery = document.getElementById('location-search-input')?.value || '';
+  const currentCriteria = document.getElementById('search-criteria')?.value || 'all';
+
+  container.innerHTML = renderSearchBox();
+  setupSearchEvents();
+
+  // Restore values
+  const searchInput = document.getElementById('location-search-input');
+  const criteriaSelect = document.getElementById('search-criteria');
+  if (searchInput) searchInput.value = currentQuery;
+  if (criteriaSelect) criteriaSelect.value = currentCriteria;
+
+  // Update clear button visibility
+  updateClearButtonVisibility(currentQuery);
+}
+
+/**
+ * Update the results count when a search completes. Named handler bound exactly
+ * once (leak class #133).
+ */
+function handleSearchBoxResults(e) {
+  updateResultsCount(e.detail.count);
+}
+
+/**
  * Initialize the Search Box component
  * @param {string} containerId - ID of the container element
  */
@@ -53,31 +91,22 @@ export function initSearchBox(containerId = 'search-box-container') {
     return;
   }
 
+  _searchContainerId = containerId; // remembered for the named locale handler
+
   container.innerHTML = renderSearchBox();
   setupSearchEvents();
 
-  // Listen for locale changes to re-render
-  document.addEventListener('localeChanged', () => {
-    const currentQuery = document.getElementById('location-search-input')?.value || '';
-    const currentCriteria = document.getElementById('search-criteria')?.value || 'all';
+  // Listen for locale changes to re-render. Bind exactly once (leak class #133).
+  if (!_localeListenerAttached) {
+    _localeListenerAttached = true;
+    document.addEventListener('localeChanged', handleSearchBoxLocaleChanged);
+  }
 
-    container.innerHTML = renderSearchBox();
-    setupSearchEvents();
-
-    // Restore values
-    const searchInput = document.getElementById('location-search-input');
-    const criteriaSelect = document.getElementById('search-criteria');
-    if (searchInput) searchInput.value = currentQuery;
-    if (criteriaSelect) criteriaSelect.value = currentCriteria;
-
-    // Update clear button visibility
-    updateClearButtonVisibility(currentQuery);
-  });
-
-  // Listen for search results to update count
-  document.addEventListener('locationSearchResults', (e) => {
-    updateResultsCount(e.detail.count);
-  });
+  // Listen for search results to update count. Bind exactly once (same class).
+  if (!_searchResultsListenerAttached) {
+    _searchResultsListenerAttached = true;
+    document.addEventListener('locationSearchResults', handleSearchBoxResults);
+  }
 }
 
 /**

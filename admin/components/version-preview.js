@@ -1,5 +1,6 @@
 // Version Preview Component - Side panel/modal showing read-only preview of CSV version content
 import i18n from '../i18n.js?v=5';
+import { getAuthHeaders } from '../app.js?v=5';
 
 const API_ENDPOINT = 'https://tt3xt4tr09.execute-api.us-east-1.amazonaws.com/prod';
 
@@ -304,7 +305,11 @@ function setupEventListeners() {
  * @returns {Promise<Object>} Version content and metadata
  */
 async function fetchVersionContent(versionId) {
-  const response = await fetch(`${API_ENDPOINT}/api/versions/csv/${versionId}`);
+  // #123: getVersion requires a JWT — without the auth header it 401s for every
+  // user and the preview never renders. Mirrors version-history.js / restore.
+  const response = await fetch(`${API_ENDPOINT}/api/versions/csv/${versionId}`, {
+    headers: { ...getAuthHeaders() }
+  });
 
   if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status}`);
