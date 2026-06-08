@@ -75,6 +75,36 @@ test('a pair where BOTH endpoints are hubs lands in hubConflicts, not nowhere', 
 // ── #156: COVERAGE INVARIANT — the core deliverable ─────────────────────────
 // Every input pair from findOverlappingRanges must appear EXACTLY ONCE across
 // {cluster children} ∪ {hubConflicts} ∪ {otherOverlaps}. No pair lost, none dup.
+// #156 follow-up: a hub whose overlaps are ALL with other hubs (→ hubConflicts)
+// or with rows already claimed by an earlier hub (→ otherOverlaps) has no rows to
+// list. It must NOT render as an empty "ROOT CAUSE" card — its overlaps are still
+// shown elsewhere, so the card is pure noise.
+test('a pure triangle (all hubs) emits NO clusters — overlaps live in hubConflicts', () => {
+  PAIRS = [
+    { row1Index: 1, row2Index: 2, collection: 'C', floor: '2' },
+    { row1Index: 2, row2Index: 3, collection: 'C', floor: '2' },
+    { row1Index: 1, row2Index: 3, collection: 'C', floor: '2' },
+  ];
+  const { clusters, hubConflicts } = buildOverlapClusters(rows);
+  expect(clusters).toHaveLength(0);     // before fix: 3 childless ROOT CAUSE cards
+  expect(hubConflicts).toHaveLength(3); // the 3 overlaps are shown here instead
+});
+
+test('every emitted cluster lists at least one affected row (no empty ROOT CAUSE cards)', () => {
+  // Hub 5 (deg 4) claims 1,2,3; secondary hub 4 overlaps only hub 5 + already-claimed 1.
+  PAIRS = [
+    { row1Index: 1, row2Index: 5, collection: 'C', floor: '2' },
+    { row1Index: 2, row2Index: 5, collection: 'C', floor: '2' },
+    { row1Index: 3, row2Index: 5, collection: 'C', floor: '2' },
+    { row1Index: 4, row2Index: 5, collection: 'C', floor: '2' },
+    { row1Index: 1, row2Index: 4, collection: 'C', floor: '2' },
+  ];
+  const { clusters } = buildOverlapClusters(rows);
+  expect(clusters.length).toBeGreaterThan(0);
+  expect(clusters.every((c) => c.affected.length > 0)).toBe(true);
+  expect(clusters.every((c) => c.affectsShown > 0)).toBe(true);
+});
+
 describe('#156 coverage invariant: every overlap pair is displayed exactly once', () => {
   const key = (a, b) => [a, b].sort((x, y) => x - y).join('-');
 

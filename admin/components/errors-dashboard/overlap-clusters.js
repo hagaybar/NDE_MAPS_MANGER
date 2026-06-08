@@ -75,6 +75,11 @@ export function buildOverlapClusters(rows) {
       claimed.add(i);
       represented.add(pairKey(h, i)); // hub↔child edge is now shown
     });
+    // #156 follow-up: don't emit a childless "ROOT CAUSE" card. A hub whose
+    // overlaps are all with other hubs (→ hubConflicts) or with rows already
+    // claimed by an earlier hub (→ otherOverlaps catch-all) has nothing to list;
+    // an empty card is noise and its overlaps are still shown elsewhere.
+    if (affected.length === 0) continue;
     const m = meta.get(h) || { collection: '', floor: '' };
     clusters.push({
       hubRowIndex: h,
