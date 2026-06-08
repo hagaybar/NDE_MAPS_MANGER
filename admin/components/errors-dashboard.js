@@ -41,11 +41,11 @@ const FALLBACKS = {
   'errorsDashboard.category.overlap': { en: 'Overlapping Ranges', he: 'טווחים חופפים' },
   'errorsDashboard.category.description': { en: 'Missing Descriptions', he: 'תיאורים חסרים' },
   'errorsDashboard.category.format': { en: 'Format Issues', he: 'בעיות פורמט' },
-  'errorsDashboard.overlap.summary': { en: '{causes} overlap groups · {affected} ranges affected', he: '{causes} קבוצות חפיפה · {affected} טווחים מושפעים' },
-  'errorsDashboard.overlap.rootCause': { en: 'Widest overlapping range — start here', he: 'הטווח הרחב ביותר — התחילו כאן' },
+  'errorsDashboard.overlap.summary': { en: '{causes} root causes · {affected} ranges affected', he: '{causes} גורמי שורש · {affected} טווחים מושפעים' },
+  'errorsDashboard.overlap.rootCause': { en: 'ROOT CAUSE', he: 'גורם שורש' },
   'errorsDashboard.overlap.catchAll': { en: 'Catch-all range (usually intentional) — review the {n} shelves below', he: 'טווח כולל (בדרך כלל מכוון) — בדקו את {n} המדפים שלמטה' },
   'errorsDashboard.overlap.affects': { en: 'affects {n} ranges', he: 'משפיע על {n} טווחים' },
-  'errorsDashboard.overlap.fixRange': { en: 'Go to this range →', he: '← מעבר לטווח זה' },
+  'errorsDashboard.overlap.fixRange': { en: 'Fix this range →', he: '← תקן את הטווח הזה' },
   'errorsDashboard.overlap.other': { en: 'Other overlaps', he: 'חפיפות אחרות' },
   'errorsDashboard.overlap.goToRow': { en: 'Go to Row {n}', he: 'מעבר לשורה {n}' },
   'errorsDashboard.floor': { en: 'Floor {n}', he: 'קומה {n}' },
@@ -681,7 +681,7 @@ function renderCategoryView(dir) {
       // it as likely-intentional; the per-shelf children stay the primary rows.
       const hubLabel = c.isCatchAll
         ? escapeHtml(t('errorsDashboard.overlap.catchAll').replace('{n}', affectsShown))
-        : escapeHtml(t('errorsDashboard.overlap.rootCause'));
+        : '⚠ ' + escapeHtml(t('errorsDashboard.overlap.rootCause'));
       return `
       <div class="overlap-cluster" data-cluster="${ci}" data-affected="${affectsShown}">
         <div class="overlap-cluster-header">

@@ -88,7 +88,12 @@ test('toggle collapses then re-expands children (works both ways) (#158)', async
   expect(toggle.getAttribute('aria-expanded')).toBe('true');
 });
 
-test('overlap view uses neutral wording, not "ROOT CAUSE" (#158)', async () => {
+// #158: the "ROOT CAUSE" / "Fix this range" terminology is KEPT (owner domain
+// decision): a typo usually INFLATES a range so it becomes the highest-overlap
+// hub — so the hub genuinely is the root cause and fixing that one row collapses
+// the cascade. The catch-all detection (separate test) carves out the only
+// exception. The dashboard renders in the active jest locale (Hebrew).
+test('overlap view keeps the ROOT CAUSE / Fix this range wording (#158)', async () => {
   document.body.innerHTML = '<div id="dash"></div>';
   initErrorsDashboard('dash');
   await flush();
@@ -96,20 +101,10 @@ test('overlap view uses neutral wording, not "ROOT CAUSE" (#158)', async () => {
   await flush();
 
   const dash = document.querySelector('.errors-dashboard');
-  const text = dash.textContent;
-  // No "root cause / culprit" framing in EITHER locale (the dashboard renders in
-  // the active i18n locale; the old en marker was "ROOT CAUSE", he "גורם שורש").
-  expect(text).not.toMatch(/root cause/i);
-  expect(text).not.toMatch(/גורם שורש/);
-  // neutral, task-oriented hub copy ("start here" en / "התחילו כאן" he)
   expect(dash.querySelector('.overlap-cluster-header').textContent)
-    .toMatch(/start here|התחילו כאן/i);
-  // "Fix this range" replaced by neutral navigation copy
-  // (en "Go to this range" / he "מעבר לטווח זה")
-  expect(text).not.toMatch(/Fix this range/i);
-  expect(text).not.toMatch(/תקן את הטווח/);
+    .toMatch(/ROOT CAUSE|גורם שורש/);
   expect(dash.querySelector('.overlap-fix-btn').textContent)
-    .toMatch(/Go to this range|מעבר לטווח זה/i);
+    .toMatch(/Fix this range|תקן את הטווח/i);
 });
 
 test('Print keeps cluster children expanded before printing (idempotent) (#158)', async () => {
