@@ -72,9 +72,11 @@ export function buildReportWorkbookModel(clusterModel, otherIssues = [], csvData
       outlineLevel: 0,
       blastRadius: c.blastRadius,
       cells: cells(c.hubRow, {
-        rowNumber: c.hubRowNumber, rootCause: 'ROOT CAUSE', affects: c.blastRadius,
+        // "Affects" reads affectsShown (rows actually listed) so screen + Excel
+        // agree (Phase 1 made the screen use affectsShown).
+        rowNumber: c.hubRowNumber, rootCause: 'ROOT CAUSE', affects: c.affectsShown,
         category: 'overlap', code: 'W001', severity: 'warning',
-        message: `Overlaps ${c.blastRadius} ranges in "${c.collection}" (Floor ${c.floor})`,
+        message: `Overlaps ${c.affectsShown} ranges in "${c.collection}" (Floor ${c.floor})`,
       }),
     });
     for (const a of c.affected) {

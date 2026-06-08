@@ -29,8 +29,24 @@ test('hub row is first, styled "hub", carries blastRadius + ROOT CAUSE marker + 
   expect(hub.outlineLevel).toBe(0);
   expect(hub.blastRadius).toBe(2);
   expect(hub.cells.rootCause).toBe('ROOT CAUSE');
+  // #158: Excel "Affects" reads affectsShown (rows actually listed), matching
+  // the on-screen count — not the raw blastRadius.
   expect(hub.cells.affects).toBe(2);
   expect(hub.cells.csvRow).toBe(4); // 0-based index 2 -> CSV row 4 (header + 1-based)
+});
+
+test('#158: Excel "Affects" reads affectsShown (rows shown), not raw blastRadius', () => {
+  const col = WORKBOOK_COLUMNS.find((c) => c.key === 'rootCause');
+  expect(col.header).toBe('Root cause');
+  // affectsShown (2) drives the Affects cell even when blastRadius differs.
+  const withWiderBlast = {
+    clusters: [{
+      ...clusterModel.clusters[0], blastRadius: 5, affectsShown: 2,
+    }],
+    hubConflicts: [], otherOverlaps: [],
+  };
+  const model = buildReportWorkbookModel(withWiderBlast, [], csvData);
+  expect(model.rows[0].cells.affects).toBe(2);
 });
 
 test('affected rows follow the hub, styled "affected", outlineLevel 1', () => {

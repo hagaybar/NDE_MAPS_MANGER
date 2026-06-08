@@ -541,6 +541,7 @@
     "overlap": {
       "summary": "{causes} root causes · {affected} ranges affected",
       "rootCause": "ROOT CAUSE",
+      "catchAll": "Catch-all range (usually intentional) — review the {n} shelves below",
       "affects": "affects {n} ranges",
       "fixRange": "Fix this range →",
       "other": "Other overlaps",

@@ -10,9 +10,29 @@
  *
  * @module components/errors-dashboard/overlap-clusters
  */
-import { findOverlappingRanges } from '../../services/data-model.js';
+import { findOverlappingRanges, parseRangeBoundary } from '../../services/data-model.js';
 
 export const ROOT_CAUSE_MIN_BLAST = 2;
+
+/**
+ * Catch-all detection (#158, dashboard-only framing): a range that spans
+ * (near-)the entire Dewey scale (000–999) overlaps almost every other shelf, so
+ * it is always the top hub and "go to this range" would point at the row the
+ * librarian should usually NOT edit. We flag such hubs so the UI can reframe
+ * them as "usually intentional — review the shelves below". CONSERVATIVE on
+ * purpose: only obvious catch-alls (start ≤ 1 AND end ≥ 998); under-detect
+ * rather than mislabel a real overlap.
+ *
+ * @param {Object} hubRow - the hub's csvData row.
+ * @returns {boolean}
+ */
+function isCatchAllRange(hubRow) {
+  if (!hubRow) return false;
+  const start = parseRangeBoundary(hubRow.rangeStart);
+  const end = parseRangeBoundary(hubRow.rangeEnd);
+  if (Number.isNaN(start) || Number.isNaN(end)) return false;
+  return start <= 1 && end >= 998;
+}
 
 /**
  * Canonical spreadsheet row number: header is line 1, the first data row is
@@ -29,7 +49,7 @@ export function toRowNumber(rowIndex) {
 
 /**
  * @param {Object[]} rows - the dashboard's csvData rows.
- * @returns {{ clusters: Array<{hubRowIndex, hubRowNumber, hubRow, blastRadius, affectsShown, affected: Array<{rowIndex,rowNumber,row}>, collection, floor}>,
+ * @returns {{ clusters: Array<{hubRowIndex, hubRowNumber, hubRow, blastRadius, isCatchAll, affectsShown, affected: Array<{rowIndex,rowNumber,row}>, collection, floor}>,
  *             hubConflicts: Array<{row1Index,row2Index,row1Number,row2Number,row1,row2,collection,floor}>,
  *             otherOverlaps: Array<{row1Index,row2Index,row1Number,row2Number,row1,row2,collection,floor}> }}
  *
@@ -86,6 +106,7 @@ export function buildOverlapClusters(rows) {
       hubRowNumber: toRowNumber(h),
       hubRow: rows[h],
       blastRadius: blast(h),
+      isCatchAll: isCatchAllRange(rows[h]),
       affectsShown: affected.length,
       affected: affected.map((i) => ({
         rowIndex: i,

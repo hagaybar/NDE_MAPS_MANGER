@@ -21,7 +21,12 @@ jest.unstable_mockModule('../services/data-model.js', () => ({
   CSV_COLUMNS: [], REQUIRED_FIELDS: [], FLOOR_VALUES: ['0', '1', '2'],
   VALIDATION_ERRORS: {}, VALIDATION_WARNINGS: {}, VALIDATION_RULES: {}, COLUMN_CONFIG: {},
   getRowKey: () => '', areRowsEqual: () => false, findDuplicateRows: () => [],
-  parseRangeValue: () => null, parseRangeBoundary: () => null, compareCallNumbers: () => 0,
+  parseRangeValue: () => null,
+  parseRangeBoundary: (v) => {
+    const m = String(v ?? '').match(/^\d+/);
+    return m ? parseInt(m[0], 10) : NaN;
+  },
+  compareCallNumbers: () => 0,
   doRangesOverlap: () => false, createEmptyRow: () => ({}), getMissingColumns: () => [],
   getColumnLabel: () => '', getBilingualFieldPairs: () => [], getBrokenRefs: () => [],
 }));
@@ -45,7 +50,7 @@ function openCategory(category) {
   card.click();
 }
 
-test('overlap category renders a root-cause group with its blast-radius count and collapsed children', async () => {
+test('overlap category renders an overlap group with its count and EXPANDED children by default (#158)', async () => {
   document.body.innerHTML = '<div id="dash"></div>';
   initErrorsDashboard('dash');
   await flush();
@@ -55,12 +60,54 @@ test('overlap category renders a root-cause group with its blast-radius count an
   const group = document.querySelector('.overlap-cluster');
   expect(group).not.toBeNull();
   expect(group.querySelector('.overlap-cluster-header').textContent).toMatch(/2/); // affects 2
-  // children collapsed by default
+  // #158 (owner-approved behaviour change): children are EXPANDED by default,
+  // and the toggle reflects expanded state (collapses on click).
   const children = group.querySelector('.overlap-cluster-children');
-  expect(children.hidden).toBe(true);
+  expect(children.hidden).toBe(false);
+  const toggle = group.querySelector('.overlap-cluster-toggle');
+  expect(toggle.getAttribute('aria-expanded')).toBe('true');
 });
 
-test('Print expands collapsed cluster children before printing', async () => {
+test('toggle collapses then re-expands children (works both ways) (#158)', async () => {
+  document.body.innerHTML = '<div id="dash"></div>';
+  initErrorsDashboard('dash');
+  await flush();
+  openCategory('overlap');
+  await flush();
+
+  const group = document.querySelector('.overlap-cluster');
+  const toggle = group.querySelector('.overlap-cluster-toggle');
+  const children = group.querySelector('.overlap-cluster-children');
+  // starts expanded
+  expect(children.hidden).toBe(false);
+  toggle.click(); // collapse
+  expect(children.hidden).toBe(true);
+  expect(toggle.getAttribute('aria-expanded')).toBe('false');
+  toggle.click(); // expand again
+  expect(children.hidden).toBe(false);
+  expect(toggle.getAttribute('aria-expanded')).toBe('true');
+});
+
+// #158: the "ROOT CAUSE" / "Fix this range" terminology is KEPT (owner domain
+// decision): a typo usually INFLATES a range so it becomes the highest-overlap
+// hub — so the hub genuinely is the root cause and fixing that one row collapses
+// the cascade. The catch-all detection (separate test) carves out the only
+// exception. The dashboard renders in the active jest locale (Hebrew).
+test('overlap view keeps the ROOT CAUSE / Fix this range wording (#158)', async () => {
+  document.body.innerHTML = '<div id="dash"></div>';
+  initErrorsDashboard('dash');
+  await flush();
+  openCategory('overlap');
+  await flush();
+
+  const dash = document.querySelector('.errors-dashboard');
+  expect(dash.querySelector('.overlap-cluster-header').textContent)
+    .toMatch(/ROOT CAUSE|גורם שורש/);
+  expect(dash.querySelector('.overlap-fix-btn').textContent)
+    .toMatch(/Fix this range|תקן את הטווח/i);
+});
+
+test('Print keeps cluster children expanded before printing (idempotent) (#158)', async () => {
   document.body.innerHTML = '<div id="dash"></div>';
   const printSpy = jest.spyOn(window, 'print').mockImplementation(() => {});
   initErrorsDashboard('dash');
