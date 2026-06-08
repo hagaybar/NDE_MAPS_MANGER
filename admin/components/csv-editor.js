@@ -247,6 +247,26 @@ function getCsvRowsForValidation() {
  * and from the toggle's click handler so the user sees an immediate effect
  * without paying for a full table re-render.
  */
+/**
+ * #135: shelf ids on `floor` not claimed by ANY row in the FULL dataset.
+ * Must be computed from the complete (unfiltered) data — a filtered editor that
+ * derived this from only its visible rows would offer shelves already claimed by
+ * out-of-scope rows, creating duplicate svgCodes on save. Null entries (rows
+ * marked for deletion) are skipped.
+ * @param {number} floor
+ * @param {Array} fullData - complete unfiltered dataset (allCsvData)
+ * @param {Iterable<string>} svgShelfIds - shelf ids present on that floor's SVG
+ * @returns {string[]} unclaimed shelf ids
+ */
+export function unclaimedShelvesForFloor(floor, fullData, svgShelfIds) {
+  const claimed = new Set(
+    (fullData || [])
+      .filter(r => r && Number(r.floor) === floor)
+      .map(r => String(r.svgCode))
+  );
+  return Array.from(svgShelfIds || []).filter(id => !claimed.has(id));
+}
+
 function applyBrokenRefsFilter() {
   if (!brokenRefsFilterActive) {
     document.querySelectorAll('#csv-table tr[data-row-index]').forEach(tr => {
@@ -273,19 +293,17 @@ function applyBrokenRefsFilter() {
     // in test fixtures where DOM rows are injected without a corresponding csvData entry.
     const brokenInfo = broken.find(b => String(b.rowIndex) === idx);
     const floor = row ? Number(row.floor) : Number(brokenInfo?.floor ?? 0);
-    const claimedOnFloor = new Set(
-      csvData
-        .filter((_, i) => Number(csvData[i].floor) === floor && i !== Number(idx))
-        .map(r => String(r.svgCode))
-    );
-    const unclaimed = Array.from(svgShelfIdsByFloor[floor] || []).filter(id => !claimedOnFloor.has(id));
+    // #135: compute availability from the FULL dataset (allCsvData), not the
+    // filtered csvData — otherwise a filtered editor offers shelves already
+    // claimed by hidden rows, producing duplicate svgCodes on save.
+    const unclaimed = unclaimedShelvesForFloor(floor, allCsvData, svgShelfIdsByFloor[floor]);
 
     const actions = document.createElement('td');
     actions.setAttribute('data-broken-row-actions', '');
     actions.innerHTML = `
       <select data-action="rename-svgcode" class="border rounded px-2 py-1 text-sm">
         <option value="">-- Rename to --</option>
-        ${unclaimed.map(id => `<option value="${id}">${id}</option>`).join('')}
+        ${unclaimed.map(id => `<option value="${escapeHtml(id)}">${escapeHtml(id)}</option>`).join('')}
       </select>
       <button data-action="delete-broken-row" class="ml-2 px-2 py-1 text-sm bg-red-100 text-red-800 rounded hover:bg-red-200">
         ${t('csv.deleteRow')}
