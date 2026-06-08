@@ -1,6 +1,7 @@
 // Errors Dashboard Component - Interactive dashboard for viewing and fixing validation issues
 import i18n from '../i18n.js?v=5';
 import { validateRow, VALIDATION_ERRORS, VALIDATION_WARNINGS } from '../services/data-model.js';
+import { preloadAllFloors } from '../services/svg-parser.js';
 import { showEditLocationDialog, setCollections } from './edit-location-dialog.js?v=7';
 import { getAuthHeaders } from '../app.js?v=5';
 import logger from '../services/logger.js?v=1';
@@ -164,6 +165,13 @@ async function loadCSVData() {
         return { name, nameHe: row?.collectionNameHe || name };
       });
     setCollections(collections);
+
+    // #137: warm the SVG cache before validating, so E006 (svgCode not on its
+    // floor's SVG) doesn't silently under-report while the cache is cold —
+    // isValidSvgCode is lenient (returns true) until the cache lands. Mirrors the
+    // Map Editor awaiting the SVG before deriving orphans. A preload failure must
+    // not hide the dashboard, so it never rejects the load.
+    await preloadAllFloors().catch(() => {});
 
     validateAllRows();
   } catch (error) {
