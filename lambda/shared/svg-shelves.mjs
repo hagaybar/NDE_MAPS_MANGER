@@ -123,14 +123,32 @@ function getNumAttr(tag, name) {
 }
 
 /**
- * Minimal well-formedness check. We don't fully parse — we only catch the
- * obvious "missing close angle bracket" / "unclosed tag" cases that our
- * fixture set exercises. Full XML validation is the parser's job; this is
- * a guard against the most common Inkscape-edit-gone-wrong scenarios.
+ * Structural well-formedness scan (kept byte-identical with
+ * admin/services/svg-shelves.js). A '>' only closes a tag when we're inside one
+ * and not inside a quoted attribute value, so a literal '>' in an attribute, a
+ * <style> block, or a text node is fine (#132) — the old char-count heuristic
+ * false-rejected those valid files. A '<' while already inside a tag is
+ * malformed, and any unclosed tag or quote at the end fails.
  */
 function isWellFormedXml(s) {
-  // Count opening vs self-closing/closing tag transitions
-  const opens = (s.match(/</g) || []).length;
-  const closes = (s.match(/>/g) || []).length;
-  return opens === closes;
+  let inTag = false;
+  let quote = null; // "'" or '"' while inside an attribute value, else null
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (inTag) {
+      if (quote) {
+        if (ch === quote) quote = null;
+      } else if (ch === '"' || ch === "'") {
+        quote = ch;
+      } else if (ch === '<') {
+        return false; // '<' inside a tag => malformed
+      } else if (ch === '>') {
+        inTag = false;
+      }
+    } else if (ch === '<') {
+      inTag = true;
+    }
+    // a '>' outside a tag is literal text content — ignored
+  }
+  return !inTag && !quote;
 }
