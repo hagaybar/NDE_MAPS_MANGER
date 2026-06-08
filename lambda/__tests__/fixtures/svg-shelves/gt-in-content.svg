@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <style>.shelf > rect { fill: #eee; }</style>
+  <rect id="CB_1" data-map-object="shelf" x="10" y="10" width="20" height="20"/>
+  <text x="5" y="40">Aisle a > b</text>
+  <text x="5" y="60" aria-label="from A > B">label</text>
+</svg>

@@ -104,13 +104,25 @@ export const handler = async (event) => {
     const response = await s3Client.send(command);
     const csvContent = await response.Body.transformToString();
 
+    // #123: return JSON { content, timestamp, username } — the only consumer
+    // (version-preview) calls response.json() and reads these fields. timestamp
+    // and username are encoded in the versionId filename
+    // (mapping_{YYYY-MM-DDTHH-MM-SS-MMMZ}_{username}.csv), already validated above.
+    const meta = versionId.match(
+      /^mapping_(\d{4}-\d{2}-\d{2})T(\d{2})-(\d{2})-(\d{2})-(\d{3})Z_(\w+)\.csv$/
+    );
+    const timestamp = meta
+      ? `${meta[1]}T${meta[2]}:${meta[3]}:${meta[4]}.${meta[5]}Z`
+      : null;
+    const username = meta ? meta[6] : null;
+
     return {
       statusCode: 200,
       headers: {
         ...CORS_HEADERS,
-        'Content-Type': 'text/csv; charset=utf-8',
+        'Content-Type': 'application/json',
       },
-      body: csvContent,
+      body: JSON.stringify({ content: csvContent, timestamp, username }),
     };
   } catch (error) {
     console.error('Error getting version:', error);

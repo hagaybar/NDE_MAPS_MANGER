@@ -50,11 +50,34 @@ let hasChanges = false;
 let isFiltered = false;     // Whether data is filtered by range restrictions
 let hasNoAccess = false;    // Whether editor has no access (disabled ranges or no filter groups)
 let _hashListenerAttached = false;  // Module-singleton guard for the deep-link hashchange listener
+let _localeListenerAttached = false; // Module-singleton guard for the localeChanged re-render listener (leak class #133)
 let brokenRefsFilterActive = false;
 let orphanFilterFloor = null;       // Floor (string) when the #119 orphan deep-link VIEW filter is active; null otherwise
 let svgShelfIdsByFloor = { 0: new Set(), 1: new Set(), 2: new Set() };
 const API_ENDPOINT = 'https://tt3xt4tr09.execute-api.us-east-1.amazonaws.com/prod';
 const CLOUDFRONT_URL = 'https://d3h8i7y9p8lyw7.cloudfront.net';
+
+/**
+ * Re-render the CSV editor in place on a language toggle. Named handler bound
+ * exactly once (leak class #133) — reads the persistent #csv-editor element by
+ * id rather than closing over a per-visit `container` arg.
+ */
+function handleCsvLocaleChanged() {
+  const container = document.getElementById('csv-editor');
+  if (!container) return;
+  const searchValue = document.getElementById('csv-search')?.value || '';
+  container.innerHTML = renderEditor();
+  setupEditorEvents();
+  renderFilterBanner();
+  renderTable();
+  renderBrokenRefsToggle();
+  applyRoleBasedUI();
+  if (searchValue) {
+    document.getElementById('csv-search').value = searchValue;
+    filterTable(searchValue);
+  }
+  updateSaveButton();
+}
 
 /**
  * Initialize the CSV Editor component
@@ -96,21 +119,13 @@ export async function initCSVEditor() {
     _hashListenerAttached = true;
   }
 
-  // Listen for locale changes to re-render
-  document.addEventListener('localeChanged', () => {
-    const searchValue = document.getElementById('csv-search')?.value || '';
-    container.innerHTML = renderEditor();
-    setupEditorEvents();
-    renderFilterBanner();
-    renderTable();
-    renderBrokenRefsToggle();
-    applyRoleBasedUI();
-    if (searchValue) {
-      document.getElementById('csv-search').value = searchValue;
-      filterTable(searchValue);
-    }
-    updateSaveButton();
-  });
+  // Listen for locale changes to re-render. Bind exactly once (leak class #133):
+  // initCSVEditor runs on every CSV-tab visit, so an unguarded anonymous listener
+  // accumulated one handler per visit (N re-renders per language toggle).
+  if (!_localeListenerAttached) {
+    _localeListenerAttached = true;
+    document.addEventListener('localeChanged', handleCsvLocaleChanged);
+  }
 }
 
 /**
@@ -529,8 +544,12 @@ function applyOrphanFilter() {
 /**
  * Parse CSV text into array of objects
  * Handles quoted fields with commas inside
+ *
+ * Exported for the client-side CSV-parser parity test (#95): this and the
+ * Lambda `parseCsvContent` in lambda/range-validation.mjs must stay
+ * behaviorally equivalent (see the CSV parser parity rule in CLAUDE.md).
  */
-function parseCSV(text) {
+export function parseCSV(text) {
   const lines = text.split(/\r?\n/).filter(line => line.trim());
   if (lines.length === 0) return [];
 
@@ -551,8 +570,13 @@ function parseCSV(text) {
 
 /**
  * Parse a single CSV line, handling quoted fields
+ *
+ * Exported for the CSV-parser parity test (#95). NOTE: this trims each field
+ * here, whereas the Lambda `parseCsvLine` trims later (in parseCsvContent) — a
+ * benign stage difference that nets out at the content level (see the parity
+ * test, which guards parseCSV ↔ parseCsvContent).
  */
-function parseCSVLine(line) {
+export function parseCSVLine(line) {
   const result = [];
   let current = '';
   let inQuotes = false;

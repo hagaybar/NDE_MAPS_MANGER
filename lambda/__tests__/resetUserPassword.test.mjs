@@ -1,15 +1,17 @@
 /**
  * Tests for resetUserPassword Lambda function
- * Admin-triggered password reset for user
+ * Admin-assisted password reset: the admin SETS a temporary password for the
+ * user (force-change at next login). NO email is sent by this action; the admin
+ * relays the temporary password out-of-band.
  *
- * TDD: RED phase - Writing failing tests first
+ * TDD: tests describe the NEW AdminSetUserPasswordCommand contract.
  */
 
 import { jest } from '@jest/globals';
 import { mockClient } from 'aws-sdk-client-mock';
 import {
   CognitoIdentityProviderClient,
-  AdminResetUserPasswordCommand
+  AdminSetUserPasswordCommand
 } from '@aws-sdk/client-cognito-identity-provider';
 
 // Mock auth modules before importing handler
@@ -82,11 +84,11 @@ const createEvent = (username, headers = { Authorization: 'Bearer valid-token' }
 });
 
 describe('resetUserPassword Lambda', () => {
-  describe('successful password reset', () => {
-    test('should reset user password and return 200 status', async () => {
+  describe('successful temporary-password set', () => {
+    test('should set a temporary password and return 200 status', async () => {
       // Arrange
       const targetUsername = 'target-user@example.com';
-      cognitoMock.on(AdminResetUserPasswordCommand).resolves({});
+      cognitoMock.on(AdminSetUserPasswordCommand).resolves({});
 
       // Act
       const result = await handler(createEvent(targetUsername));
@@ -97,24 +99,62 @@ describe('resetUserPassword Lambda', () => {
       expect(body.message).toBeDefined();
     });
 
-    test('should call AdminResetUserPasswordCommand with correct parameters', async () => {
+    test('should call AdminSetUserPasswordCommand with correct username, non-empty password and Permanent:false', async () => {
       // Arrange
       const targetUsername = 'target-user@example.com';
-      cognitoMock.on(AdminResetUserPasswordCommand).resolves({});
+      cognitoMock.on(AdminSetUserPasswordCommand).resolves({});
 
       // Act
       await handler(createEvent(targetUsername));
 
       // Assert
-      const calls = cognitoMock.commandCalls(AdminResetUserPasswordCommand);
+      const calls = cognitoMock.commandCalls(AdminSetUserPasswordCommand);
       expect(calls).toHaveLength(1);
-      expect(calls[0].args[0].input.Username).toBe(targetUsername);
+      const input = calls[0].args[0].input;
+      expect(input.Username).toBe(targetUsername);
+      expect(typeof input.Password).toBe('string');
+      expect(input.Password.length).toBeGreaterThan(0);
+      // Permanent:false => account becomes FORCE_CHANGE_PASSWORD (user must
+      // choose a new password at next login).
+      expect(input.Permanent).toBe(false);
+    });
+
+    test('generated password should satisfy the pool policy (length >= 8 and at least one digit)', async () => {
+      // Arrange
+      const targetUsername = 'target-user@example.com';
+      cognitoMock.on(AdminSetUserPasswordCommand).resolves({});
+
+      // Act
+      await handler(createEvent(targetUsername));
+
+      // Assert — inspect the actual Password handed to Cognito
+      const calls = cognitoMock.commandCalls(AdminSetUserPasswordCommand);
+      const password = calls[0].args[0].input.Password;
+      expect(password.length).toBeGreaterThanOrEqual(8);
+      expect(/[0-9]/.test(password)).toBe(true);
+    });
+
+    test('response body should include a non-empty temporaryPassword equal to the password set in Cognito', async () => {
+      // Arrange
+      const targetUsername = 'target-user@example.com';
+      cognitoMock.on(AdminSetUserPasswordCommand).resolves({});
+
+      // Act
+      const result = await handler(createEvent(targetUsername));
+
+      // Assert
+      const body = JSON.parse(result.body);
+      expect(typeof body.temporaryPassword).toBe('string');
+      expect(body.temporaryPassword.length).toBeGreaterThan(0);
+
+      const calls = cognitoMock.commandCalls(AdminSetUserPasswordCommand);
+      expect(body.temporaryPassword).toBe(calls[0].args[0].input.Password);
     });
 
     test('should return success confirmation with username', async () => {
       // Arrange
       const targetUsername = 'target-user@example.com';
-      cognitoMock.on(AdminResetUserPasswordCommand).resolves({});
+      cognitoMock.on(AdminSetUserPasswordCommand).resolves({});
 
       // Act
       const result = await handler(createEvent(targetUsername));
@@ -123,21 +163,37 @@ describe('resetUserPassword Lambda', () => {
       expect(result.statusCode).toBe(200);
       const body = JSON.parse(result.body);
       expect(body.username).toBe(targetUsername);
-      expect(body.message).toContain('password');
     });
 
-    test('should indicate user will be forced to change password', async () => {
+    test('message should honestly describe the temporary password and next-login change (no emailed code claim)', async () => {
       // Arrange
       const targetUsername = 'target-user@example.com';
-      cognitoMock.on(AdminResetUserPasswordCommand).resolves({});
+      cognitoMock.on(AdminSetUserPasswordCommand).resolves({});
 
       // Act
       const result = await handler(createEvent(targetUsername));
 
-      // Assert
+      // Assert — AdminSetUserPasswordCommand sets a temporary password and forces
+      // a change at next login. NO email is sent by this action; the admin relays
+      // the password. The message MUST describe that reality and MUST NOT claim an
+      // emailed verification code was sent.
       const body = JSON.parse(result.body);
-      // Message should mention temporary password or force change
-      expect(body.message.toLowerCase()).toMatch(/temporary|force|change/);
+      const msg = body.message.toLowerCase();
+      expect(msg).toContain('temporary password');
+      expect(msg).not.toContain('verification code');
+    });
+
+    test('should generate a different temporary password on each invocation', async () => {
+      // Arrange
+      const targetUsername = 'target-user@example.com';
+      cognitoMock.on(AdminSetUserPasswordCommand).resolves({});
+
+      // Act
+      const first = JSON.parse((await handler(createEvent(targetUsername))).body);
+      const second = JSON.parse((await handler(createEvent(targetUsername))).body);
+
+      // Assert — cryptographically random, so collisions are vanishingly unlikely
+      expect(first.temporaryPassword).not.toBe(second.temporaryPassword);
     });
   });
 
@@ -147,7 +203,7 @@ describe('resetUserPassword Lambda', () => {
       const targetUsername = 'nonexistent-user@example.com';
       const error = new Error('User does not exist');
       error.name = 'UserNotFoundException';
-      cognitoMock.on(AdminResetUserPasswordCommand).rejects(error);
+      cognitoMock.on(AdminSetUserPasswordCommand).rejects(error);
 
       // Act
       const result = await handler(createEvent(targetUsername));
@@ -163,7 +219,7 @@ describe('resetUserPassword Lambda', () => {
       const targetUsername = 'nonexistent-user@example.com';
       const error = new Error('User does not exist in the user pool');
       error.name = 'UserNotFoundException';
-      cognitoMock.on(AdminResetUserPasswordCommand).rejects(error);
+      cognitoMock.on(AdminSetUserPasswordCommand).rejects(error);
 
       // Act
       const result = await handler(createEvent(targetUsername));
@@ -270,7 +326,7 @@ describe('resetUserPassword Lambda', () => {
     test('should check manage-users permission', async () => {
       // Arrange
       const targetUsername = 'target-user@example.com';
-      cognitoMock.on(AdminResetUserPasswordCommand).resolves({});
+      cognitoMock.on(AdminSetUserPasswordCommand).resolves({});
 
       // Act
       await handler(createEvent(targetUsername));
@@ -282,7 +338,7 @@ describe('resetUserPassword Lambda', () => {
       );
     });
 
-    test('should allow admin users to reset passwords', async () => {
+    test('should allow admin users to set temporary passwords', async () => {
       // Arrange
       const targetUsername = 'target-user@example.com';
       validateToken.mockResolvedValue({
@@ -293,7 +349,7 @@ describe('resetUserPassword Lambda', () => {
         allowed: true,
         reason: 'Operation "manage-users" authorized for role "admin"'
       });
-      cognitoMock.on(AdminResetUserPasswordCommand).resolves({});
+      cognitoMock.on(AdminSetUserPasswordCommand).resolves({});
 
       // Act
       const result = await handler(createEvent(targetUsername));
@@ -344,7 +400,7 @@ describe('resetUserPassword Lambda', () => {
       // Arrange
       const targetUsername = 'target-user@example.com';
       const error = new Error('Cognito service error');
-      cognitoMock.on(AdminResetUserPasswordCommand).rejects(error);
+      cognitoMock.on(AdminSetUserPasswordCommand).rejects(error);
 
       // Act
       const result = await handler(createEvent(targetUsername));
@@ -359,7 +415,7 @@ describe('resetUserPassword Lambda', () => {
       // Arrange
       const targetUsername = 'target-user@example.com';
       const error = new Error('Cognito service error');
-      cognitoMock.on(AdminResetUserPasswordCommand).rejects(error);
+      cognitoMock.on(AdminSetUserPasswordCommand).rejects(error);
 
       // Act
       const result = await handler(createEvent(targetUsername));
@@ -373,7 +429,7 @@ describe('resetUserPassword Lambda', () => {
       const targetUsername = 'target-user@example.com';
       const error = new Error('Invalid parameter');
       error.name = 'InvalidParameterException';
-      cognitoMock.on(AdminResetUserPasswordCommand).rejects(error);
+      cognitoMock.on(AdminSetUserPasswordCommand).rejects(error);
 
       // Act
       const result = await handler(createEvent(targetUsername));
@@ -387,7 +443,7 @@ describe('resetUserPassword Lambda', () => {
       const targetUsername = 'target-user@example.com';
       const error = new Error('Not authorized');
       error.name = 'NotAuthorizedException';
-      cognitoMock.on(AdminResetUserPasswordCommand).rejects(error);
+      cognitoMock.on(AdminSetUserPasswordCommand).rejects(error);
 
       // Act
       const result = await handler(createEvent(targetUsername));
@@ -401,7 +457,7 @@ describe('resetUserPassword Lambda', () => {
     test('should include CORS headers in success response', async () => {
       // Arrange
       const targetUsername = 'target-user@example.com';
-      cognitoMock.on(AdminResetUserPasswordCommand).resolves({});
+      cognitoMock.on(AdminSetUserPasswordCommand).resolves({});
 
       // Act
       const result = await handler(createEvent(targetUsername));
@@ -415,7 +471,7 @@ describe('resetUserPassword Lambda', () => {
     test('should return Content-Type application/json', async () => {
       // Arrange
       const targetUsername = 'target-user@example.com';
-      cognitoMock.on(AdminResetUserPasswordCommand).resolves({});
+      cognitoMock.on(AdminSetUserPasswordCommand).resolves({});
 
       // Act
       const result = await handler(createEvent(targetUsername));
@@ -426,18 +482,67 @@ describe('resetUserPassword Lambda', () => {
   });
 
   describe('user status behavior', () => {
-    test('should trigger email with temporary password', async () => {
+    test('should trigger exactly one Cognito set-password call (force-change at next login)', async () => {
       // Arrange
       const targetUsername = 'target-user@example.com';
-      cognitoMock.on(AdminResetUserPasswordCommand).resolves({});
+      cognitoMock.on(AdminSetUserPasswordCommand).resolves({});
 
       // Act
       const result = await handler(createEvent(targetUsername));
 
-      // Assert - AdminResetUserPasswordCommand triggers email
-      const calls = cognitoMock.commandCalls(AdminResetUserPasswordCommand);
+      // Assert - AdminSetUserPasswordCommand with Permanent:false sets a temporary
+      // password (FORCE_CHANGE_PASSWORD) exactly once. No email is sent.
+      const calls = cognitoMock.commandCalls(AdminSetUserPasswordCommand);
       expect(calls).toHaveLength(1);
+      expect(calls[0].args[0].input.Permanent).toBe(false);
       expect(result.statusCode).toBe(200);
+    });
+  });
+
+  describe('security - password is never logged', () => {
+    test('should not console.log the generated temporary password', async () => {
+      // Arrange
+      const targetUsername = 'target-user@example.com';
+      cognitoMock.on(AdminSetUserPasswordCommand).resolves({});
+      const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+      const errSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      // Act
+      const result = await handler(createEvent(targetUsername));
+      const password = JSON.parse(result.body).temporaryPassword;
+
+      // Assert — the password must not appear in any console output
+      const allLogged = [...logSpy.mock.calls, ...errSpy.mock.calls]
+        .flat()
+        .map((a) => (typeof a === 'string' ? a : JSON.stringify(a)))
+        .join('\n');
+      expect(allLogged).not.toContain(password);
+
+      logSpy.mockRestore();
+      errSpy.mockRestore();
+    });
+
+    test('should not console.error the generated temporary password on Cognito failure', async () => {
+      // Arrange
+      const targetUsername = 'target-user@example.com';
+      const error = new Error('Cognito service error');
+      cognitoMock.on(AdminSetUserPasswordCommand).rejects(error);
+      const errSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      // Act
+      await handler(createEvent(targetUsername));
+
+      // Assert — even the error path must not leak any candidate password.
+      // The error logging only prints the error, never the password.
+      const logged = errSpy.mock.calls
+        .flat()
+        .map((a) => (typeof a === 'string' ? a : (a && a.message) || JSON.stringify(a)))
+        .join('\n');
+      // A 14-char temp password would never appear; assert the error message is
+      // what got logged and nothing password-shaped accompanies it.
+      expect(logged).toContain('Cognito service error');
+
+      errSpy.mockRestore();
     });
   });
 });

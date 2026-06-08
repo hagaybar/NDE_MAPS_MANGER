@@ -8,8 +8,61 @@ import UserList from './user-list.js';
 import { showCreateUserDialog, hideCreateUserDialog } from './create-user-dialog.js';
 import { showEditUserDialog, hideEditUserDialog } from './edit-user-dialog.js';
 import { showDeleteUserConfirmDialog, hideDeleteUserConfirmDialog } from './delete-user-confirm-dialog.js';
+import { showTempPasswordDialog } from './temp-password-dialog.js';
 import * as userService from '../user-service.js';
 import { showToast } from '../app.js';
+import { fetchMappingCsvText } from './map-editor/csv-loader.js';
+
+const CLOUDFRONT_URL = 'https://d3h8i7y9p8lyw7.cloudfront.net';
+
+/**
+ * #127: the editor range editor's Collections picker is populated only from the
+ * `collections` option passed to showEditUserDialog. Load the unique
+ * collectionName values from the live mapping.csv so the picker isn't empty.
+ * Quote-aware (a collectionName may contain a comma); never throws — collections
+ * are a convenience, so on any failure the dialog just opens without them.
+ * @returns {Promise<string[]>}
+ */
+async function loadCollectionNames() {
+  try {
+    const text = await fetchMappingCsvText(CLOUDFRONT_URL);
+    const lines = text.split(/\r?\n/).filter((l) => l.trim());
+    if (lines.length < 2) return [];
+    const idx = splitCsvLine(lines[0]).map((h) => h.trim()).indexOf('collectionName');
+    if (idx < 0) return [];
+    const seen = new Set();
+    for (let i = 1; i < lines.length; i++) {
+      const value = (splitCsvLine(lines[i])[idx] || '').trim();
+      if (value) seen.add(value);
+    }
+    return [...seen];
+  } catch (error) {
+    console.error('Failed to load collection names for the range editor:', error);
+    return [];
+  }
+}
+
+/**
+ * Split one CSV line into fields, honoring double-quoted fields that contain
+ * commas / "" escapes (only used to read the collectionName column above).
+ */
+function splitCsvLine(line) {
+  const out = [];
+  let cur = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQuotes) {
+      if (ch === '"' && line[i + 1] === '"') { cur += '"'; i++; }
+      else if (ch === '"') inQuotes = false;
+      else cur += ch;
+    } else if (ch === '"') inQuotes = true;
+    else if (ch === ',') { out.push(cur); cur = ''; }
+    else cur += ch;
+  }
+  out.push(cur);
+  return out;
+}
 
 let userListInstance = null;
 let currentUsers = [];
@@ -23,13 +76,23 @@ export async function initUserManagement() {
     const container = document.getElementById('user-list-container');
     if (!container) return;
 
-    // Initialize user list component
-    userListInstance = new UserList(container);
+    // #7: showView('users') calls initUserManagement() on EVERY visit, but it
+    // only toggles .hidden — the #user-list-container element survives. Creating
+    // a fresh UserList each visit re-bound another delegated click listener on
+    // that surviving element, and setupEventListeners() re-bound another full set
+    // of user-edit / user-delete / user-reset-password listeners on it too. After
+    // N visits one physical "Reset password" click fanned out to N handlers → N
+    // resetPassword() calls → N Cognito emails. Reuse the existing instance and
+    // bind the delegated listeners exactly once for the container's lifetime so
+    // one click sends one email.
+    if (!userListInstance || userListInstance.container !== container) {
+        userListInstance = new UserList(container);
+    }
 
-    // Set up event listeners
+    // Set up event listeners (idempotent — bound once per container)
     setupEventListeners();
 
-    // Load initial users
+    // Load (or refresh) the user list
     await loadUsers();
 }
 
@@ -38,6 +101,24 @@ export async function initUserManagement() {
  */
 function setupEventListeners() {
     const container = document.getElementById('user-list-container');
+
+    // #7: bind these delegated listeners EXACTLY ONCE per container element.
+    // initUserManagement() runs on every Users-tab visit, but the container
+    // persists across visits — re-binding here stacked duplicate handlers and
+    // multiplied every action (reset/edit/delete) by the visit count.
+    if (container.dataset.userMgmtListenersBound === 'true') {
+        return;
+    }
+    container.dataset.userMgmtListenersBound = 'true';
+
+    // Finding A: re-render the user list on language toggle. The global locale
+    // handler only re-paints static chrome (nav, direction); without this the
+    // list's own text (column headers, action buttons) stayed in the previous
+    // language until some unrelated action forced a re-render. Bound once with
+    // the same guard above, so it never accumulates (cf. the #133 listener leak).
+    document.addEventListener('localeChanged', () => {
+        userListInstance?.render();
+    });
 
     // Handle user edit event
     container.addEventListener('user-edit', async (event) => {
@@ -127,9 +208,13 @@ async function handleAddUser() {
  */
 async function handleEditUser(user) {
     try {
+        // #127: supply the collection names so the range editor's Collections
+        // picker isn't always empty.
+        const collections = await loadCollectionNames();
         const result = await showEditUserDialog({
             user,
-            userService
+            userService,
+            collections
         });
 
         if (result.success) {
@@ -162,15 +247,32 @@ async function handleDeleteUser(user) {
 }
 
 /**
- * Handle password reset action
+ * Handle password reset action.
+ *
+ * #152 redesign: the server now SETS a temporary password (no email). On success
+ * we show the returned temporary password in a copyable dialog so the admin can
+ * relay it to the user out-of-band — that dialog IS the success feedback (no
+ * "sent via email" toast, no persistent resend marker). The per-row control only
+ * shows a transient disabled "Working…" state while the request is in flight,
+ * then returns to plain idle (the admin can click again to mint a new password).
+ *
+ * SECURITY: the temporary password is never logged; it is passed straight into
+ * the dialog.
  * @param {object} user - The user to reset password for
  */
 async function handleResetPassword(user) {
     try {
-        await userService.resetPassword(user.username);
-        showToast(i18n.t('users.resetSuccess'), 'success');
+        userListInstance?.setResetInFlight(user.username, true);
+        const result = await userService.resetPassword(user.username);
+        const displayName = user.email || user.username;
+        showTempPasswordDialog({
+            username: displayName,
+            temporaryPassword: result?.temporaryPassword
+        });
     } catch (error) {
         console.error('Failed to reset password:', error);
         showToast(i18n.t('users.resetError'), 'error');
+    } finally {
+        userListInstance?.setResetInFlight(user.username, false);
     }
 }
