@@ -1,19 +1,24 @@
 /**
  * Reset User Password Lambda Function
- * Admin-triggered password reset for user (Option A — self-service code).
+ * Admin-assisted password reset (admin SETS a temporary password).
  *
- * Uses Cognito AdminResetUserPasswordCommand, which:
- *  - sets the account status to RESET_REQUIRED, and
- *  - emails the user a bare verification CODE via the forgot-password template.
- * It does NOT send a temporary password and does NOT set FORCE_CHANGE_PASSWORD.
- * The user completes the reset on the login page's "Forgot your password?" flow
- * (enter the emailed code, then choose a new password). No password value is
- * ever generated, returned, or surfaced to the admin.
+ * Uses Cognito AdminSetUserPasswordCommand with Permanent:false, which:
+ *  - sets a server-generated temporary password on the account, and
+ *  - puts the account into FORCE_CHANGE_PASSWORD status, so the user MUST
+ *    choose their own new password at next sign-in.
+ * NO email is sent by this action. The temporary password is generated here and
+ * returned to the admin so they can relay it to the user out-of-band (e.g. by
+ * phone or in person). The user signs in with it and is immediately required to
+ * pick a permanent password.
+ *
+ * SECURITY: the generated temporary password is NEVER logged. It is only
+ * returned once in the HTTP response body for the admin to relay.
  */
 
+import crypto from 'crypto';
 import {
   CognitoIdentityProviderClient,
-  AdminResetUserPasswordCommand
+  AdminSetUserPasswordCommand
 } from '@aws-sdk/client-cognito-identity-provider';
 import { validateToken, createAuthResponse } from './auth-middleware.mjs';
 import { checkPermission } from './role-auth.mjs';
@@ -27,8 +32,49 @@ const CORS_HEADERS = {
   'Access-Control-Allow-Headers': 'Content-Type, Authorization'
 };
 
+// Character sets for the temporary password. Ambiguous characters (0/O, 1/l/I)
+// are deliberately excluded so the admin can read the password aloud / type it
+// without confusion. Symbols are limited to a couple of safe, unambiguous ones.
+const UPPER = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // no I, O
+const LOWER = 'abcdefghijkmnpqrstuvwxyz'; // no l, o
+const DIGITS = '23456789'; // no 0, 1
+const SYMBOLS = '!#';
+const ALL = UPPER + LOWER + DIGITS + SYMBOLS;
+const TEMP_PASSWORD_LENGTH = 14;
+
 /**
- * Lambda handler for resetting user password
+ * Pick one random character from a string using a CSPRNG (crypto.randomInt).
+ * @param {string} charset - non-empty source string
+ * @returns {string} a single character
+ */
+const pick = (charset) => charset[crypto.randomInt(charset.length)];
+
+/**
+ * Generate a strong temporary password that satisfies the Cognito pool policy
+ * (MinimumLength 8, RequireNumbers true). We over-deliver for robustness: ~14
+ * characters guaranteed to contain at least one upper, one lower and one digit,
+ * with the remainder drawn from the full (ambiguity-free) alphabet, then shuffled
+ * so the guaranteed characters are not in fixed positions. All randomness comes
+ * from Node's crypto module (never Math.random).
+ * @returns {string} the temporary password
+ */
+const generateTemporaryPassword = () => {
+  // Guarantee policy/robustness requirements with one of each required class.
+  const required = [pick(UPPER), pick(LOWER), pick(DIGITS)];
+  const chars = [...required];
+  while (chars.length < TEMP_PASSWORD_LENGTH) {
+    chars.push(pick(ALL));
+  }
+  // Fisher–Yates shuffle with crypto randomness so guaranteed chars are spread.
+  for (let i = chars.length - 1; i > 0; i--) {
+    const j = crypto.randomInt(i + 1);
+    [chars[i], chars[j]] = [chars[j], chars[i]];
+  }
+  return chars.join('');
+};
+
+/**
+ * Lambda handler for admin-assisted password reset.
  * POST /api/users/{username}/reset-password
  * @param {Object} event - API Gateway event
  * @returns {Object} API Gateway response
@@ -68,15 +114,20 @@ export const handler = async (event) => {
     };
   }
 
+  // Generate the temporary password server-side. NEVER log this value.
+  const temporaryPassword = generateTemporaryPassword();
+
   try {
-    // Reset the user's password - this sets the account to RESET_REQUIRED and
-    // emails the user a verification CODE (via the forgot-password template).
-    // It does NOT send a temporary password and does NOT set FORCE_CHANGE_PASSWORD.
-    const resetPasswordCommand = new AdminResetUserPasswordCommand({
+    // Set the temporary password with Permanent:false. This puts the account in
+    // FORCE_CHANGE_PASSWORD status so the user must choose a new password at next
+    // sign-in. No email is sent by this command; the admin relays the password.
+    const setPasswordCommand = new AdminSetUserPasswordCommand({
       UserPoolId: USER_POOL_ID,
-      Username: username
+      Username: username,
+      Password: temporaryPassword,
+      Permanent: false
     });
-    await cognito.send(resetPasswordCommand);
+    await cognito.send(setPasswordCommand);
 
     return {
       statusCode: 200,
@@ -85,11 +136,13 @@ export const handler = async (event) => {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        message: 'Password reset initiated. A verification code has been emailed to the user. They complete the reset on the login page via "Forgot your password?" (enter the code, then set a new password).',
-        username: username
+        message: "Temporary password set. Give it to the user and ask them to sign in — they'll be required to choose a new password.",
+        username: username,
+        temporaryPassword: temporaryPassword
       })
     };
   } catch (error) {
+    // Log the error only — never the temporary password.
     console.error('Error resetting user password:', error);
 
     // Handle user not found
