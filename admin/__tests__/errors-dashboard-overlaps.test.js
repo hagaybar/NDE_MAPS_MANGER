@@ -21,7 +21,12 @@ jest.unstable_mockModule('../services/data-model.js', () => ({
   CSV_COLUMNS: [], REQUIRED_FIELDS: [], FLOOR_VALUES: ['0', '1', '2'],
   VALIDATION_ERRORS: {}, VALIDATION_WARNINGS: {}, VALIDATION_RULES: {}, COLUMN_CONFIG: {},
   getRowKey: () => '', areRowsEqual: () => false, findDuplicateRows: () => [],
-  parseRangeValue: () => null, parseRangeBoundary: () => null, compareCallNumbers: () => 0,
+  parseRangeValue: () => null,
+  parseRangeBoundary: (v) => {
+    const m = String(v ?? '').match(/^\d+/);
+    return m ? parseInt(m[0], 10) : NaN;
+  },
+  compareCallNumbers: () => 0,
   doRangesOverlap: () => false, createEmptyRow: () => ({}), getMissingColumns: () => [],
   getColumnLabel: () => '', getBilingualFieldPairs: () => [], getBrokenRefs: () => [],
 }));
@@ -45,7 +50,7 @@ function openCategory(category) {
   card.click();
 }
 
-test('overlap category renders a root-cause group with its blast-radius count and collapsed children', async () => {
+test('overlap category renders an overlap group with its count and EXPANDED children by default (#158)', async () => {
   document.body.innerHTML = '<div id="dash"></div>';
   initErrorsDashboard('dash');
   await flush();
@@ -55,12 +60,59 @@ test('overlap category renders a root-cause group with its blast-radius count an
   const group = document.querySelector('.overlap-cluster');
   expect(group).not.toBeNull();
   expect(group.querySelector('.overlap-cluster-header').textContent).toMatch(/2/); // affects 2
-  // children collapsed by default
+  // #158 (owner-approved behaviour change): children are EXPANDED by default,
+  // and the toggle reflects expanded state (collapses on click).
   const children = group.querySelector('.overlap-cluster-children');
-  expect(children.hidden).toBe(true);
+  expect(children.hidden).toBe(false);
+  const toggle = group.querySelector('.overlap-cluster-toggle');
+  expect(toggle.getAttribute('aria-expanded')).toBe('true');
 });
 
-test('Print expands collapsed cluster children before printing', async () => {
+test('toggle collapses then re-expands children (works both ways) (#158)', async () => {
+  document.body.innerHTML = '<div id="dash"></div>';
+  initErrorsDashboard('dash');
+  await flush();
+  openCategory('overlap');
+  await flush();
+
+  const group = document.querySelector('.overlap-cluster');
+  const toggle = group.querySelector('.overlap-cluster-toggle');
+  const children = group.querySelector('.overlap-cluster-children');
+  // starts expanded
+  expect(children.hidden).toBe(false);
+  toggle.click(); // collapse
+  expect(children.hidden).toBe(true);
+  expect(toggle.getAttribute('aria-expanded')).toBe('false');
+  toggle.click(); // expand again
+  expect(children.hidden).toBe(false);
+  expect(toggle.getAttribute('aria-expanded')).toBe('true');
+});
+
+test('overlap view uses neutral wording, not "ROOT CAUSE" (#158)', async () => {
+  document.body.innerHTML = '<div id="dash"></div>';
+  initErrorsDashboard('dash');
+  await flush();
+  openCategory('overlap');
+  await flush();
+
+  const dash = document.querySelector('.errors-dashboard');
+  const text = dash.textContent;
+  // No "root cause / culprit" framing in EITHER locale (the dashboard renders in
+  // the active i18n locale; the old en marker was "ROOT CAUSE", he "גורם שורש").
+  expect(text).not.toMatch(/root cause/i);
+  expect(text).not.toMatch(/גורם שורש/);
+  // neutral, task-oriented hub copy ("start here" en / "התחילו כאן" he)
+  expect(dash.querySelector('.overlap-cluster-header').textContent)
+    .toMatch(/start here|התחילו כאן/i);
+  // "Fix this range" replaced by neutral navigation copy
+  // (en "Go to this range" / he "מעבר לטווח זה")
+  expect(text).not.toMatch(/Fix this range/i);
+  expect(text).not.toMatch(/תקן את הטווח/);
+  expect(dash.querySelector('.overlap-fix-btn').textContent)
+    .toMatch(/Go to this range|מעבר לטווח זה/i);
+});
+
+test('Print keeps cluster children expanded before printing (idempotent) (#158)', async () => {
   document.body.innerHTML = '<div id="dash"></div>';
   const printSpy = jest.spyOn(window, 'print').mockImplementation(() => {});
   initErrorsDashboard('dash');

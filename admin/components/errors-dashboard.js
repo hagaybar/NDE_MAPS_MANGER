@@ -41,10 +41,11 @@ const FALLBACKS = {
   'errorsDashboard.category.overlap': { en: 'Overlapping Ranges', he: 'טווחים חופפים' },
   'errorsDashboard.category.description': { en: 'Missing Descriptions', he: 'תיאורים חסרים' },
   'errorsDashboard.category.format': { en: 'Format Issues', he: 'בעיות פורמט' },
-  'errorsDashboard.overlap.summary': { en: '{causes} root causes · {affected} ranges affected', he: '{causes} גורמי שורש · {affected} טווחים מושפעים' },
-  'errorsDashboard.overlap.rootCause': { en: 'ROOT CAUSE', he: 'גורם שורש' },
+  'errorsDashboard.overlap.summary': { en: '{causes} overlap groups · {affected} ranges affected', he: '{causes} קבוצות חפיפה · {affected} טווחים מושפעים' },
+  'errorsDashboard.overlap.rootCause': { en: 'Widest overlapping range — start here', he: 'הטווח הרחב ביותר — התחילו כאן' },
+  'errorsDashboard.overlap.catchAll': { en: 'Catch-all range (usually intentional) — review the {n} shelves below', he: 'טווח כולל (בדרך כלל מכוון) — בדקו את {n} המדפים שלמטה' },
   'errorsDashboard.overlap.affects': { en: 'affects {n} ranges', he: 'משפיע על {n} טווחים' },
-  'errorsDashboard.overlap.fixRange': { en: 'Fix this range →', he: '← תקן את הטווח הזה' },
+  'errorsDashboard.overlap.fixRange': { en: 'Go to this range →', he: '← מעבר לטווח זה' },
   'errorsDashboard.overlap.other': { en: 'Other overlaps', he: 'חפיפות אחרות' },
   'errorsDashboard.overlap.goToRow': { en: 'Go to Row {n}', he: 'מעבר לשורה {n}' },
   'errorsDashboard.floor': { en: 'Floor {n}', he: 'קומה {n}' },
@@ -675,11 +676,17 @@ function renderCategoryView(dir) {
       // One source for the displayed "affects N" count AND the data-affected
       // hook, so the header can never disagree with the rows actually listed.
       const affectsShown = c.affectsShown;
+      // #158: a catch-all (000–999) hub overlaps almost everything, so "go to
+      // this range" would point at the row the librarian should NOT edit. Reframe
+      // it as likely-intentional; the per-shelf children stay the primary rows.
+      const hubLabel = c.isCatchAll
+        ? escapeHtml(t('errorsDashboard.overlap.catchAll').replace('{n}', affectsShown))
+        : escapeHtml(t('errorsDashboard.overlap.rootCause'));
       return `
       <div class="overlap-cluster" data-cluster="${ci}" data-affected="${affectsShown}">
         <div class="overlap-cluster-header">
-          <button type="button" class="overlap-cluster-toggle" aria-expanded="false" aria-controls="overlap-children-${ci}" aria-label="${escapeHtml(t('errorsDashboard.overlap.expand'))}" data-cluster-toggle="${ci}">▸</button>
-          <strong>⚠ ${escapeHtml(t('errorsDashboard.overlap.rootCause'))}</strong>
+          <button type="button" class="overlap-cluster-toggle" aria-expanded="true" aria-controls="overlap-children-${ci}" aria-label="${escapeHtml(t('errorsDashboard.overlap.expand'))}" data-cluster-toggle="${ci}">▾</button>
+          <strong>${hubLabel}</strong>
           · ${escapeHtml(t('errorsDashboard.row'))} ${c.hubRowNumber}
           · <bdi>${escapeHtml(c.hubRow.shelfLabel || '')}</bdi>
           "<bdi>${escapeHtml(c.hubRow.rangeStart)}–${escapeHtml(c.hubRow.rangeEnd)}</bdi>"
@@ -689,7 +696,7 @@ function renderCategoryView(dir) {
             ${escapeHtml(t('errorsDashboard.overlap.fixRange'))}
           </button>
         </div>
-        <div class="overlap-cluster-children" id="overlap-children-${ci}" data-cluster-children="${ci}" hidden>
+        <div class="overlap-cluster-children" id="overlap-children-${ci}" data-cluster-children="${ci}">
           ${c.affected.map(a => `
             <div class="overlap-affected">
               ${escapeHtml(t('errorsDashboard.row'))} ${a.rowNumber}
@@ -934,7 +941,7 @@ function setupEventHandlers() {
     });
   });
 
-  // Overlap cluster "Fix this range" buttons (jump to the hub row)
+  // Overlap cluster "Go to this range" buttons (jump to the hub row)
   containerElement.querySelectorAll('.overlap-fix-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();

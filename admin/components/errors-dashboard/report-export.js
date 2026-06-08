@@ -19,7 +19,7 @@ export const WORKBOOK_COLUMNS = [
   { key: 'rangeStart', header: 'Range start', width: 12 },
   { key: 'rangeEnd', header: 'Range end', width: 12 },
   { key: 'csvRow', header: 'CSV row', width: 9 },
-  { key: 'rootCause', header: 'Root cause', width: 12 },
+  { key: 'rootCause', header: 'Group', width: 12 },
   { key: 'affects', header: 'Affects', width: 9 },
   { key: 'category', header: 'Category', width: 12 },
   { key: 'code', header: 'Code', width: 8 },
@@ -72,9 +72,12 @@ export function buildReportWorkbookModel(clusterModel, otherIssues = [], csvData
       outlineLevel: 0,
       blastRadius: c.blastRadius,
       cells: cells(c.hubRow, {
-        rowNumber: c.hubRowNumber, rootCause: 'ROOT CAUSE', affects: c.blastRadius,
+        // #158: neutral marker (overlap is symmetric — no "root cause" framing).
+        // "Affects" reads affectsShown (rows actually listed) so screen + Excel
+        // agree (Phase 1 made the screen use affectsShown).
+        rowNumber: c.hubRowNumber, rootCause: 'START HERE', affects: c.affectsShown,
         category: 'overlap', code: 'W001', severity: 'warning',
-        message: `Overlaps ${c.blastRadius} ranges in "${c.collection}" (Floor ${c.floor})`,
+        message: `Overlaps ${c.affectsShown} ranges in "${c.collection}" (Floor ${c.floor})`,
       }),
     });
     for (const a of c.affected) {
@@ -83,7 +86,7 @@ export function buildReportWorkbookModel(clusterModel, otherIssues = [], csvData
         outlineLevel: 1,
         cells: cells(a.row, {
           rowNumber: a.rowNumber, category: 'overlap', code: 'W001', severity: 'warning',
-          message: `Overlaps root-cause Row ${c.hubRowNumber}`,
+          message: `Overlaps Row ${c.hubRowNumber}`,
         }),
       });
     }

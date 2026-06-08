@@ -539,10 +539,11 @@
   },
   "errorsDashboard": {
     "overlap": {
-      "summary": "{causes} root causes · {affected} ranges affected",
-      "rootCause": "ROOT CAUSE",
+      "summary": "{causes} overlap groups · {affected} ranges affected",
+      "rootCause": "Widest overlapping range — start here",
+      "catchAll": "Catch-all range (usually intentional) — review the {n} shelves below",
       "affects": "affects {n} ranges",
-      "fixRange": "Fix this range →",
+      "fixRange": "Go to this range →",
       "other": "Other overlaps",
       "hubConflicts": "These wide ranges also overlap each other",
       "expand": "Show affected ranges",

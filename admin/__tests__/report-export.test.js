@@ -22,15 +22,32 @@ const clusterModel = {
   otherOverlaps: [],
 };
 
-test('hub row is first, styled "hub", carries blastRadius + ROOT CAUSE marker + outlineLevel 0', () => {
+test('hub row is first, styled "hub", carries blastRadius + START HERE marker + outlineLevel 0', () => {
   const model = buildReportWorkbookModel(clusterModel, [], csvData);
   const hub = model.rows[0];
   expect(hub.style).toBe('hub');
   expect(hub.outlineLevel).toBe(0);
   expect(hub.blastRadius).toBe(2);
-  expect(hub.cells.rootCause).toBe('ROOT CAUSE');
+  // #158: neutral marker (overlap is symmetric — no "root cause" framing).
+  expect(hub.cells.rootCause).toBe('START HERE');
+  // #158: Excel "Affects" reads affectsShown (rows actually listed), matching
+  // the on-screen count — not the raw blastRadius.
   expect(hub.cells.affects).toBe(2);
   expect(hub.cells.csvRow).toBe(4); // 0-based index 2 -> CSV row 4 (header + 1-based)
+});
+
+test('#158: Excel "Group" column header replaces "Root cause"; "Affects" reads affectsShown', () => {
+  const col = WORKBOOK_COLUMNS.find((c) => c.key === 'rootCause');
+  expect(col.header).toBe('Group');
+  // affectsShown (2) drives the Affects cell even when blastRadius differs.
+  const withWiderBlast = {
+    clusters: [{
+      ...clusterModel.clusters[0], blastRadius: 5, affectsShown: 2,
+    }],
+    hubConflicts: [], otherOverlaps: [],
+  };
+  const model = buildReportWorkbookModel(withWiderBlast, [], csvData);
+  expect(model.rows[0].cells.affects).toBe(2);
 });
 
 test('affected rows follow the hub, styled "affected", outlineLevel 1', () => {

@@ -6,6 +6,11 @@ import { jest } from '@jest/globals';
 let PAIRS = [];
 jest.unstable_mockModule('../services/data-model.js', () => ({
   findOverlappingRanges: () => PAIRS,
+  // #158: catch-all detection parses the hub's numeric boundaries.
+  parseRangeBoundary: (v) => {
+    const m = String(v ?? '').match(/^\d+/);
+    return m ? parseInt(m[0], 10) : NaN;
+  },
 }));
 const { buildOverlapClusters, ROOT_CAUSE_MIN_BLAST } =
   await import('../components/errors-dashboard/overlap-clusters.js');
@@ -209,4 +214,41 @@ test('two overlapping hubs are not nested under each other; no row listed twice'
 
 test('ROOT_CAUSE_MIN_BLAST is 2', () => {
   expect(ROOT_CAUSE_MIN_BLAST).toBe(2);
+});
+
+// ── #158: catch-all (000–999) hub detection ─────────────────────────────────
+describe('#158 catch-all hub detection', () => {
+  // Rows whose range identity matters here: provide rangeStart/rangeEnd.
+  const catchAllRows = Array.from({ length: 12 }, (_, i) => ({
+    _index: i, collectionName: 'C', floor: '2', rangeStart: '100', rangeEnd: '200',
+  }));
+
+  test('hub spanning (near-)full Dewey (000–999) sets isCatchAll true', () => {
+    const local = catchAllRows.map((r) => ({ ...r }));
+    local[5].rangeStart = '000';
+    local[5].rangeEnd = '999';
+    PAIRS = [
+      { row1Index: 1, row2Index: 5, collection: 'C', floor: '2' },
+      { row1Index: 2, row2Index: 5, collection: 'C', floor: '2' },
+      { row1Index: 3, row2Index: 5, collection: 'C', floor: '2' },
+    ];
+    const { clusters } = buildOverlapClusters(local);
+    expect(clusters).toHaveLength(1);
+    expect(clusters[0].hubRowIndex).toBe(5);
+    expect(clusters[0].isCatchAll).toBe(true);
+  });
+
+  test('a normal (narrow) hub is NOT flagged as catch-all', () => {
+    const local = catchAllRows.map((r) => ({ ...r }));
+    local[5].rangeStart = '400';
+    local[5].rangeEnd = '500';
+    PAIRS = [
+      { row1Index: 1, row2Index: 5, collection: 'C', floor: '2' },
+      { row1Index: 2, row2Index: 5, collection: 'C', floor: '2' },
+      { row1Index: 3, row2Index: 5, collection: 'C', floor: '2' },
+    ];
+    const { clusters } = buildOverlapClusters(local);
+    expect(clusters).toHaveLength(1);
+    expect(clusters[0].isCatchAll).toBe(false);
+  });
 });
