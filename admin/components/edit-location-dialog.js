@@ -61,6 +61,7 @@ let originalRow = null;
 let isLoading = false;
 let fieldErrors = {};
 let currentKeydownHandler = null;
+let currentAutocompleteCleanup = null; // #161: remove svg-autocomplete's document listener on close/re-init
 let currentAllRows = [];
 let currentOnSave = null;
 let currentIsNew = false;
@@ -126,9 +127,11 @@ export function showEditLocationDialog(options = {}) {
   const { row = null, allRows = [], onSave } = options;
   const isNew = !row;
 
-  // Close any existing dialog
+  // #161: fully tear down any existing dialog (resolve its pending promise,
+  // remove its keydown + autocomplete listeners) instead of just dropping the
+  // overlay — otherwise the prior caller's await hangs and listeners leak.
   if (currentOverlay) {
-    currentOverlay.remove();
+    closeDialog({ cancelled: true });
   }
 
   // Initialize state
@@ -156,8 +159,8 @@ export function showEditLocationDialog(options = {}) {
   // Add to DOM
   document.body.appendChild(overlay);
 
-  // Initialize autocomplete
-  initSvgAutocomplete(dialog, (code) => {
+  // Initialize autocomplete (#161: keep the cleanup so closeDialog can unbind it)
+  currentAutocompleteCleanup = initSvgAutocomplete(dialog, (code) => {
     currentRow.svgCode = code;
   });
 
@@ -731,8 +734,11 @@ function updateDialogState(isNew) {
   // Re-setup all event handlers using stored module state
   setupDialogEventHandlers(currentAllRows, currentOnSave, currentIsNew);
 
-  // Re-init SVG autocomplete
-  initSvgAutocomplete(currentDialog, (code) => {
+  // Re-init SVG autocomplete (#161: unbind the previous document listener first)
+  if (currentAutocompleteCleanup) {
+    currentAutocompleteCleanup();
+  }
+  currentAutocompleteCleanup = initSvgAutocomplete(currentDialog, (code) => {
     currentRow.svgCode = code;
   });
 }
@@ -787,6 +793,10 @@ function closeDialog(result) {
   if (currentKeydownHandler) {
     document.removeEventListener('keydown', currentKeydownHandler);
     currentKeydownHandler = null;
+  }
+  if (currentAutocompleteCleanup) {
+    currentAutocompleteCleanup(); // #161: remove svg-autocomplete's document click listener
+    currentAutocompleteCleanup = null;
   }
   if (currentResolve) {
     currentResolve(result);
