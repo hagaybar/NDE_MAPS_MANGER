@@ -23,13 +23,23 @@ export async function initUserManagement() {
     const container = document.getElementById('user-list-container');
     if (!container) return;
 
-    // Initialize user list component
-    userListInstance = new UserList(container);
+    // #7: showView('users') calls initUserManagement() on EVERY visit, but it
+    // only toggles .hidden — the #user-list-container element survives. Creating
+    // a fresh UserList each visit re-bound another delegated click listener on
+    // that surviving element, and setupEventListeners() re-bound another full set
+    // of user-edit / user-delete / user-reset-password listeners on it too. After
+    // N visits one physical "Reset password" click fanned out to N handlers → N
+    // resetPassword() calls → N Cognito emails. Reuse the existing instance and
+    // bind the delegated listeners exactly once for the container's lifetime so
+    // one click sends one email.
+    if (!userListInstance || userListInstance.container !== container) {
+        userListInstance = new UserList(container);
+    }
 
-    // Set up event listeners
+    // Set up event listeners (idempotent — bound once per container)
     setupEventListeners();
 
-    // Load initial users
+    // Load (or refresh) the user list
     await loadUsers();
 }
 
@@ -38,6 +48,15 @@ export async function initUserManagement() {
  */
 function setupEventListeners() {
     const container = document.getElementById('user-list-container');
+
+    // #7: bind these delegated listeners EXACTLY ONCE per container element.
+    // initUserManagement() runs on every Users-tab visit, but the container
+    // persists across visits — re-binding here stacked duplicate handlers and
+    // multiplied every action (reset/edit/delete) by the visit count.
+    if (container.dataset.userMgmtListenersBound === 'true') {
+        return;
+    }
+    container.dataset.userMgmtListenersBound = 'true';
 
     // Handle user edit event
     container.addEventListener('user-edit', async (event) => {
