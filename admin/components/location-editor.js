@@ -16,6 +16,10 @@ import { initKeyboardShortcuts, registerDefaultShortcuts, cleanupKeyboardShortcu
 let csvData = [];
 let filteredData = [];
 let selectedRows = new Set();
+// Module-singleton guard for the localeChanged re-render listener (leak class
+// #133): initLocationEditor runs on every Location-tab visit, so an unguarded
+// anonymous listener accumulated one handler per visit.
+let _localeListenerAttached = false;
 const CLOUDFRONT_URL = 'https://d3h8i7y9p8lyw7.cloudfront.net';
 
 // Fallback translations
@@ -58,6 +62,22 @@ function escapeHtml(str) {
 }
 
 /**
+ * Re-render the location editor in place on a language toggle. Named handler
+ * bound exactly once (leak class #133) — reads the persistent #location-editor
+ * element by id rather than closing over a per-visit `container` arg.
+ */
+function handleLocationEditorLocaleChanged() {
+  const container = document.getElementById('location-editor');
+  if (!container) return;
+  container.innerHTML = renderEditor();
+  setupEditorEvents();
+  if (filteredData.length > 0) {
+    renderResults();
+  }
+  applyRoleBasedUI();
+}
+
+/**
  * Initialize the Location Editor component
  */
 export function initLocationEditor() {
@@ -72,15 +92,11 @@ export function initLocationEditor() {
   loadCSVData();
   setupKeyboardShortcuts();
 
-  // Listen for locale changes to re-render
-  document.addEventListener('localeChanged', () => {
-    container.innerHTML = renderEditor();
-    setupEditorEvents();
-    if (filteredData.length > 0) {
-      renderResults();
-    }
-    applyRoleBasedUI();
-  });
+  // Listen for locale changes to re-render. Bind exactly once (leak class #133).
+  if (!_localeListenerAttached) {
+    _localeListenerAttached = true;
+    document.addEventListener('localeChanged', handleLocationEditorLocaleChanged);
+  }
 }
 
 /**

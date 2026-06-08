@@ -31,6 +31,18 @@ function t(key) {
 let onPreviewCallback = null;
 let onRestoreCallback = null;
 
+// #133: bind the document `localeChanged` listener exactly once. Previously
+// initVersionHistory added a fresh anonymous listener on every call (and the
+// listener re-called initVersionHistory, adding another), so one language toggle
+// re-ran the init N times — duplicate fetches + an unbounded listener leak.
+let localeListenerBound = false;
+let currentInitOptions = {};
+
+function handleVersionsLocaleChanged() {
+  // Re-render in place with the latest options; does NOT re-bind the listener.
+  initVersionHistory(currentInitOptions);
+}
+
 /**
  * Format file size in human-readable format (B, KB, MB, GB)
  * @param {number} bytes - File size in bytes
@@ -314,6 +326,7 @@ export async function initVersionHistory(options = {}) {
   // Store callbacks
   onPreviewCallback = onPreview;
   onRestoreCallback = onRestore;
+  currentInitOptions = options; // #133: latest options the locale handler re-uses
 
   const container = document.getElementById('version-history');
   if (!container) {
@@ -338,9 +351,11 @@ export async function initVersionHistory(options = {}) {
     container.innerHTML = renderErrorState();
   }
 
-  // Listen for locale changes to re-render
-  document.addEventListener('localeChanged', async () => {
-    // Re-initialize with same options
-    await initVersionHistory(options);
-  });
+  // #133: bind the locale-change re-render exactly once (named handler reads the
+  // latest options from module scope), instead of adding a new anonymous listener
+  // on every call.
+  if (!localeListenerBound) {
+    localeListenerBound = true;
+    document.addEventListener('localeChanged', handleVersionsLocaleChanged);
+  }
 }
