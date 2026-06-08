@@ -77,6 +77,14 @@ class UserList {
     this.searchQuery = '';
     this.loading = false;
 
+    // #152 redesign: "Reset password" SETS a temporary password (no email), so
+    // the persistent "✓ Sent · Resend" affordance is retired. The only per-row
+    // state left is `resetInFlight`, which drives a transient disabled "Working…"
+    // control during the request; it clears on updateUsers() (a fresh list load)
+    // and when the request settles. The success feedback is the temp-password
+    // dialog shown by user-management.
+    this.resetInFlight = new Set();
+
     // Bind methods
     this.render = this.render.bind(this);
     this.handleSearch = debounce(this.handleSearch.bind(this), DEBOUNCE_DELAY);
@@ -109,7 +117,25 @@ class UserList {
    */
   updateUsers(users) {
     this.users = users;
+    // Fresh list load ⇒ fresh per-row reset state (#152: transient in-flight only).
+    this.resetInFlight.clear();
     this.filterUsers(this.searchQuery);
+    this.render();
+    this.setupEventListeners();
+  }
+
+  /**
+   * Mark a per-row password-reset request as in flight (true) or settled (false).
+   * Drives the transient disabled "Working…" control. #152 redesign.
+   * @param {string} username
+   * @param {boolean} inFlight
+   */
+  setResetInFlight(username, inFlight) {
+    if (inFlight) {
+      this.resetInFlight.add(username);
+    } else {
+      this.resetInFlight.delete(username);
+    }
     this.render();
     this.setupEventListeners();
   }
@@ -272,14 +298,7 @@ class UserList {
         >
           ${escapeHtml(this.t('users.edit'))}
         </button>
-        <button
-          data-testid="reset-password-button"
-          data-username="${escapeHtml(user.username)}"
-          class="px-2 py-1 text-xs font-medium text-yellow-600 hover:text-yellow-800 hover:bg-yellow-50 rounded focus:outline-none focus:ring-2 focus:ring-yellow-500"
-          aria-label="${escapeHtml(this.t('users.resetPassword'))} ${escapeHtml(user.username)}"
-        >
-          ${escapeHtml(this.t('users.resetPassword'))}
-        </button>
+        ${this.renderResetControl(user)}
         <button
           data-testid="delete-button"
           data-username="${escapeHtml(user.username)}"
@@ -289,6 +308,38 @@ class UserList {
           ${escapeHtml(this.t('users.delete'))}
         </button>
       </div>
+    `;
+  }
+
+  /**
+   * Render the per-row password-reset control. #152 redesign: only two states —
+   * idle ("Reset password") and working (disabled "Working…" while the request
+   * is in flight). No email is sent, so there is no persistent "✓ Sent · Resend"
+   * affordance; the success feedback is the temp-password dialog. Keeps the same
+   * data-testid + data-username so the delegated click handler (#7) and the
+   * user-reset-password dispatch are unchanged; only label / data-reset-state /
+   * disabled differ.
+   * @param {Object} user
+   * @returns {string} HTML
+   */
+  renderResetControl(user) {
+    const username = user.username;
+    const inFlight = this.resetInFlight.has(username);
+    const state = inFlight ? 'working' : 'idle';
+
+    const label = inFlight ? this.t('users.resetWorking') : this.t('users.resetPassword');
+
+    return `
+      <button
+        data-testid="reset-password-button"
+        data-username="${escapeHtml(username)}"
+        data-reset-state="${state}"
+        ${inFlight ? 'disabled' : ''}
+        class="px-2 py-1 text-xs font-medium text-yellow-600 hover:text-yellow-800 hover:bg-yellow-50 focus:ring-yellow-500 rounded focus:outline-none focus:ring-2 disabled:opacity-50 disabled:cursor-not-allowed"
+        aria-label="${escapeHtml(label)} ${escapeHtml(username)}"
+      >
+        ${escapeHtml(label)}
+      </button>
     `;
   }
 

@@ -26,6 +26,15 @@ const FALLBACKS = {
   'trash.confirmDelete': { en: 'This action cannot be undone.', he: 'לא ניתן לבטל פעולה זו.' }
 };
 
+// Module-singleton guards + latest render context for the document listeners
+// (leak class #133): initTrashView added fresh anonymous `trashUpdated` and
+// `localeChanged` listeners on every call, so re-opening the trash view
+// accumulated handlers. Bind each listener exactly once; the named handlers
+// re-render using the latest container/onRestore stored here.
+let _trashListenersAttached = false;
+let _trashContainer = null;
+let _trashOnRestore = null;
+
 /**
  * Translation helper with fallbacks
  * @param {string} key - Translation key
@@ -89,18 +98,34 @@ export function initTrashView(container, options = {}) {
 
   const { onRestore } = options;
 
+  // Remember the latest render context for the named (bound-once) handlers.
+  _trashContainer = container;
+  _trashOnRestore = onRestore;
+
   // Initial render
   renderTrashView(container, onRestore);
 
-  // Listen for trash updates
-  document.addEventListener('trashUpdated', () => {
-    renderTrashView(container, onRestore);
-  });
+  // Bind the document listeners exactly once (leak class #133). Both handlers
+  // re-render using the latest container/onRestore from module scope.
+  if (!_trashListenersAttached) {
+    _trashListenersAttached = true;
+    document.addEventListener('trashUpdated', handleTrashUpdated);
+    document.addEventListener('localeChanged', handleTrashLocaleChanged);
+  }
+}
 
-  // Listen for locale changes
-  document.addEventListener('localeChanged', () => {
-    renderTrashView(container, onRestore);
-  });
+/**
+ * Re-render the trash view when the trash changes. Named handler bound once.
+ */
+function handleTrashUpdated() {
+  if (_trashContainer) renderTrashView(_trashContainer, _trashOnRestore);
+}
+
+/**
+ * Re-render the trash view on a language toggle. Named handler bound once.
+ */
+function handleTrashLocaleChanged() {
+  if (_trashContainer) renderTrashView(_trashContainer, _trashOnRestore);
 }
 
 /**
