@@ -1,8 +1,14 @@
 /**
  * Reset User Password Lambda Function
- * Admin-triggered password reset for user
- * Sends a new temporary password via email
- * User will be forced to change password on next login (FORCE_CHANGE_PASSWORD status)
+ * Admin-triggered password reset for user (Option A — self-service code).
+ *
+ * Uses Cognito AdminResetUserPasswordCommand, which:
+ *  - sets the account status to RESET_REQUIRED, and
+ *  - emails the user a bare verification CODE via the forgot-password template.
+ * It does NOT send a temporary password and does NOT set FORCE_CHANGE_PASSWORD.
+ * The user completes the reset on the login page's "Forgot your password?" flow
+ * (enter the emailed code, then choose a new password). No password value is
+ * ever generated, returned, or surfaced to the admin.
  */
 
 import {
@@ -63,8 +69,9 @@ export const handler = async (event) => {
   }
 
   try {
-    // Reset the user's password - this triggers email with temporary password
-    // and sets user status to FORCE_CHANGE_PASSWORD
+    // Reset the user's password - this sets the account to RESET_REQUIRED and
+    // emails the user a verification CODE (via the forgot-password template).
+    // It does NOT send a temporary password and does NOT set FORCE_CHANGE_PASSWORD.
     const resetPasswordCommand = new AdminResetUserPasswordCommand({
       UserPoolId: USER_POOL_ID,
       Username: username
@@ -78,7 +85,7 @@ export const handler = async (event) => {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        message: 'Password reset initiated. A temporary password has been sent via email. User will be forced to change password on next login.',
+        message: 'Password reset initiated. A verification code has been emailed to the user. They complete the reset on the login page via "Forgot your password?" (enter the code, then set a new password).',
         username: username
       })
     };
