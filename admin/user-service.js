@@ -186,14 +186,17 @@ export async function deleteUser(username) {
 }
 
 /**
- * Reset a user's password (Option A — self-service code).
+ * Reset a user's password (admin SETS a temporary password — no email).
  *
- * Triggers Cognito's AdminResetUserPasswordCommand server-side, which emails the
- * user a verification CODE and sets their account to RESET_REQUIRED. No password
- * value is generated or returned — the user finishes on the login page's
- * "Forgot your password?" flow (enter the emailed code, then set a new password).
+ * Triggers Cognito's AdminSetUserPasswordCommand(Permanent:false) server-side,
+ * which sets a server-generated temporary password and puts the account into
+ * FORCE_CHANGE_PASSWORD. NO email is sent. The temporary password is returned
+ * once in the response body as `temporaryPassword` — the admin must relay it to
+ * the user out-of-band (e.g. by phone or in person). The user signs in with it
+ * and is immediately required to choose their own permanent password.
  * @param {string} username - Username to reset password for
- * @returns {Promise<{message: string, username: string}>} Reset confirmation (no password is returned)
+ * @returns {Promise<{message: string, username: string, temporaryPassword: string}>}
+ *   Reset result. `temporaryPassword` is the value the admin must give the user.
  * @throws {ApiError} On API or network error
  */
 export async function resetPassword(username) {

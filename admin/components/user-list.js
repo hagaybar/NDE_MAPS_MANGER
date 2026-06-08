@@ -77,10 +77,12 @@ class UserList {
     this.searchQuery = '';
     this.loading = false;
 
-    // #7 follow-up: per-row password-reset state. `resetSentUsernames` drives the
-    // persistent "✓ Sent · Resend" affordance; `resetInFlight` drives the disabled
-    // "Sending…" state. Both clear on updateUsers() (a fresh list load).
-    this.resetSentUsernames = new Set();
+    // #152 redesign: "Reset password" SETS a temporary password (no email), so
+    // the persistent "✓ Sent · Resend" affordance is retired. The only per-row
+    // state left is `resetInFlight`, which drives a transient disabled "Working…"
+    // control during the request; it clears on updateUsers() (a fresh list load)
+    // and when the request settles. The success feedback is the temp-password
+    // dialog shown by user-management.
     this.resetInFlight = new Set();
 
     // Bind methods
@@ -115,8 +117,7 @@ class UserList {
    */
   updateUsers(users) {
     this.users = users;
-    // Fresh list load ⇒ fresh per-row reset state (#7 follow-up).
-    this.resetSentUsernames.clear();
+    // Fresh list load ⇒ fresh per-row reset state (#152: transient in-flight only).
     this.resetInFlight.clear();
     this.filterUsers(this.searchQuery);
     this.render();
@@ -125,7 +126,7 @@ class UserList {
 
   /**
    * Mark a per-row password-reset request as in flight (true) or settled (false).
-   * Drives the disabled "Sending…" control. #7 follow-up.
+   * Drives the transient disabled "Working…" control. #152 redesign.
    * @param {string} username
    * @param {boolean} inFlight
    */
@@ -135,19 +136,6 @@ class UserList {
     } else {
       this.resetInFlight.delete(username);
     }
-    this.render();
-    this.setupEventListeners();
-  }
-
-  /**
-   * Record that a reset email was sent for this user, flipping the row's control
-   * to the persistent "✓ Sent · Resend" state. Clears any in-flight flag.
-   * #7 follow-up.
-   * @param {string} username
-   */
-  markResetSent(username) {
-    this.resetInFlight.delete(username);
-    this.resetSentUsernames.add(username);
     this.render();
     this.setupEventListeners();
   }
@@ -324,40 +312,30 @@ class UserList {
   }
 
   /**
-   * Render the per-row password-reset control. #7 follow-up: three states —
-   * idle ("Reset password"), sending (disabled "Sending…"), and sent
-   * ("✓ Sent" marker + "Resend"). Keeps the same data-testid + data-username so
-   * the delegated click handler (#7) and the user-reset-password dispatch are
-   * unchanged; only label / data-reset-state / disabled differ.
+   * Render the per-row password-reset control. #152 redesign: only two states —
+   * idle ("Reset password") and working (disabled "Working…" while the request
+   * is in flight). No email is sent, so there is no persistent "✓ Sent · Resend"
+   * affordance; the success feedback is the temp-password dialog. Keeps the same
+   * data-testid + data-username so the delegated click handler (#7) and the
+   * user-reset-password dispatch are unchanged; only label / data-reset-state /
+   * disabled differ.
    * @param {Object} user
    * @returns {string} HTML
    */
   renderResetControl(user) {
     const username = user.username;
     const inFlight = this.resetInFlight.has(username);
-    const sent = this.resetSentUsernames.has(username);
-    const state = inFlight ? 'sending' : (sent ? 'sent' : 'idle');
+    const state = inFlight ? 'working' : 'idle';
 
-    const label = inFlight
-      ? this.t('users.resetSending')
-      : (sent ? this.t('users.resetResend') : this.t('users.resetPassword'));
-
-    const colorClasses = sent
-      ? 'text-green-600 hover:text-green-800 hover:bg-green-50 focus:ring-green-500'
-      : 'text-yellow-600 hover:text-yellow-800 hover:bg-yellow-50 focus:ring-yellow-500';
-
-    const sentMarker = sent
-      ? `<span class="text-xs text-green-600 self-center" data-testid="reset-sent-marker">✓ ${escapeHtml(this.t('users.resetSentMarker'))}</span>`
-      : '';
+    const label = inFlight ? this.t('users.resetWorking') : this.t('users.resetPassword');
 
     return `
-      ${sentMarker}
       <button
         data-testid="reset-password-button"
         data-username="${escapeHtml(username)}"
         data-reset-state="${state}"
         ${inFlight ? 'disabled' : ''}
-        class="px-2 py-1 text-xs font-medium ${colorClasses} rounded focus:outline-none focus:ring-2 disabled:opacity-50 disabled:cursor-not-allowed"
+        class="px-2 py-1 text-xs font-medium text-yellow-600 hover:text-yellow-800 hover:bg-yellow-50 focus:ring-yellow-500 rounded focus:outline-none focus:ring-2 disabled:opacity-50 disabled:cursor-not-allowed"
         aria-label="${escapeHtml(label)} ${escapeHtml(username)}"
       >
         ${escapeHtml(label)}
