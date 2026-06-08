@@ -182,22 +182,29 @@ async function loadCSVData() {
 /**
  * Parse CSV text to array of objects
  */
-function parseCSV(text) {
-  const lines = text.trim().split('\n');
+export function parseCSV(text) {
+  // #138: split on CRLF or LF (canonical, matches csv-editor) — not
+  // text.trim().split('\n'), which left a stray '\r' inside the last field.
+  const lines = text.split(/\r?\n/);
   if (lines.length < 2) return [];
 
   const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
   const rows = [];
 
   for (let i = 1; i < lines.length; i++) {
+    // Skip genuinely blank lines (e.g. a trailing CRLF) WITHOUT shifting
+    // _index, which stays line-based so "go to row" navigation lands correctly.
+    if (lines[i].trim() === '') continue;
     const values = parseCSVLine(lines[i]);
-    if (values.length === headers.length) {
-      const row = { _index: i - 1 };
-      headers.forEach((h, idx) => {
-        row[h] = values[idx];
-      });
-      rows.push(row);
-    }
+    // #138: build a row for EVERY non-blank line — fill missing columns with ''
+    // and ignore extras — instead of silently DROPPING count-mismatched rows.
+    // The dashboard exists to surface broken rows; dropping them hid the very
+    // data-integrity problems it's meant to report.
+    const row = { _index: i - 1 };
+    headers.forEach((h, idx) => {
+      row[h] = values[idx] || '';
+    });
+    rows.push(row);
   }
 
   return rows;
