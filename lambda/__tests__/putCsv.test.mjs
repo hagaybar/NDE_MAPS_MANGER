@@ -110,6 +110,35 @@ beforeEach(() => {
   cfMock.on(CreateInvalidationCommand).resolves({});
 });
 
+describe('putCsv — no PII in logs (#63)', () => {
+  test('an editor range-violation save logs no email or edit payload', async () => {
+    const auth = await import('../auth-middleware.mjs');
+    // One-time override: a range-restricted editor (the default mock is admin).
+    auth.validateToken.mockResolvedValueOnce({
+      isValid: true,
+      user: {
+        username: 'editor@example.com', email: 'editor@example.com', sub: 'sub-ed', role: 'editor',
+        allowedRanges: { enabled: true, filterGroups: [{ collections: ['ALLOWED-COLL'], floors: [], callNumberRanges: [] }] },
+      },
+    });
+    const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+    // A NEW row in a collection the editor is NOT allowed to touch -> ADD violation
+    // (whose `row` carries the full payload). The save still runs the version-save
+    // step first (current mapping.csv exists), so this exercises BOTH log sites.
+    const row = 'Lib,Lib,FORBIDDEN-COLL,אוסף,100,200,CB_0,d,d,0,L,L,n,n';
+    const res = await handler(makeEvent(`${HEADER_LINE}\n${row}`, 'editor-token'));
+
+    expect(res.statusCode).toBe(403); // range-restricted edit rejected
+    const logged = [...logSpy.mock.calls, ...warnSpy.mock.calls].map((c) => JSON.stringify(c)).join('\n');
+    logSpy.mockRestore();
+    warnSpy.mockRestore();
+    expect(logged).not.toMatch(/editor@example\.com/); // version-save key (line 83) + identifier (line 107)
+    expect(logged).not.toMatch(/FORBIDDEN-COLL/);       // the violations payload (line 107)
+  });
+});
+
 describe('putCsv — bundle invariant', () => {
   test('with flag ON: rejects 422 when CSV references a missing shelf', async () => {
     process.env.BUNDLE_INVARIANT_ENABLED = 'true';

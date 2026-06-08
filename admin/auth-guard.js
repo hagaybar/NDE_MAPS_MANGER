@@ -57,13 +57,16 @@ export async function init() {
   const user = authService.getUser();
   currentRole = user?.role || 'viewer';
 
-  console.log('[AuthGuard] User authenticated:', { user, currentRole });
+  // #63: log a non-PII signal only — never the user object (it carries
+  // email / username / allowedRanges, which would land in the browser console).
+  console.log('[AuthGuard] User authenticated', { role: currentRole });
 
   applyRoleBasedUI();
 
   // Subscribe to auth state changes
   authService.onAuthStateChanged((authenticated, user) => {
-    console.log('[AuthGuard] onAuthStateChanged:', { authenticated, user, existingRole: currentRole });
+    // #63: do not log `authenticated`/`user` — they nest the librarian's PII.
+    console.log('[AuthGuard] auth state changed', { role: currentRole });
     if (authenticated) {
       // Only update role if we get a valid role from the user object
       // Don't downgrade from admin to viewer
