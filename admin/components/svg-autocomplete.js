@@ -141,12 +141,17 @@ export function initSvgAutocomplete(container, onSelect) {
     });
   });
 
-  // Close dropdown when clicking outside
-  document.addEventListener('click', (e) => {
+  // Close dropdown when clicking outside. #161: bind a NAMED handler and return
+  // a cleanup so the caller can remove it on close — `document` persists, so an
+  // anonymous re-bound-per-render listener accumulated for the whole session.
+  const handleDocumentClick = (e) => {
     if (activeDropdown && !e.target.closest('.svg-autocomplete-wrapper')) {
       hideDropdown(activeDropdown.dropdown, activeDropdown.input);
     }
-  });
+  };
+  document.addEventListener('click', handleDocumentClick);
+
+  return () => document.removeEventListener('click', handleDocumentClick);
 }
 
 /**
