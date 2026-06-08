@@ -747,10 +747,13 @@ function updateDialogState(isNew) {
  * Handle cancel
  */
 function handleCancel() {
-  // Check for unsaved changes
+  // #136: confirm before discarding unsaved edits (this branch was a stub, so
+  // Cancel / X / backdrop / Escape silently threw away changes). Matches the Map
+  // Editor's esc-handler precedent (window.confirm + an i18n message).
   if (originalRow && hasChanges()) {
-    // Could show confirmation dialog
-    // For now, just close
+    if (!window.confirm(t('dialog.discardChanges'))) {
+      return; // user chose to keep editing — leave the dialog open
+    }
   }
 
   closeDialog({ cancelled: true });
