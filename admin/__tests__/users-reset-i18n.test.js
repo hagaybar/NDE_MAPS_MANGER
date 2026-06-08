@@ -1,11 +1,13 @@
 /**
- * Honest reset-password messaging (Option A, #7 follow-up).
+ * Honest reset-password messaging (#152 redesign: admin SETS a temp password).
  *
- * AdminResetUserPasswordCommand emails the user a bare verification CODE and
- * sets RESET_REQUIRED — it does NOT send a temporary password and does NOT set
- * FORCE_CHANGE_PASSWORD. The admin-facing toast MUST say so honestly: a reset
- * CODE was emailed, and the user finishes on the login page via "Forgot your
- * password?". These tests pin both locales so the toast never lies again.
+ * resetUserPassword.mjs now calls AdminSetUserPasswordCommand(Permanent:false):
+ * it sets a temporary password + FORCE_CHANGE_PASSWORD and sends NO email. The
+ * admin receives the temporary password in the response and relays it to the
+ * user out-of-band. The user-facing strings MUST reflect this: the new strings
+ * live under users.tempPassword* and must NOT claim an email / reset code was
+ * sent. These tests pin both locales so the copy never regresses to the old
+ * (now-false) "a code was emailed" / "temporary password emailed" wording.
  */
 
 import { readFileSync } from 'fs';
@@ -13,35 +15,53 @@ import { readFileSync } from 'fs';
 const en = JSON.parse(readFileSync(new URL('../i18n/en.json', import.meta.url), 'utf8'));
 const he = JSON.parse(readFileSync(new URL('../i18n/he.json', import.meta.url), 'utf8'));
 
-describe('users.resetSuccess honest messaging (Option A)', () => {
-  test('EN resetSuccess is a non-empty string', () => {
-    expect(typeof en.users.resetSuccess).toBe('string');
-    expect(en.users.resetSuccess.length).toBeGreaterThan(0);
+describe('temp-password dialog strings exist (Option B, no email)', () => {
+  const requiredKeys = [
+    'tempPasswordTitle',
+    'tempPasswordInstructions',
+    'tempPasswordCopy',
+    'tempPasswordCopied'
+  ];
+
+  test.each(requiredKeys)('EN users.%s is a non-empty string', (key) => {
+    expect(typeof en.users[key]).toBe('string');
+    expect(en.users[key].length).toBeGreaterThan(0);
   });
 
-  test('HE resetSuccess is a non-empty string', () => {
-    expect(typeof he.users.resetSuccess).toBe('string');
-    expect(he.users.resetSuccess.length).toBeGreaterThan(0);
+  test.each(requiredKeys)('HE users.%s is a non-empty string', (key) => {
+    expect(typeof he.users[key]).toBe('string');
+    expect(he.users[key].length).toBeGreaterThan(0);
   });
 
-  test('EN resetSuccess does NOT claim a temporary password was sent', () => {
-    expect(en.users.resetSuccess.toLowerCase()).not.toContain('temporary password');
+  test('EN instructions interpolate {username}', () => {
+    expect(en.users.tempPasswordInstructions).toContain('{username}');
   });
 
-  test('EN resetSuccess mentions the emailed code and "Forgot your password?"', () => {
-    const msg = en.users.resetSuccess.toLowerCase();
-    expect(msg).toContain('code');
-    expect(msg).toContain('email');
-    expect(msg).toContain('forgot your password');
+  test('HE instructions interpolate {username}', () => {
+    expect(he.users.tempPasswordInstructions).toContain('{username}');
   });
 
-  test('HE resetSuccess does NOT claim a temporary password (סיסמה זמנית) was sent', () => {
-    // The old (false) Hebrew string said "סיסמה זמנית נשלחה" (temporary password sent).
-    expect(he.users.resetSuccess).not.toContain('סיסמה זמנית');
+  test('EN instructions do NOT claim an email / reset code was sent', () => {
+    const msg = en.users.tempPasswordInstructions.toLowerCase();
+    expect(msg).not.toContain('email');
+    expect(msg).not.toContain('reset code');
+    expect(msg).not.toContain('forgot your password');
   });
 
-  test('HE resetSuccess mentions a code (קוד) and the "Forgot your password?" flow (שכחתי)', () => {
-    expect(he.users.resetSuccess).toContain('קוד');
-    expect(he.users.resetSuccess).toContain('שכחתי');
+  test('HE instructions do NOT claim a code (קוד) was emailed or use the forgot-password (שכחתי) flow', () => {
+    expect(he.users.tempPasswordInstructions).not.toContain('שכחתי');
+    expect(he.users.tempPasswordInstructions).not.toContain('דוא');
+  });
+});
+
+describe('obsolete #152 email-resend strings are retired', () => {
+  test('EN no longer carries resetResend / resetSentMarker email-resend strings', () => {
+    expect(en.users.resetResend).toBeUndefined();
+    expect(en.users.resetSentMarker).toBeUndefined();
+  });
+
+  test('HE no longer carries resetResend / resetSentMarker email-resend strings', () => {
+    expect(he.users.resetResend).toBeUndefined();
+    expect(he.users.resetSentMarker).toBeUndefined();
   });
 });

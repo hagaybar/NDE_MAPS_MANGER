@@ -22,9 +22,7 @@ const mockI18nEnglish = {
       'users.edit': 'Edit',
       'users.delete': 'Delete',
       'users.resetPassword': 'Reset Password',
-      'users.resetResend': 'Resend',
-      'users.resetSentMarker': 'Sent',
-      'users.resetSending': 'Sending…',
+      'users.resetWorking': 'Working…',
       'users.enabled': 'Enabled',
       'users.disabled': 'Disabled',
       'users.forceChangePassword': 'Must Change Password',
@@ -546,40 +544,26 @@ describe('UserList Component', () => {
       expect(resetEventHandler).toHaveBeenCalledTimes(1);
     });
 
-    // #7 follow-up: per-row "Resend" affordance after a reset is sent.
+    // #152 redesign: no email is sent on reset, so the persistent
+    // "✓ Sent · Resend" affordance is retired. The only transient feedback is a
+    // disabled "Working…" control while the request is in flight. The success
+    // feedback is the temp-password dialog (handled in user-management). The
+    // admin can click "Reset password" again at any time to generate a NEW temp
+    // password — so the control returns to the plain idle state when settled.
     const resetBtnFor = (username) =>
       document.querySelector(`[data-testid="reset-password-button"][data-username="${username}"]`);
 
-    test('markResetSent flips that user\'s reset control to the "sent" state', async () => {
+    test('there is no persistent "sent" marker after a reset (#152: no email)', async () => {
       const container = document.getElementById('user-list');
       const userList = new UserList(container);
       await userList.init({ users: mockUsers });
 
-      expect(resetBtnFor('admin_user').getAttribute('data-reset-state')).toBe('idle');
-
-      userList.markResetSent('admin_user');
-
-      expect(resetBtnFor('admin_user').getAttribute('data-reset-state')).toBe('sent');
-      // other rows are unaffected
-      expect(resetBtnFor('editor1').getAttribute('data-reset-state')).toBe('idle');
+      // The old persistent email-resend marker must be gone entirely.
+      expect(document.querySelector('[data-testid="reset-sent-marker"]')).toBeNull();
+      expect(typeof userList.markResetSent).toBe('undefined');
     });
 
-    test('clicking the sent-state control resends (dispatches user-reset-password again)', async () => {
-      const container = document.getElementById('user-list');
-      const userList = new UserList(container);
-      await userList.init({ users: mockUsers });
-      userList.markResetSent('admin_user');
-
-      const resetEventHandler = jest.fn();
-      container.addEventListener('user-reset-password', resetEventHandler);
-
-      resetBtnFor('admin_user').click();
-
-      expect(resetEventHandler).toHaveBeenCalledTimes(1);
-      expect(resetEventHandler.mock.calls[0][0].detail.username).toBe('admin_user');
-    });
-
-    test('setResetInFlight shows a disabled "sending" control for that user', async () => {
+    test('setResetInFlight shows a disabled "working" control for that user', async () => {
       const container = document.getElementById('user-list');
       const userList = new UserList(container);
       await userList.init({ users: mockUsers });
@@ -587,20 +571,28 @@ describe('UserList Component', () => {
       userList.setResetInFlight('admin_user', true);
 
       const btn = resetBtnFor('admin_user');
-      expect(btn.getAttribute('data-reset-state')).toBe('sending');
+      expect(btn.getAttribute('data-reset-state')).toBe('working');
       expect(btn.disabled).toBe(true);
+      // The in-flight label is the transient "Working…" copy, not a sent marker.
+      expect(btn.textContent.trim()).toBe('Working…');
+      // other rows are unaffected
+      expect(resetBtnFor('editor1').getAttribute('data-reset-state')).toBe('idle');
     });
 
-    test('the sent marker clears when the list reloads (updateUsers)', async () => {
+    test('clearing the in-flight flag returns the control to the plain idle state', async () => {
       const container = document.getElementById('user-list');
       const userList = new UserList(container);
       await userList.init({ users: mockUsers });
-      userList.markResetSent('admin_user');
-      expect(resetBtnFor('admin_user').getAttribute('data-reset-state')).toBe('sent');
 
-      userList.updateUsers(mockUsers); // fresh data from a refresh/search/paginate
+      userList.setResetInFlight('admin_user', true);
+      expect(resetBtnFor('admin_user').getAttribute('data-reset-state')).toBe('working');
 
-      expect(resetBtnFor('admin_user').getAttribute('data-reset-state')).toBe('idle');
+      userList.setResetInFlight('admin_user', false);
+
+      const btn = resetBtnFor('admin_user');
+      expect(btn.getAttribute('data-reset-state')).toBe('idle');
+      expect(btn.disabled).toBe(false);
+      expect(btn.textContent.trim()).toBe('Reset Password');
     });
 
     test('should emit user-delete event when Delete is clicked', async () => {

@@ -8,6 +8,7 @@ import UserList from './user-list.js';
 import { showCreateUserDialog, hideCreateUserDialog } from './create-user-dialog.js';
 import { showEditUserDialog, hideEditUserDialog } from './edit-user-dialog.js';
 import { showDeleteUserConfirmDialog, hideDeleteUserConfirmDialog } from './delete-user-confirm-dialog.js';
+import { showTempPasswordDialog } from './temp-password-dialog.js';
 import * as userService from '../user-service.js';
 import { showToast } from '../app.js';
 
@@ -190,22 +191,32 @@ async function handleDeleteUser(user) {
 }
 
 /**
- * Handle password reset action
+ * Handle password reset action.
+ *
+ * #152 redesign: the server now SETS a temporary password (no email). On success
+ * we show the returned temporary password in a copyable dialog so the admin can
+ * relay it to the user out-of-band — that dialog IS the success feedback (no
+ * "sent via email" toast, no persistent resend marker). The per-row control only
+ * shows a transient disabled "Working…" state while the request is in flight,
+ * then returns to plain idle (the admin can click again to mint a new password).
+ *
+ * SECURITY: the temporary password is never logged; it is passed straight into
+ * the dialog.
  * @param {object} user - The user to reset password for
  */
 async function handleResetPassword(user) {
-    // #7 follow-up: drive the per-row control state so the admin sees the request
-    // in flight, then the persistent "✓ Sent · Resend" affordance (clicking it
-    // re-enters this same handler to resend).
     try {
         userListInstance?.setResetInFlight(user.username, true);
-        await userService.resetPassword(user.username);
-        userListInstance?.markResetSent(user.username);
-        const sentTo = user.email || user.username;
-        showToast(i18n.t('users.resetSuccess').replace('{email}', sentTo), 'success');
+        const result = await userService.resetPassword(user.username);
+        const displayName = user.email || user.username;
+        showTempPasswordDialog({
+            username: displayName,
+            temporaryPassword: result?.temporaryPassword
+        });
     } catch (error) {
         console.error('Failed to reset password:', error);
-        userListInstance?.setResetInFlight(user.username, false);
         showToast(i18n.t('users.resetError'), 'error');
+    } finally {
+        userListInstance?.setResetInFlight(user.username, false);
     }
 }
