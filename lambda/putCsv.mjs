@@ -80,7 +80,9 @@ export const handler = async (event) => {
         ContentType: 'text/csv; charset=utf-8'
       });
       await s3.send(saveVersionCommand);
-      console.log(`Saved version: ${versionKey}`);
+      // #63: don't log the versionKey — it embeds the editor's email. Log the
+      // timestamp only (the email stays in the S3 key by design for Version History).
+      console.log(`Saved version at ${timestamp}`);
     } catch (error) {
       // If file doesn't exist yet, that's okay - skip versioning
       if (error.name !== 'NoSuchKey') {
@@ -104,7 +106,10 @@ export const handler = async (event) => {
         const violationMessages = rangeValidation.violations.map(v => v.message);
         const errorMessage = `Edit rejected: You can only modify rows within your assigned range. Violations: ${violationMessages.join('; ')}`;
 
-        console.warn(`Range validation failed for user ${userIdentifier}:`, rangeValidation.violations);
+        // #63: log a non-PII summary — not the email or the violations array
+        // (each violation embeds the full attempted-edit row). The full detail is
+        // already returned to the authenticated caller in the 403 body.
+        console.warn('Range validation failed', { sub: authResult.user.sub, violations: rangeValidation.violations.length });
 
         return {
           statusCode: 403,

@@ -100,6 +100,25 @@ describe('Auth Guard', () => {
     });
   });
 
+  describe('#63 — no PII in console logs', () => {
+    it('init() / auth-state-change log the role only, never the user object / email / allowedRanges', async () => {
+      const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+      const piiUser = {
+        username: 'lib@example.com', email: 'lib@example.com', role: 'editor',
+        allowedRanges: { enabled: true, filterGroups: [] }
+      };
+      mockAuthService._setAuthenticated(true, piiUser);
+      await init();
+      // fire an auth-state change too (covers the onAuthStateChanged log path)
+      mockAuthService._setAuthenticated(true, { ...piiUser, role: 'admin' });
+
+      const logged = logSpy.mock.calls.map((c) => JSON.stringify(c)).join('\n');
+      logSpy.mockRestore();
+      expect(logged).not.toMatch(/lib@example\.com/);
+      expect(logged).not.toMatch(/allowedRanges/);
+    });
+  });
+
   describe('hasPermission()', () => {
     describe('Admin role', () => {
       beforeEach(async () => {
