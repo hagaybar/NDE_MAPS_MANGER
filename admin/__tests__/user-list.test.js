@@ -22,6 +22,9 @@ const mockI18nEnglish = {
       'users.edit': 'Edit',
       'users.delete': 'Delete',
       'users.resetPassword': 'Reset Password',
+      'users.resetResend': 'Resend',
+      'users.resetSentMarker': 'Sent',
+      'users.resetSending': 'Sending…',
       'users.enabled': 'Enabled',
       'users.disabled': 'Disabled',
       'users.forceChangePassword': 'Must Change Password',
@@ -541,6 +544,63 @@ describe('UserList Component', () => {
       document.querySelector('[data-testid="reset-password-button"]').click();
 
       expect(resetEventHandler).toHaveBeenCalledTimes(1);
+    });
+
+    // #7 follow-up: per-row "Resend" affordance after a reset is sent.
+    const resetBtnFor = (username) =>
+      document.querySelector(`[data-testid="reset-password-button"][data-username="${username}"]`);
+
+    test('markResetSent flips that user\'s reset control to the "sent" state', async () => {
+      const container = document.getElementById('user-list');
+      const userList = new UserList(container);
+      await userList.init({ users: mockUsers });
+
+      expect(resetBtnFor('admin_user').getAttribute('data-reset-state')).toBe('idle');
+
+      userList.markResetSent('admin_user');
+
+      expect(resetBtnFor('admin_user').getAttribute('data-reset-state')).toBe('sent');
+      // other rows are unaffected
+      expect(resetBtnFor('editor1').getAttribute('data-reset-state')).toBe('idle');
+    });
+
+    test('clicking the sent-state control resends (dispatches user-reset-password again)', async () => {
+      const container = document.getElementById('user-list');
+      const userList = new UserList(container);
+      await userList.init({ users: mockUsers });
+      userList.markResetSent('admin_user');
+
+      const resetEventHandler = jest.fn();
+      container.addEventListener('user-reset-password', resetEventHandler);
+
+      resetBtnFor('admin_user').click();
+
+      expect(resetEventHandler).toHaveBeenCalledTimes(1);
+      expect(resetEventHandler.mock.calls[0][0].detail.username).toBe('admin_user');
+    });
+
+    test('setResetInFlight shows a disabled "sending" control for that user', async () => {
+      const container = document.getElementById('user-list');
+      const userList = new UserList(container);
+      await userList.init({ users: mockUsers });
+
+      userList.setResetInFlight('admin_user', true);
+
+      const btn = resetBtnFor('admin_user');
+      expect(btn.getAttribute('data-reset-state')).toBe('sending');
+      expect(btn.disabled).toBe(true);
+    });
+
+    test('the sent marker clears when the list reloads (updateUsers)', async () => {
+      const container = document.getElementById('user-list');
+      const userList = new UserList(container);
+      await userList.init({ users: mockUsers });
+      userList.markResetSent('admin_user');
+      expect(resetBtnFor('admin_user').getAttribute('data-reset-state')).toBe('sent');
+
+      userList.updateUsers(mockUsers); // fresh data from a refresh/search/paginate
+
+      expect(resetBtnFor('admin_user').getAttribute('data-reset-state')).toBe('idle');
     });
 
     test('should emit user-delete event when Delete is clicked', async () => {
