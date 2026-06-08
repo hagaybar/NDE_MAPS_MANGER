@@ -90,6 +90,25 @@ describe('VersionPreview Component', () => {
   });
 
   describe('Rendering with CSV Data', () => {
+    // #123: the version-content fetch must send auth headers (getAuthHeaders),
+    // or getVersion returns 401 and the preview never renders for anyone.
+    // getAuthHeaders returns {} in the test env (no token), so we assert the
+    // structural fix — the fetch now passes a headers object — rather than a
+    // specific token value.
+    test('sends auth headers when fetching version content (#123)', async () => {
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ content: mockCSVContent, ...mockVersionMetadata })
+      });
+
+      await showVersionPreview({ versionId: 'v123' });
+
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+      const [, opts] = global.fetch.mock.calls[0];
+      expect(opts).toBeDefined();
+      expect(typeof opts.headers).toBe('object');
+    });
+
     test('should render the preview modal with title', async () => {
       global.fetch.mockResolvedValueOnce({
         ok: true,
@@ -544,8 +563,11 @@ BF121,אגף פסיכולוגיה,2`;
 
       await showVersionPreview({ versionId: 'v123' });
 
+      // #123: the call now also carries auth headers (second arg). Still assert
+      // the endpoint — the test's real intent — while allowing the options arg.
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/versions/csv/v123')
+        expect.stringContaining('/api/versions/csv/v123'),
+        expect.objectContaining({ headers: expect.anything() })
       );
     });
   });
