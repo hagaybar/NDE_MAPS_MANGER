@@ -87,8 +87,10 @@ let currentCategory = null;
 let isLoading = false;
 let loadError = null;
 
-// Error code to category mapping
-const ERROR_CATEGORIES = {
+// Error code to category mapping. Exported for #105 regression guards.
+// W002 is declared in VALIDATION_WARNINGS but never emitted, so it is NOT mapped
+// here — unknown codes still fall back to 'format' via `|| 'format'` below.
+export const ERROR_CATEGORIES = {
   E001: 'required',
   E002: 'range',
   E003: 'floor',
@@ -96,12 +98,13 @@ const ERROR_CATEGORIES = {
   E005: 'duplicate',
   E006: 'svgCode',
   W001: 'overlap',
-  W002: 'format',
   W003: 'description'
 };
 
-// Category metadata
-const CATEGORY_META = {
+// Category metadata. Exported for #105 regression guards. `format` stays as the
+// unknown-code fallback bucket and is hidden from the summary when it has no
+// findings.
+export const CATEGORY_META = {
   required: { icon: 'alert-circle', color: 'red', severity: 'error' },
   range: { icon: 'arrows-horizontal', color: 'red', severity: 'error' },
   floor: { icon: 'building', color: 'red', severity: 'error' },
@@ -992,6 +995,7 @@ export function initErrorsDashboard(containerId) {
   return {
     refresh: loadCSVData,
     getStats,
+    getCategorizedIssues: () => categorizedIssues,
     destroy: () => {
       logger.debug('system', 'Errors dashboard destroyed');
       containerElement = null;
