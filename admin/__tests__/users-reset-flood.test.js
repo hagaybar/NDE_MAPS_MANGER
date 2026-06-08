@@ -85,6 +85,15 @@ describe('Users view: action listeners are bound once across re-inits (#7 reset-
       hideDeleteUserConfirmDialog: jest.fn()
     }));
 
+    // #127: handleEditUser now loads collection names from mapping.csv (via
+    // fetchMappingCsvText) before opening the edit dialog, so the edit flow is
+    // async. Mock that fetch so the chain resolves in-test (the edit assertion
+    // below also waits a macrotask for it).
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      text: () => Promise.resolve('libraryName,collectionName\nLib,Col\n')
+    });
+
     const module = await import('../components/user-management.js');
     initUserManagement = module.initUserManagement;
   });
@@ -134,7 +143,9 @@ describe('Users view: action listeners are bound once across re-inits (#7 reset-
     await visitUsersViewThreeTimes();
 
     clickActionFor('edit-button', 'editor1');
-    await Promise.resolve();
+    // #127: the edit flow now awaits a mapping.csv fetch before opening the
+    // dialog — flush a macrotask so that async chain completes before asserting.
+    await new Promise((r) => setTimeout(r, 0));
     await Promise.resolve();
 
     expect(mockShowEditUserDialog).toHaveBeenCalledTimes(1);
