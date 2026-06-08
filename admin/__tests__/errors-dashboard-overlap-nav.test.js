@@ -94,6 +94,82 @@ describe('Errors dashboard — overlap cluster navigation + honest counts', () =
     expect(new Set([...btns].map(b => b.dataset.rowIndex))).toEqual(new Set(['7', '8']));
   });
 
+  // ── #157: canonical spreadsheet row numbers on screen = rowIndex + 2 ───────
+  // (was rowIndex + 1; rebaselined to agree with Excel/Print.)
+  test('on-screen row numbers use the canonical spreadsheet line (rowIndex + 2)', async () => {
+    document.body.innerHTML = '<div id="dash"></div>';
+    initErrorsDashboard('dash');
+    await flush();
+    openCategory('overlap');
+    await flush();
+
+    // hub row 2 -> "Row 4" (2 + 2). The old code printed "Row 3".
+    const firstHeader = document.querySelector('.overlap-cluster-header').textContent;
+    expect(firstHeader).toMatch(/\b4\b/);
+    expect(firstHeader).not.toMatch(/\b3\b/);
+
+    // an affected child of hub 2 is row 0 -> "Row 2" (0 + 2)
+    document.querySelector('[data-cluster-toggle]').click();
+    const child = document.querySelector('.overlap-cluster-children .overlap-affected');
+    expect(child.textContent).toMatch(/\b2\b/);
+  });
+
+  // ── #156: the both-hub edge (rows 2↔3) is shown in its own section ─────────
+  test('hub-conflict section renders the both-hub overlap with detail + jump buttons', async () => {
+    document.body.innerHTML = '<div id="dash"></div>';
+    initErrorsDashboard('dash');
+    await flush();
+    openCategory('overlap');
+    await flush();
+
+    const section = document.querySelector('.overlap-hub-conflicts');
+    expect(section).not.toBeNull();
+    const pair = section.querySelector('.overlap-affected');
+    expect(pair).not.toBeNull();
+    // both endpoints get a jump button, carrying their 0-based indices 2 and 3
+    const btns = pair.querySelectorAll('.overlap-goto-btn');
+    expect(new Set([...btns].map(b => b.dataset.rowIndex))).toEqual(new Set(['2', '3']));
+    // canonical numbers shown: 2->4 and 3->5
+    expect(pair.textContent).toMatch(/\b4\b/);
+    expect(pair.textContent).toMatch(/\b5\b/);
+    // detail (range) present, not a bare "Row a <-> Row b"
+    expect(pair.textContent).toMatch(/–/); // range start–end dash
+  });
+
+  // ── #156/#157: otherOverlaps carry range detail so Print/Excel/screen agree ─
+  test('"Other overlaps" rows include range detail, not just bare row numbers', async () => {
+    document.body.innerHTML = '<div id="dash"></div>';
+    initErrorsDashboard('dash');
+    await flush();
+    openCategory('overlap');
+    await flush();
+
+    const other = document.querySelector('.overlap-other .overlap-affected');
+    expect(other.textContent).toMatch(/–/); // contains a range dash
+  });
+
+  // ── #156/#157: Print carries the hub-conflict overlaps with detail ─────────
+  // Print = window.print() over the screen DOM after expanding clusters, so once
+  // the screen renders every section with detail, Print inherits all of it.
+  test('Print includes the hub-conflict section and expands cluster children', async () => {
+    document.body.innerHTML = '<div id="dash"></div>';
+    const printSpy = jest.spyOn(window, 'print').mockImplementation(() => {});
+    initErrorsDashboard('dash');
+    await flush();
+    openCategory('overlap');
+    await flush();
+    document.querySelector('.print-btn').click();
+
+    expect(printSpy).toHaveBeenCalled();
+    // children expanded for paper
+    expect(document.querySelector('.overlap-cluster-children').hidden).toBe(false);
+    // both-hub overlap (2↔3) present in the printed DOM, with detail
+    const hubSection = document.querySelector('.overlap-hub-conflicts .overlap-affected');
+    expect(hubSection).not.toBeNull();
+    expect(hubSection.textContent).toMatch(/–/); // range detail, not bare row refs
+    printSpy.mockRestore();
+  });
+
   // #131: the duplicate category's "Duplicate of: Go to Row X" link only renders
   // if the issue builder carries `details` through from validateRow.
   test('duplicate category renders a working "Go to Row" link (#131)', async () => {

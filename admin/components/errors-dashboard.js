@@ -636,7 +636,7 @@ function renderCategoryView(dir) {
   const meta = CATEGORY_META[currentCategory] || { color: 'gray', severity: 'error' };
 
   if (currentCategory === 'overlap') {
-    const { clusters, otherOverlaps } = buildOverlapClusters(csvData);
+    const { clusters, hubConflicts, otherOverlaps } = buildOverlapClusters(csvData);
     // Count what we actually list (distinct affected rows), not the raw blast
     // degree — blastRadius includes hub/claimed neighbors that get filtered out
     // of the children below, so it would over-report vs the rows shown.
@@ -647,20 +647,37 @@ function renderCategoryView(dir) {
       .replace('{causes}', clusters.length)
       .replace('{affected}', affectedTotal);
 
-    // Reusable "Go to Row N" jump button (wired below via .overlap-goto-btn).
-    const gotoBtn = (rowIndex) =>
-      `<button class="overlap-goto-btn" data-row-index="${rowIndex}">${escapeHtml(t('errorsDashboard.overlap.goToRow').replace('{n}', rowIndex + 1))}</button>`;
+    // Reusable "Go to Row N" jump button. data-row-index keeps the 0-based
+    // index (the handler indexes csvData by it); the LABEL shows the canonical
+    // spreadsheet row number from the model so it never re-derives the offset.
+    const gotoBtn = (rowIndex, rowNumber) =>
+      `<button class="overlap-goto-btn" data-row-index="${rowIndex}">${escapeHtml(t('errorsDashboard.overlap.goToRow').replace('{n}', rowNumber))}</button>`;
+
+    // A pair line (used by both hub-conflicts and other-overlaps): two endpoints
+    // with range detail + jump buttons, reading canonical numbers verbatim so
+    // screen / Print / Excel all agree (#157).
+    const pairLine = (p) => `
+          <div class="overlap-affected">
+            ${escapeHtml(t('errorsDashboard.row'))} ${p.row1Number}
+            · <bdi>${escapeHtml(p.row1?.shelfLabel || '')}</bdi>
+            · "<bdi>${escapeHtml(p.row1?.rangeStart ?? '')}–${escapeHtml(p.row1?.rangeEnd ?? '')}</bdi>"
+            ${gotoBtn(p.row1Index, p.row1Number)}
+            ↔ ${escapeHtml(t('errorsDashboard.row'))} ${p.row2Number}
+            · <bdi>${escapeHtml(p.row2?.shelfLabel || '')}</bdi>
+            · "<bdi>${escapeHtml(p.row2?.rangeStart ?? '')}–${escapeHtml(p.row2?.rangeEnd ?? '')}</bdi>"
+            ${gotoBtn(p.row2Index, p.row2Number)}
+          </div>`;
 
     const clusterHtml = clusters.map((c, ci) => {
       // One source for the displayed "affects N" count AND the data-affected
       // hook, so the header can never disagree with the rows actually listed.
-      const affectsShown = c.affected.length;
+      const affectsShown = c.affectsShown;
       return `
       <div class="overlap-cluster" data-cluster="${ci}" data-affected="${affectsShown}">
         <div class="overlap-cluster-header">
           <button type="button" class="overlap-cluster-toggle" aria-expanded="false" aria-controls="overlap-children-${ci}" aria-label="${escapeHtml(t('errorsDashboard.overlap.expand'))}" data-cluster-toggle="${ci}">▸</button>
           <strong>⚠ ${escapeHtml(t('errorsDashboard.overlap.rootCause'))}</strong>
-          · ${escapeHtml(t('errorsDashboard.row'))} ${c.hubRowIndex + 1}
+          · ${escapeHtml(t('errorsDashboard.row'))} ${c.hubRowNumber}
           · <bdi>${escapeHtml(c.hubRow.shelfLabel || '')}</bdi>
           "<bdi>${escapeHtml(c.hubRow.rangeStart)}–${escapeHtml(c.hubRow.rangeEnd)}</bdi>"
           · ${escapeHtml(t('errorsDashboard.overlap.affects').replace('{n}', affectsShown))}
@@ -672,23 +689,27 @@ function renderCategoryView(dir) {
         <div class="overlap-cluster-children" id="overlap-children-${ci}" data-cluster-children="${ci}" hidden>
           ${c.affected.map(a => `
             <div class="overlap-affected">
-              ${escapeHtml(t('errorsDashboard.row'))} ${a.rowIndex + 1}
+              ${escapeHtml(t('errorsDashboard.row'))} ${a.rowNumber}
               · <bdi>${escapeHtml(a.row.shelfLabel || '')}</bdi>
               · "<bdi>${escapeHtml(a.row.rangeStart)}–${escapeHtml(a.row.rangeEnd)}</bdi>"
-              ${gotoBtn(a.rowIndex)}
+              ${gotoBtn(a.rowIndex, a.rowNumber)}
             </div>`).join('')}
         </div>
       </div>`;
     }).join('');
 
+    // #156: both-hub overlaps that used to be hidden everywhere now get their
+    // own labelled section, with range detail + jump-to-row on each endpoint.
+    const hubConflictsHtml = hubConflicts.length ? `
+      <div class="overlap-hub-conflicts">
+        <h3>${escapeHtml(t('errorsDashboard.overlap.hubConflicts'))}</h3>
+        ${hubConflicts.map(pairLine).join('')}
+      </div>` : '';
+
     const otherHtml = otherOverlaps.length ? `
       <div class="overlap-other">
         <h3>${escapeHtml(t('errorsDashboard.overlap.other'))}</h3>
-        ${otherOverlaps.map(p => `
-          <div class="overlap-affected">
-            ${escapeHtml(t('errorsDashboard.row'))} ${p.row1Index + 1} ${gotoBtn(p.row1Index)}
-            ↔ ${escapeHtml(t('errorsDashboard.row'))} ${p.row2Index + 1} ${gotoBtn(p.row2Index)}
-          </div>`).join('')}
+        ${otherOverlaps.map(pairLine).join('')}
       </div>` : '';
 
     containerElement.innerHTML = `
@@ -711,7 +732,7 @@ function renderCategoryView(dir) {
           </button>
         </div>
         <p class="overlap-summary">${escapeHtml(summary)}</p>
-        <div class="overlap-clusters">${clusterHtml}${otherHtml}</div>
+        <div class="overlap-clusters">${clusterHtml}${hubConflictsHtml}${otherHtml}</div>
       </div>`;
     return;
   }

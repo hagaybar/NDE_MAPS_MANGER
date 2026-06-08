@@ -28,6 +28,12 @@ export const WORKBOOK_COLUMNS = [
 ];
 
 function cells(row, extra) {
+  // csvRow reads the canonical spreadsheet row number computed once in
+  // overlap-clusters (#157). Fall back to rowIndex+2 only for non-overlap
+  // issues that don't carry a pre-computed number.
+  const csvRow = extra.rowNumber != null
+    ? extra.rowNumber
+    : (extra.rowIndex != null ? extra.rowIndex + 2 : '');
   return {
     floor: row?.floor ?? '',
     libraryName: row?.libraryName ?? '',
@@ -36,7 +42,7 @@ function cells(row, extra) {
     svgCode: row?.svgCode ?? '',
     rangeStart: row?.rangeStart ?? '',
     rangeEnd: row?.rangeEnd ?? '',
-    csvRow: extra.rowIndex != null ? extra.rowIndex + 2 : '',
+    csvRow,
     rootCause: extra.rootCause ?? '',
     affects: extra.affects ?? '',
     category: extra.category ?? '',
@@ -47,14 +53,18 @@ function cells(row, extra) {
 }
 
 /**
- * @param {{clusters, otherOverlaps}} clusterModel - from buildOverlapClusters
+ * @param {{clusters, hubConflicts, otherOverlaps}} clusterModel - from buildOverlapClusters
  * @param {Array<{rowIndex,row,category,code,type,message}>} otherIssues - non-overlap issues
- * @param {Object[]} csvData - all rows (to resolve otherOverlaps indices)
+ * @param {Object[]} csvData - all rows (to resolve indices when a pair omits row refs)
  * @returns {{ columns: typeof WORKBOOK_COLUMNS, rows: Array<{cells, style, outlineLevel, blastRadius?}> }}
+ *
+ * All row numbers (csvRow + "Row N" in messages) read the canonical
+ * spreadsheet numbers computed once in overlap-clusters, so the Excel export,
+ * the on-screen view, and Print agree (#157).
  */
 export function buildReportWorkbookModel(clusterModel, otherIssues = [], csvData = []) {
   const rows = [];
-  const { clusters = [], otherOverlaps = [] } = clusterModel || {};
+  const { clusters = [], hubConflicts = [], otherOverlaps = [] } = clusterModel || {};
 
   for (const c of clusters) {
     rows.push({
@@ -62,7 +72,7 @@ export function buildReportWorkbookModel(clusterModel, otherIssues = [], csvData
       outlineLevel: 0,
       blastRadius: c.blastRadius,
       cells: cells(c.hubRow, {
-        rowIndex: c.hubRowIndex, rootCause: 'ROOT CAUSE', affects: c.blastRadius,
+        rowNumber: c.hubRowNumber, rootCause: 'ROOT CAUSE', affects: c.blastRadius,
         category: 'overlap', code: 'W001', severity: 'warning',
         message: `Overlaps ${c.blastRadius} ranges in "${c.collection}" (Floor ${c.floor})`,
       }),
@@ -72,20 +82,33 @@ export function buildReportWorkbookModel(clusterModel, otherIssues = [], csvData
         style: 'affected',
         outlineLevel: 1,
         cells: cells(a.row, {
-          rowIndex: a.rowIndex, category: 'overlap', code: 'W001', severity: 'warning',
-          message: `Overlaps root-cause Row ${c.hubRowIndex + 2}`,
+          rowNumber: a.rowNumber, category: 'overlap', code: 'W001', severity: 'warning',
+          message: `Overlaps root-cause Row ${c.hubRowNumber}`,
         }),
       });
     }
+  }
+
+  // #156: both-hub overlaps that used to be dropped everywhere. Each is one
+  // row keyed on its first endpoint, message refs the second endpoint.
+  for (const p of hubConflicts) {
+    rows.push({
+      style: 'plain',
+      outlineLevel: 0,
+      cells: cells(p.row1 ?? csvData[p.row1Index], {
+        rowNumber: p.row1Number, category: 'overlap', code: 'W001', severity: 'warning',
+        message: `Overlaps wide range Row ${p.row2Number} in "${p.collection}" (Floor ${p.floor})`,
+      }),
+    });
   }
 
   for (const p of otherOverlaps) {
     rows.push({
       style: 'plain',
       outlineLevel: 0,
-      cells: cells(csvData[p.row1Index], {
-        rowIndex: p.row1Index, category: 'overlap', code: 'W001', severity: 'warning',
-        message: `Overlaps Row ${p.row2Index + 2} in "${p.collection}" (Floor ${p.floor})`,
+      cells: cells(p.row1 ?? csvData[p.row1Index], {
+        rowNumber: p.row1Number, category: 'overlap', code: 'W001', severity: 'warning',
+        message: `Overlaps Row ${p.row2Number} in "${p.collection}" (Floor ${p.floor})`,
       }),
     });
   }
