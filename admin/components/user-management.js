@@ -58,6 +58,15 @@ function setupEventListeners() {
     }
     container.dataset.userMgmtListenersBound = 'true';
 
+    // Finding A: re-render the user list on language toggle. The global locale
+    // handler only re-paints static chrome (nav, direction); without this the
+    // list's own text (column headers, action buttons) stayed in the previous
+    // language until some unrelated action forced a re-render. Bound once with
+    // the same guard above, so it never accumulates (cf. the #133 listener leak).
+    document.addEventListener('localeChanged', () => {
+        userListInstance?.render();
+    });
+
     // Handle user edit event
     container.addEventListener('user-edit', async (event) => {
         const user = event.detail;  // detail IS the user object directly
