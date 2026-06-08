@@ -264,7 +264,7 @@
     "updateError": "Failed to update user",
     "deleteSuccess": "User deleted successfully",
     "deleteError": "Failed to delete user",
-    "resetSuccess": "Reset email sent to {email}.",
+    "resetSuccess": "A reset code has been emailed to the user. Ask them to go to the login page, click \"Forgot your password?\", enter the code, and set a new password.",
     "resetError": "Failed to reset password",
     "invalidEmail": "Invalid email format",
     "userExists": "User already exists",

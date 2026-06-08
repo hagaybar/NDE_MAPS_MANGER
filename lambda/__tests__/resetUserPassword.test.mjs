@@ -126,7 +126,7 @@ describe('resetUserPassword Lambda', () => {
       expect(body.message).toContain('password');
     });
 
-    test('should indicate user will be forced to change password', async () => {
+    test('should honestly describe the emailed reset code and self-service completion', async () => {
       // Arrange
       const targetUsername = 'target-user@example.com';
       cognitoMock.on(AdminResetUserPasswordCommand).resolves({});
@@ -134,10 +134,16 @@ describe('resetUserPassword Lambda', () => {
       // Act
       const result = await handler(createEvent(targetUsername));
 
-      // Assert
+      // Assert — AdminResetUserPasswordCommand emails a bare verification CODE
+      // (not a temporary password) and the user finishes on the login page via
+      // "Forgot your password?". The message MUST describe that reality and MUST
+      // NOT claim a temporary password was sent (Option A — honest messaging).
       const body = JSON.parse(result.body);
-      // Message should mention temporary password or force change
-      expect(body.message.toLowerCase()).toMatch(/temporary|force|change/);
+      const msg = body.message.toLowerCase();
+      expect(msg).toContain('code');
+      expect(msg).toContain('email');
+      expect(msg).toContain("forgot your password");
+      expect(msg).not.toContain('temporary password');
     });
   });
 
@@ -426,7 +432,7 @@ describe('resetUserPassword Lambda', () => {
   });
 
   describe('user status behavior', () => {
-    test('should trigger email with temporary password', async () => {
+    test('should trigger exactly one Cognito reset (emails a verification code)', async () => {
       // Arrange
       const targetUsername = 'target-user@example.com';
       cognitoMock.on(AdminResetUserPasswordCommand).resolves({});
@@ -434,7 +440,8 @@ describe('resetUserPassword Lambda', () => {
       // Act
       const result = await handler(createEvent(targetUsername));
 
-      // Assert - AdminResetUserPasswordCommand triggers email
+      // Assert - AdminResetUserPasswordCommand sets RESET_REQUIRED and emails a
+      // verification code (NOT a temporary password) exactly once.
       const calls = cognitoMock.commandCalls(AdminResetUserPasswordCommand);
       expect(calls).toHaveLength(1);
       expect(result.statusCode).toBe(200);
