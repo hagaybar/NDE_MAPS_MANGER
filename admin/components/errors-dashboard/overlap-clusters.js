@@ -15,9 +15,27 @@ import { findOverlappingRanges } from '../../services/data-model.js';
 export const ROOT_CAUSE_MIN_BLAST = 2;
 
 /**
+ * Canonical spreadsheet row number: header is line 1, the first data row is
+ * line 2. `rowIndex` is 0-based into csvData, so the spreadsheet line is +2.
+ * This is the SINGLE row-numbering convention read verbatim by the on-screen
+ * renderer, the Excel export, and Print (#157) — they no longer compute their
+ * own offsets.
+ * @param {number} rowIndex
+ * @returns {number}
+ */
+export function toRowNumber(rowIndex) {
+  return rowIndex + 2;
+}
+
+/**
  * @param {Object[]} rows - the dashboard's csvData rows.
- * @returns {{ clusters: Array<{hubRowIndex, hubRow, blastRadius, affected: Array<{rowIndex,row}>, collection, floor}>,
- *             otherOverlaps: Array<{row1Index,row2Index,collection,floor}> }}
+ * @returns {{ clusters: Array<{hubRowIndex, hubRowNumber, hubRow, blastRadius, affectsShown, affected: Array<{rowIndex,rowNumber,row}>, collection, floor}>,
+ *             hubConflicts: Array<{row1Index,row2Index,row1Number,row2Number,row1,row2,collection,floor}>,
+ *             otherOverlaps: Array<{row1Index,row2Index,row1Number,row2Number,row1,row2,collection,floor}> }}
+ *
+ * Coverage invariant (#156): every pair returned by findOverlappingRanges is
+ * represented EXACTLY ONCE across {cluster hub↔child edges} ∪ {hubConflicts} ∪
+ * {otherOverlaps}. Nothing overlapping is hidden.
  */
 export function buildOverlapClusters(rows) {
   const pairs = findOverlappingRanges(rows);
@@ -42,28 +60,67 @@ export function buildOverlapClusters(rows) {
     .sort((a, b) => blast(b) - blast(a) || a - b);
   const hubSet = new Set(hubs);
 
+  // Track which input pairs are already represented so otherOverlaps can be a
+  // true catch-all (#156). Key is order-independent.
+  const pairKey = (a, b) => (a < b ? `${a}-${b}` : `${b}-${a}`);
+  const represented = new Set();
+
   const claimed = new Set();
   const clusters = [];
   for (const h of hubs) {
     const affected = [...adj.get(h)]
       .filter((i) => i !== h && !hubSet.has(i) && !claimed.has(i))
       .sort((a, b) => a - b);
-    affected.forEach((i) => claimed.add(i));
+    affected.forEach((i) => {
+      claimed.add(i);
+      represented.add(pairKey(h, i)); // hub↔child edge is now shown
+    });
     const m = meta.get(h) || { collection: '', floor: '' };
     clusters.push({
       hubRowIndex: h,
+      hubRowNumber: toRowNumber(h),
       hubRow: rows[h],
       blastRadius: blast(h),
-      affected: affected.map((i) => ({ rowIndex: i, row: rows[i] })),
+      affectsShown: affected.length,
+      affected: affected.map((i) => ({
+        rowIndex: i,
+        rowNumber: toRowNumber(i),
+        row: rows[i],
+      })),
       collection: m.collection,
       floor: m.floor,
     });
   }
 
-  // Other overlaps: pairs where NEITHER endpoint is a hub (plain A<->B pairs).
-  const otherOverlaps = pairs.filter(
-    (p) => !hubSet.has(p.row1Index) && !hubSet.has(p.row2Index),
-  );
+  const decorate = (p) => ({
+    row1Index: p.row1Index,
+    row2Index: p.row2Index,
+    row1Number: toRowNumber(p.row1Index),
+    row2Number: toRowNumber(p.row2Index),
+    row1: rows[p.row1Index],
+    row2: rows[p.row2Index],
+    collection: p.collection,
+    floor: p.floor,
+  });
 
-  return { clusters, otherOverlaps };
+  // Hub-conflicts (#156): pairs where BOTH endpoints are hubs. Previously these
+  // were dropped from both clusters' `affected` (!hubSet.has) AND from
+  // otherOverlaps (both-hub filter) → shown nowhere. Now their own section.
+  const hubConflicts = [];
+  for (const p of pairs) {
+    if (hubSet.has(p.row1Index) && hubSet.has(p.row2Index)) {
+      hubConflicts.push(decorate(p));
+      represented.add(pairKey(p.row1Index, p.row2Index));
+    }
+  }
+
+  // Other overlaps = the CATCH-ALL: every input pair not already represented as
+  // a cluster hub↔child edge and not a hub-conflict. This also captures the
+  // subtle case of a non-hub `i` claimed by hub A that ALSO overlaps a
+  // different hub B — that B↔i edge used to be silently dropped.
+  const otherOverlaps = pairs
+    .filter((p) => !represented.has(pairKey(p.row1Index, p.row2Index)))
+    .map(decorate);
+
+  return { clusters, hubConflicts, otherOverlaps };
 }

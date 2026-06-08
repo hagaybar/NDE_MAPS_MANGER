@@ -544,6 +544,7 @@
       "affects": "affects {n} ranges",
       "fixRange": "Fix this range →",
       "other": "Other overlaps",
+      "hubConflicts": "These wide ranges also overlap each other",
       "expand": "Show affected ranges",
       "goToRow": "Go to Row {n}"
     },
