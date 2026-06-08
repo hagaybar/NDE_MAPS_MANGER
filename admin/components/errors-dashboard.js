@@ -46,6 +46,10 @@ const FALLBACKS = {
   'errorsDashboard.overlap.fixRange': { en: 'Fix this range →', he: '← תקן את הטווח הזה' },
   'errorsDashboard.overlap.other': { en: 'Other overlaps', he: 'חפיפות אחרות' },
   'errorsDashboard.overlap.goToRow': { en: 'Go to Row {n}', he: 'מעבר לשורה {n}' },
+  'errorsDashboard.floor': { en: 'Floor {n}', he: 'קומה {n}' },
+  'errorsDashboard.related': { en: 'Related', he: 'קשור' },
+  'errorsDashboard.duplicateOf': { en: 'Duplicate of', he: 'כפילות של' },
+  'errorsDashboard.goToRow': { en: 'Go to Row {n}', he: 'מעבר לשורה {n}' },
   'errorsDashboard.overlap.expand': { en: 'Show affected ranges', he: 'הצג טווחים מושפעים' },
   'errorsDashboard.print.cta': { en: '🖨 Print report', he: '🖨 הדפס דוח' }
 };
@@ -639,23 +643,23 @@ function renderCategoryView(dir) {
       return `
       <div class="overlap-cluster" data-cluster="${ci}" data-affected="${affectsShown}">
         <div class="overlap-cluster-header">
-          <button class="overlap-cluster-toggle" aria-expanded="false" data-cluster-toggle="${ci}">▸</button>
+          <button type="button" class="overlap-cluster-toggle" aria-expanded="false" aria-controls="overlap-children-${ci}" aria-label="${escapeHtml(t('errorsDashboard.overlap.expand'))}" data-cluster-toggle="${ci}">▸</button>
           <strong>⚠ ${escapeHtml(t('errorsDashboard.overlap.rootCause'))}</strong>
           · ${escapeHtml(t('errorsDashboard.row'))} ${c.hubRowIndex + 1}
-          · ${escapeHtml(c.hubRow.shelfLabel || '')}
-          "${escapeHtml(c.hubRow.rangeStart)}–${escapeHtml(c.hubRow.rangeEnd)}"
+          · <bdi>${escapeHtml(c.hubRow.shelfLabel || '')}</bdi>
+          "<bdi>${escapeHtml(c.hubRow.rangeStart)}–${escapeHtml(c.hubRow.rangeEnd)}</bdi>"
           · ${escapeHtml(t('errorsDashboard.overlap.affects').replace('{n}', affectsShown))}
-          · Floor ${escapeHtml(String(c.floor))} · ${escapeHtml(c.collection)}
+          · ${escapeHtml(t('errorsDashboard.floor').replace('{n}', c.floor))} · <bdi>${escapeHtml(c.collection)}</bdi>
           <button class="btn btn-primary overlap-fix-btn" data-row-index="${c.hubRowIndex}">
             ${escapeHtml(t('errorsDashboard.overlap.fixRange'))}
           </button>
         </div>
-        <div class="overlap-cluster-children" data-cluster-children="${ci}" hidden>
+        <div class="overlap-cluster-children" id="overlap-children-${ci}" data-cluster-children="${ci}" hidden>
           ${c.affected.map(a => `
             <div class="overlap-affected">
               ${escapeHtml(t('errorsDashboard.row'))} ${a.rowIndex + 1}
-              · ${escapeHtml(a.row.shelfLabel || '')}
-              · "${escapeHtml(a.row.rangeStart)}–${escapeHtml(a.row.rangeEnd)}"
+              · <bdi>${escapeHtml(a.row.shelfLabel || '')}</bdi>
+              · "<bdi>${escapeHtml(a.row.rangeStart)}–${escapeHtml(a.row.rangeEnd)}</bdi>"
               ${gotoBtn(a.rowIndex)}
             </div>`).join('')}
         </div>
@@ -733,24 +737,24 @@ function renderCategoryView(dir) {
               </div>
               <div class="issue-location">
                 <span class="issue-label">${escapeHtml(getRowLabel(issue.row))}</span>
-                ${issue.row.floor !== undefined ? `<span class="issue-floor">Floor ${escapeHtml(issue.row.floor)}</span>` : ''}
+                ${issue.row.floor !== undefined ? `<span class="issue-floor">${escapeHtml(t('errorsDashboard.floor').replace('{n}', issue.row.floor))}</span>` : ''}
               </div>
               <div class="issue-message-box">
                 <span class="issue-message">${escapeHtml(issue.message)}</span>
               </div>
               ${issue.details?.overlappingRowIndex ? `
                 <div class="issue-related">
-                  <span class="related-label">Related:</span>
+                  <span class="related-label">${escapeHtml(t('errorsDashboard.related'))}:</span>
                   <button class="related-link" data-go-to-row="${issue.details.overlappingRowIndex - 1}">
-                    Go to Row ${issue.details.overlappingRowIndex}
+                    ${escapeHtml(t('errorsDashboard.goToRow').replace('{n}', issue.details.overlappingRowIndex))}
                   </button>
                 </div>
               ` : ''}
               ${issue.details?.duplicateRowIndex ? `
                 <div class="issue-related">
-                  <span class="related-label">Duplicate of:</span>
+                  <span class="related-label">${escapeHtml(t('errorsDashboard.duplicateOf'))}:</span>
                   <button class="related-link" data-go-to-row="${issue.details.duplicateRowIndex - 1}">
-                    Go to Row ${issue.details.duplicateRowIndex}
+                    ${escapeHtml(t('errorsDashboard.goToRow').replace('{n}', issue.details.duplicateRowIndex))}
                   </button>
                 </div>
               ` : ''}

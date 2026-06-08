@@ -546,6 +546,10 @@
       "expand": "Show affected ranges",
       "goToRow": "Go to Row {n}"
     },
+    "floor": "Floor {n}",
+    "related": "Related",
+    "duplicateOf": "Duplicate of",
+    "goToRow": "Go to Row {n}",
     "print": {
       "cta": "🖨 Print report"
     }
