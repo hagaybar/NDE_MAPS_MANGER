@@ -102,6 +102,7 @@
       "reconcile": {
         "title": "לפני הפרסום: כמה מדפים בקומה {floor} השתנו — ספרו לי מה קרה",
         "renameHeading": "נראה שמדף שונה בשמו",
+        "choosePlaceholder": "בחר ▾",
         "sameShelf": "אותו מדף במפה — פשוט עם תווית חדשה.",
         "entriesUse": "{entries} משתמשות כרגע ב\"{code}\".",
         "applyRename": "כן, אותו מדף — לשמור את הרשומות",

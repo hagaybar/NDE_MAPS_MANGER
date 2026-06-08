@@ -4,16 +4,16 @@ import { validateRow } from '../services/data-model.js';
 
 // Fallback translations
 const FALLBACKS = {
-  'validation.panelTitle': { en: 'Validation Issues', he: 'בעיות תקינות' },
-  'validation.errors': { en: 'Errors', he: 'שגיאות' },
-  'validation.warnings': { en: 'Warnings', he: 'אזהרות' },
-  'validation.noIssues': { en: 'No validation issues found', he: 'לא נמצאו בעיות תקינות' },
-  'validation.goToRow': { en: 'Go to row', he: 'עבור לשורה' },
-  'validation.previousIssue': { en: 'Previous issue', he: 'בעיה קודמת' },
-  'validation.nextIssue': { en: 'Next issue', he: 'בעיה הבאה' },
-  'validation.filterErrors': { en: 'Show only errors', he: 'הצג שגיאות בלבד' },
-  'validation.collapse': { en: 'Collapse', he: 'כווץ' },
-  'validation.expand': { en: 'Expand', he: 'הרחב' }
+  'validationPanel.title': { en: 'Validation Issues', he: 'בעיות תקינות' },
+  'validationPanel.errors': { en: 'Errors', he: 'שגיאות' },
+  'validationPanel.warnings': { en: 'Warnings', he: 'אזהרות' },
+  'validationPanel.noIssues': { en: 'No validation issues found', he: 'לא נמצאו בעיות תקינות' },
+  'validationPanel.goToRow': { en: 'Go to row', he: 'עבור לשורה' },
+  'validationPanel.previousIssue': { en: 'Previous issue', he: 'בעיה קודמת' },
+  'validationPanel.nextIssue': { en: 'Next issue', he: 'בעיה הבאה' },
+  'validationPanel.filterErrors': { en: 'Show only errors', he: 'הצג שגיאות בלבד' },
+  'validationPanel.collapse': { en: 'Collapse', he: 'כווץ' },
+  'validationPanel.expand': { en: 'Expand', he: 'הרחב' }
 };
 
 /**
@@ -76,25 +76,25 @@ function createPanelHtml() {
     return `
       <div class="validation-panel validation-panel-empty" dir="${dir}" data-testid="validation-panel">
         <div class="validation-panel-header">
-          <span class="validation-panel-title">${escapeHtml(t('validation.panelTitle'))}</span>
+          <span class="validation-panel-title">${escapeHtml(t('validationPanel.title'))}</span>
         </div>
         <div class="validation-panel-body">
-          <p class="validation-no-issues">${escapeHtml(t('validation.noIssues'))}</p>
+          <p class="validation-no-issues">${escapeHtml(t('validationPanel.noIssues'))}</p>
         </div>
       </div>
     `;
   }
 
   return `
-    <div class="validation-panel ${isCollapsed ? 'collapsed' : ''}" dir="${dir}" data-testid="validation-panel" role="region" aria-label="${escapeHtml(t('validation.panelTitle'))}">
+    <div class="validation-panel ${isCollapsed ? 'collapsed' : ''}" dir="${dir}" data-testid="validation-panel" role="region" aria-label="${escapeHtml(t('validationPanel.title'))}">
       <button class="validation-panel-header" aria-expanded="${!isCollapsed}">
         <span class="validation-panel-title">
-          ${escapeHtml(t('validation.panelTitle'))}
-          <span class="validation-badge validation-badge-error" aria-label="${errorCount} ${t('validation.errors')}">${errorCount}</span>
-          <span class="validation-badge validation-badge-warning" aria-label="${warningCount} ${t('validation.warnings')}">${warningCount}</span>
+          ${escapeHtml(t('validationPanel.title'))}
+          <span class="validation-badge validation-badge-error" aria-label="${errorCount} ${t('validationPanel.errors')}">${errorCount}</span>
+          <span class="validation-badge validation-badge-warning" aria-label="${warningCount} ${t('validationPanel.warnings')}">${warningCount}</span>
         </span>
         <span class="validation-toggle">
-          ${isCollapsed ? escapeHtml(t('validation.expand')) : escapeHtml(t('validation.collapse'))}
+          ${isCollapsed ? escapeHtml(t('validationPanel.expand')) : escapeHtml(t('validationPanel.collapse'))}
           <svg class="w-4 h-4 ${isCollapsed ? 'rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
           </svg>
@@ -105,16 +105,16 @@ function createPanelHtml() {
         <div class="validation-panel-toolbar">
           <label class="validation-filter">
             <input type="checkbox" ${showOnlyErrors ? 'checked' : ''} data-testid="filter-errors">
-            ${escapeHtml(t('validation.filterErrors'))}
+            ${escapeHtml(t('validationPanel.filterErrors'))}
           </label>
           <div class="validation-nav">
-            <button class="validation-nav-btn" data-testid="prev-issue" ${currentIssueIndex <= 0 ? 'disabled' : ''} aria-label="${escapeHtml(t('validation.previousIssue'))}">
+            <button class="validation-nav-btn" data-testid="prev-issue" ${currentIssueIndex <= 0 ? 'disabled' : ''} aria-label="${escapeHtml(t('validationPanel.previousIssue'))}">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
               </svg>
             </button>
             <span class="validation-nav-count">${currentIssueIndex + 1} / ${filteredIssues.length}</span>
-            <button class="validation-nav-btn" data-testid="next-issue" ${currentIssueIndex >= filteredIssues.length - 1 ? 'disabled' : ''} aria-label="${escapeHtml(t('validation.nextIssue'))}">
+            <button class="validation-nav-btn" data-testid="next-issue" ${currentIssueIndex >= filteredIssues.length - 1 ? 'disabled' : ''} aria-label="${escapeHtml(t('validationPanel.nextIssue'))}">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
               </svg>
@@ -125,7 +125,7 @@ function createPanelHtml() {
         <ul class="validation-list" role="list">
           ${filteredIssues.map((issue, idx) => `
             <li class="validation-item ${issue.type} ${idx === currentIssueIndex ? 'active' : ''}" role="listitem">
-              <button class="validation-item-btn" data-index="${idx}" data-row-index="${issue.rowIndex}" aria-label="${escapeHtml(t('validation.goToRow'))}">
+              <button class="validation-item-btn" data-index="${idx}" data-row-index="${issue.rowIndex}" aria-label="${escapeHtml(t('validationPanel.goToRow'))}">
                 <span class="validation-item-icon">
                   ${issue.type === 'error' ? `
                     <svg class="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20">
