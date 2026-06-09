@@ -9,7 +9,7 @@ import { collectionsForFloor } from './map-editor/collections.js?v=1';
 import { installPromoteRefreshListener, getFloorCacheBust } from './map-editor/promote-refresh.js?v=1';
 import { indexShelfLocations } from './map-editor/location-model.js';
 import { attachInteraction, applySelection } from './map-editor/svg-interaction.js?v=1';
-import { createShelfState } from './map-editor/shelf-state.js?v=2';
+import { createShelfState } from './map-editor/shelf-state.js?v=3';
 import { computeFloorConflicts } from './map-editor/range-validation.js?v=1';
 import { mountSidePanel, renderPanel, hidePanel } from './map-editor/side-panel.js?v=1';
 import { startReassign, cancelReassign, isReassignActive } from './map-editor/reassign-mode.js?v=1';
