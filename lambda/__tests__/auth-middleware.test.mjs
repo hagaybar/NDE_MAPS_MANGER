@@ -19,7 +19,8 @@ import {
   mockJwksFetch,
   restoreFetch,
   resetMockKeys,
-  getMockCognitoConfig
+  getMockCognitoConfig,
+  generateValidToken
 } from './mocks/jwt-mock.mjs';
 
 // Import the module under test (will fail initially - RED phase)
@@ -294,6 +295,110 @@ describe('Auth Middleware', () => {
       expect(fetchCallCount).toBe(firstCallCount);
 
       globalThis.fetch = originalGlobalFetch;
+    });
+  });
+
+  // ---- #90: JWT hardening — token_use + app-client (audience) verification ----
+  describe('#90 JWT hardening: token_use and app-client (audience) checks', () => {
+    afterAll(() => {
+      // Restore the suite default (no app-client configured) so later tests are unaffected
+      setConfig({ clientId: undefined });
+      clearJwksCache();
+    });
+
+    describe('token_use enforcement (always on, no app-client config required)', () => {
+      it('rejects an access token (token_use=access) with 401 and derives no user', async () => {
+        const accessToken = await generateValidToken({
+          username: 'attacker',
+          role: 'admin',
+          additionalClaims: { token_use: 'access' }
+        });
+
+        const result = await validateToken(createAuthenticatedEvent(accessToken));
+
+        expect(result.isValid).toBe(false);
+        expect(result.statusCode).toBe(401);
+        expect(result.user).toBeUndefined();
+      });
+    });
+
+    describe('app-client (audience) enforcement when COGNITO_CLIENT_ID is configured', () => {
+      beforeAll(() => {
+        setConfig({ clientId: getMockCognitoConfig().clientId });
+        clearJwksCache();
+      });
+      afterAll(() => {
+        setConfig({ clientId: undefined });
+        clearJwksCache();
+      });
+
+      it('accepts a valid ID token whose audience matches the configured app client', async () => {
+        const token = await generateValidToken({
+          username: testUsers.admin.username,
+          email: testUsers.admin.email,
+          role: 'admin'
+        });
+
+        const result = await validateToken(createAuthenticatedEvent(token));
+
+        expect(result.isValid).toBe(true);
+        expect(result.user.role).toBe('admin');
+      });
+
+      it('rejects an ID token minted for a different app client (wrong aud) with 401', async () => {
+        const token = await generateValidToken({
+          username: 'cross-client-user',
+          role: 'admin',
+          additionalClaims: { aud: 'some-other-app-client-id' }
+        });
+
+        const result = await validateToken(createAuthenticatedEvent(token));
+
+        expect(result.isValid).toBe(false);
+        expect(result.statusCode).toBe(401);
+        expect(result.user).toBeUndefined();
+      });
+    });
+
+    describe('fail-open + warn when COGNITO_CLIENT_ID is not configured', () => {
+      beforeAll(() => {
+        setConfig({ clientId: undefined });
+        clearJwksCache();
+      });
+
+      it('accepts a valid ID token but logs a warning that the audience check is skipped', async () => {
+        const originalWarn = console.warn;
+        const warnCalls = [];
+        console.warn = (...args) => { warnCalls.push(args); };
+
+        try {
+          const token = await generateValidToken({
+            username: testUsers.editor.username,
+            email: testUsers.editor.email,
+            role: 'editor'
+          });
+
+          const result = await validateToken(createAuthenticatedEvent(token));
+
+          expect(result.isValid).toBe(true);
+          expect(warnCalls.length).toBeGreaterThan(0);
+        } finally {
+          console.warn = originalWarn;
+        }
+      });
+
+      it('still rejects an access token even with no app-client configured (token_use is independent)', async () => {
+        const accessToken = await generateValidToken({
+          username: 'attacker',
+          role: 'admin',
+          additionalClaims: { token_use: 'access' }
+        });
+
+        const result = await validateToken(createAuthenticatedEvent(accessToken));
+
+        expect(result.isValid).toBe(false);
+        expect(result.statusCode).toBe(401);
+      });
     });
   });
 });

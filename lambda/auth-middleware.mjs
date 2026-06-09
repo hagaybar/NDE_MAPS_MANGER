@@ -8,7 +8,11 @@ import * as jose from 'jose';
 // Cognito configuration - can be overridden via environment or setConfig
 let cognitoConfig = {
   userPoolId: process.env.COGNITO_USER_POOL_ID || 'us-east-1_g9q5cPhVg',
-  region: process.env.AWS_REGION || 'us-east-1'
+  region: process.env.AWS_REGION || 'us-east-1',
+  // App-client id used to verify the token's audience. Sourced from the Lambda
+  // environment (the same value the public SPA config carries). When unset, the
+  // audience check is skipped (fail-open) — see verifyToken().
+  clientId: process.env.COGNITO_CLIENT_ID
 };
 
 /**
@@ -31,6 +35,10 @@ const getJwksUri = () => {
 const jwksCache = new Map();
 const JWKS_CACHE_TTL = 3600000; // 1 hour in milliseconds
 
+// One-shot guard so the "audience check skipped" warning is logged at most once
+// per cold start / reconfiguration instead of on every request.
+let audienceCheckDisabledWarned = false;
+
 /**
  * Configure Cognito settings (useful for testing)
  * @param {Object} config - Configuration object
@@ -39,6 +47,9 @@ const JWKS_CACHE_TTL = 3600000; // 1 hour in milliseconds
  */
 export const setConfig = (config) => {
   cognitoConfig = { ...cognitoConfig, ...config };
+  // Re-arm the "audience check disabled" warning whenever config changes, so a
+  // (mis)configuration is surfaced again after any reconfiguration.
+  audienceCheckDisabledWarned = false;
 };
 
 /**
@@ -113,10 +124,31 @@ const verifyToken = async (token) => {
   // Create JWKS key set
   const keySet = jose.createLocalJWKSet(jwks);
 
-  // Verify the token
-  const { payload } = await jose.jwtVerify(token, keySet, {
-    issuer: issuer
-  });
+  // Verify signature + issuer + expiry, and (when configured) the app-client
+  // audience. Audience verification is fail-open: if no app-client id is
+  // configured we skip ONLY that check and warn, so a missing env var can never
+  // lock anyone out — but the misconfiguration is surfaced in the logs (#90).
+  const verifyOptions = { issuer };
+  if (cognitoConfig.clientId) {
+    verifyOptions.audience = cognitoConfig.clientId;
+  } else if (!audienceCheckDisabledWarned) {
+    console.warn(
+      '[auth] COGNITO_CLIENT_ID is not configured — skipping app-client (audience) ' +
+      'verification. Set COGNITO_CLIENT_ID to enforce cross-app-client isolation (#90).'
+    );
+    audienceCheckDisabledWarned = true;
+  }
+
+  const { payload } = await jose.jwtVerify(token, keySet, verifyOptions);
+
+  // The admin SPA authenticates with the Cognito ID token. Reject anything that
+  // is not an ID token (e.g. an access token from the same pool) so wrong-token
+  // -type claims can never drive role-based authorization (#90).
+  if (payload.token_use !== 'id') {
+    const error = new Error('Invalid token use');
+    error.code = 'ERR_TOKEN_USE_INVALID';
+    throw error;
+  }
 
   return payload;
 };
@@ -225,6 +257,11 @@ export const validateToken = async (event) => {
       errorMessage = 'Token expired';
     } else if (error.code === 'ERR_JWS_SIGNATURE_VERIFICATION_FAILED') {
       errorMessage = 'Invalid signature';
+    } else if (error.code === 'ERR_TOKEN_USE_INVALID') {
+      errorMessage = 'Invalid token type';
+    } else if (error.code === 'ERR_JWT_CLAIM_VALIDATION_FAILED') {
+      // e.g. audience (app-client) mismatch — keep generic, don't echo claims
+      errorMessage = 'Invalid token claims';
     } else if (error.message && error.message.includes('no applicable key')) {
       // This happens when the key ID doesn't match any key in JWKS (invalid signature scenario)
       errorMessage = 'Invalid signature - key not found';
