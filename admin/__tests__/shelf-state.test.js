@@ -100,6 +100,55 @@ describe('shelfState add-then-edit (issue #81)', () => {
   });
 });
 
+describe('shelfState editor add/edit permission (#126)', () => {
+  // A range-restricted editor must still be able to fill in a NEW line they are
+  // creating: its temp id is never in permittedRowIds, but a pending add belongs
+  // to the editor creating it (the server validates the range on save). Before
+  // the fix, permission()==='readonly' rendered the new card disabled/un-fillable.
+  test('a freshly-added line is editable for a range-restricted editor (pending add)', () => {
+    const s = createShelfState({
+      ranges: [{ id: 'r1', svgCode: 'A1', floor: '0', rangeStart: '100', rangeEnd: '110' }],
+      permittedRowIds: new Set(['r1']),
+    });
+    s.add('temp-new', { svgCode: 'A1', floor: '0', rangeStart: '', rangeEnd: '' });
+
+    expect(s.isAllowed('temp-new')).toBe(true);
+    expect(s.permission('temp-new')).toBe('edit');
+  });
+
+  // After a save the app recomputes permissions against the freshly-saved data.
+  // A row the editor just saved (now within their range) must become editable
+  // again — otherwise it is permanently locked (#126).
+  test('setPermitted refreshes editability after a save (re-edit a just-saved row)', () => {
+    const s = createShelfState({
+      ranges: [{ id: 'r1', svgCode: 'A1', floor: '0', rangeStart: '100', rangeEnd: '110' }],
+      permittedRowIds: new Set(['r1']),
+    });
+    expect(s.permission('r2')).toBe('readonly');   // a just-saved row, not yet in the set
+    s.setPermitted(new Set(['r1', 'r2']));          // recomputed after the save
+    expect(s.permission('r2')).toBe('edit');
+  });
+
+  test('setPermitted(null) restores unlimited (admin) access', () => {
+    const s = createShelfState({ ranges: [], permittedRowIds: new Set() });
+    expect(s.isAllowed('x')).toBe(false);
+    s.setPermitted(null);
+    expect(s.isAllowed('x')).toBe(true);
+  });
+
+  // The fix must NOT loosen the existing restriction: a MODIFY/DELETE to an
+  // existing row outside the editor's range stays blocked (only pending adds open up).
+  test('an existing row outside the range stays read-only (restriction intact)', () => {
+    const s = createShelfState({
+      ranges: [{ id: 'mine', rangeStart: '100', rangeEnd: '110' },
+               { id: 'theirs', rangeStart: '200', rangeEnd: '210' }],
+      permittedRowIds: new Set(['mine']),
+    });
+    expect(s.permission('theirs')).toBe('readonly');
+    expect(s.isAllowed('theirs')).toBe(false);
+  });
+});
+
 describe('shelfState add-then-move / add-then-delete (issue #92)', () => {
   test('moving a freshly-added row keeps it and applies the target', () => {
     const s = createShelfState({ ranges: [], permittedRowIds: null });

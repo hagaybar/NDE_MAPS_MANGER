@@ -9,7 +9,7 @@ import { collectionsForFloor } from './map-editor/collections.js?v=1';
 import { installPromoteRefreshListener, getFloorCacheBust } from './map-editor/promote-refresh.js?v=1';
 import { indexShelfLocations } from './map-editor/location-model.js';
 import { attachInteraction, applySelection } from './map-editor/svg-interaction.js?v=1';
-import { createShelfState } from './map-editor/shelf-state.js?v=2';
+import { createShelfState } from './map-editor/shelf-state.js?v=3';
 import { computeFloorConflicts } from './map-editor/range-validation.js?v=1';
 import { mountSidePanel, renderPanel, hidePanel } from './map-editor/side-panel.js?v=1';
 import { startReassign, cancelReassign, isReassignActive } from './map-editor/reassign-mode.js?v=1';
@@ -567,6 +567,7 @@ async function saveCsv() {
     // Refresh local state from the new snapshot.
     allRanges = merged;
     shelfState.commit(merged);  // adopt saved snapshot as the new baseline + clear pending (#86)
+    shelfState.setPermitted(getPermittedRowIds(merged));  // re-derive editor permissions so a just-saved in-range row stays editable (#126)
     refreshConflicts();
     renderDrawer();             // panel re-renders the current mode with fresh, saved values
     refreshTriageIfOpen();      // if the worklist is showing, re-derive it from the saved data
