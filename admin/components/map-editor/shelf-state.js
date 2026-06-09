@@ -4,7 +4,7 @@ export function createShelfState({ ranges, permittedRowIds }) {
   let _reassign = null;         // { rangeId, intent, originShelfId } while picking a target, else null
   let _triageOpen = false;      // the "needs a shelf" worklist is open
   const _pending = new Map();   // session-wide; spans floors
-  const _permitted = permittedRowIds; // null = unlimited (admin)
+  let _permitted = permittedRowIds; // null = unlimited (admin); replaceable via setPermitted
 
   return {
     ranges: () => _ranges,
@@ -54,11 +54,19 @@ export function createShelfState({ ranges, permittedRowIds }) {
     },
 
     isAllowed(rangeId) {
+      // A pending add belongs to the editor creating it — always editable (the
+      // server validates its range on save). Existing rows stay range-gated (#126).
+      if (_pending.get(rangeId)?.type === 'add') return true;
       return _permitted === null || _permitted.has(rangeId);
     },
     permission(rangeId) {
       return this.isAllowed(rangeId) ? 'edit' : 'readonly';
     },
+
+    // Replace the permitted-row set. Called after a save once the app has
+    // recomputed which (now-saved) rows fall in the editor's range, so a
+    // just-saved in-range row becomes editable again instead of staying locked (#126).
+    setPermitted(p) { _permitted = p; },
 
     edit(rangeId, patch) {
       // If this row is a not-yet-saved add, merge the edit INTO the add so it

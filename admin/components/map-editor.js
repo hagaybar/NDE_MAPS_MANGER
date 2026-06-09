@@ -567,6 +567,7 @@ async function saveCsv() {
     // Refresh local state from the new snapshot.
     allRanges = merged;
     shelfState.commit(merged);  // adopt saved snapshot as the new baseline + clear pending (#86)
+    shelfState.setPermitted(getPermittedRowIds(merged));  // re-derive editor permissions so a just-saved in-range row stays editable (#126)
     refreshConflicts();
     renderDrawer();             // panel re-renders the current mode with fresh, saved values
     refreshTriageIfOpen();      // if the worklist is showing, re-derive it from the saved data
