@@ -1,3 +1,5 @@
+> **Status:** Historical · Created 2026-05-14 · Manual QA log — SoT foundation UI test. Kept for the record.
+
 # Manual UI Test — SoT Bundle Invariant Foundation (Plan A)
 
 **Scope:** Hands-on UI verification after merging `feature/sot-bundle-invariant-foundation` to `main`. Targets the user-visible changes from Plan A: the new "Broken refs" filter in CSV Editor + the bundle-invariant rejection in the `putCsv` Lambda.

@@ -1,3 +1,5 @@
+> **Status:** Historical · Created 2026-05-17 · Manual QA log — SoT foundation test session. Kept for the record.
+
 # SoT Foundation Manual QA — Test Session
 
 **Date:** 2026-05-17
