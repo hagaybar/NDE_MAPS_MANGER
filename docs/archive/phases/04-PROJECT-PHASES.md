@@ -1,3 +1,5 @@
+> **Status:** Historical · Created 2026-02-26 · Original 5-phase roadmap; all phases delivered. NOTE: its "Phase 4 = Authentication" numbering is unrelated to the later "Phase 4a/4b" reconcile-wizard work — do not confuse the two.
+
 # Project Phases
 
 ## Phase Overview
