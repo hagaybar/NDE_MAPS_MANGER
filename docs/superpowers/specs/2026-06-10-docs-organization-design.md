@@ -49,7 +49,7 @@ whole thing. Three concrete pains:
 | 4 | Status signal | **Folders + headers + index** (max signal). |
 | 5 | Scope | Reorganize the **loose `docs/*` files + root clutter only**; leave `superpowers/` untouched. |
 | 6 | Untracked root PNGs | **Delete** (throwaway debug screenshots). |
-| 7 | `manual-qa/` | Archive the **dated outputs**; keep the reusable harness in place. |
+| 7 | `manual-qa/` | Archive the dated **`.md` QA logs** only; keep the harness **and its `*.html` dashboards** in place — `qa-server.py` globs `*-qa.html` from this folder, so moving them breaks the harness. |
 | 8 | `issues-plain-language-overview` | **Keep at root, Current** (owner maintains it as the live "today" doc). |
 | 9 | `04-PROJECT-PHASES.md` | **Archive** (original Feb roadmap, all phases shipped; its "Phase 4" naming collides with later "Phase 4a/4b" work). |
 
@@ -96,16 +96,20 @@ docs/
     2026-05-12-orphan-panel-audit.md
     2026-05-13-floor-svg-stale-cache.md
 
-  manual-qa/                  ← harness stays; dated outputs move out
+  manual-qa/                  ← harness + its dashboards stay; only .md logs move out
     qa-server.py  qa-watch.sh  qa-reply.sh   ← stay (reusable tooling)
+    *.html (6 dated dashboards)              ← stay (qa-server.py globs *-qa.html here)
 
-  archive/                    ← NEW. All finished history, grouped:
+  *.png / *.pdf figures       ← STAY in docs/ (referenced by superpowers specs/plans;
+    (map_editor_new_layout,      not "parked for no reason" — they are figures for
+     orphan_panel_hebrew_UI_bug, trusted design docs; moving them would edit superpowers/)
+     primo_maps_issues_..._feature)
+
+  archive/                    ← NEW. Finished history, grouped:
     phases/    PHASE-1-TASKS, PHASE-2-TASKS, PHASE-4-PLAN, 04-PROJECT-PHASES
     handoffs/  HANDOFF-2026-05-25-phase-4a, HANDOFF-2026-05-31
     sessions/  2026-06-08-summary
-    qa/        the dated manual-qa *.md + *.html outputs
-    images/    map_editor_new_layout.png, orphan_panel_hebrew_UI_bug.png,
-               primo_maps_issues_mape_editor_feature.pdf
+    qa/        the dated manual-qa *.md QA logs (3)
 ```
 
 ### Moves (use `git mv`)
@@ -114,9 +118,12 @@ docs/
 |------|-------|
 | `archive/phases/` | `docs/PHASE-1-TASKS.md`, `docs/PHASE-2-TASKS.md`, `docs/PHASE-4-PLAN.md`, `docs/04-PROJECT-PHASES.md` |
 | `archive/handoffs/` | `docs/HANDOFF-2026-05-25-phase-4a.md`, `docs/HANDOFF-2026-05-31.md` |
-| `archive/sessions/` | `docs/sessions/2026-06-08-summary.md` (then remove empty `docs/sessions/`) |
-| `archive/qa/` | dated `docs/manual-qa/*.md` (3) + `*.html` (6) |
-| `archive/images/` | `docs/map_editor_new_layout.png`, `docs/orphan_panel_hebrew_UI_bug.png`, `docs/primo_maps_issues_mape_editor_feature.pdf` |
+| `archive/sessions/` | `docs/sessions/2026-06-08-summary.md` (then remove empty `docs/sessions/`); update the one inbound link in `issues-plain-language-overview-2026-06-09.md:9` |
+| `archive/qa/` | dated `docs/manual-qa/*.md` (3 QA logs) — **not** the `*.html` dashboards |
+
+The `docs/*.png` / `*.pdf` figures **do not move** (referenced by `superpowers/`
+specs/plans). The `manual-qa/*.html` dashboards **do not move** (`qa-server.py`
+serves them).
 
 ### Deletes (untracked scratch)
 
