@@ -47,8 +47,8 @@ admin/.a5c/
 # Claude Code local project config
 .claude/
 
-# Archive (old files)
-archive/
+# Archive (old root scratch dir; docs/archive/ is tracked finished history)
+/archive/
 
 # Superpowers brainstorming session files
 .superpowers/
