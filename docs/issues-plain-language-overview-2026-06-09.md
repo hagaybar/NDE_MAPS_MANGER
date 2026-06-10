@@ -1,3 +1,5 @@
+> **Status:** Current · Created 2026-06-09 · Plain-language overview of open issues — the live "what's open today" doc for the owner.
+
 # The Library Map System: What's Still Unfinished
 
 > A plain-language, non-technical tour of the open issues, grouped by what they

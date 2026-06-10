@@ -1,3 +1,5 @@
+> **Status:** Pinned · Created 2026-05-12 · Investigation record. Fixed path — referenced by `admin/__tests__/no-duplicate-module-imports.test.js`.
+
 # Orphan-panel audit — Map Editor (issue #14 phase 2a)
 
 **Date:** 2026-05-12
