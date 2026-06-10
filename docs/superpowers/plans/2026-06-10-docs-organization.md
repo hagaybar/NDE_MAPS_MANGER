@@ -234,11 +234,21 @@ git commit -m "docs: archive dated manual-QA logs (harness + dashboards stay)"
 
 ---
 
-## Task 5: Add status headers to the in-place Current + Pinned docs
+## Task 5: Headers for in-place Current + Pinned docs (+ relocate EDITOR-UI-REQUIREMENTS)
 
-**Files (header-only edits, no moves):**
-- `docs/01-PROJECT-OVERVIEW.md`, `docs/02-REQUIREMENTS.md`, `docs/03-ARCHITECTURE.md`, `docs/AWS-INFRASTRUCTURE.md`, `docs/issues-plain-language-overview-2026-06-09.md`
-- `docs/batches.md`, `docs/run-history-insights.md`, `docs/audits/2026-05-12-orphan-panel-audit.md`, `docs/audits/2026-05-13-floor-svg-stale-cache.md`
+**Files:**
+- Move: `EDITOR-UI-REQUIREMENTS.md` (repo root) → `docs/EDITOR-UI-REQUIREMENTS.md`
+- Header (no move): `docs/01-PROJECT-OVERVIEW.md`, `docs/02-REQUIREMENTS.md`, `docs/03-ARCHITECTURE.md`, `docs/AWS-INFRASTRUCTURE.md`, `docs/issues-plain-language-overview-2026-06-09.md`, `docs/EDITOR-UI-REQUIREMENTS.md`
+- Header (no move, Pinned): `docs/batches.md`, `docs/run-history-insights.md`, `docs/audits/2026-05-12-orphan-panel-audit.md`, `docs/audits/2026-05-13-floor-svg-stale-cache.md`
+
+- [ ] **Step 0: Relocate `EDITOR-UI-REQUIREMENTS.md` into `docs/`**
+
+It is the spec of record for the live Location Editor — its components (`location-editor.js`, `search-box.js`, `results-container.js`, `trash-view.js`, `full-table-view.js`, `validation-panel.js`, …) all exist — just stranded at the repo root. No inbound references (verified).
+
+```bash
+cd /home/hagaybar/projects/primo_maps
+git mv EDITOR-UI-REQUIREMENTS.md docs/EDITOR-UI-REQUIREMENTS.md
+```
 
 - [ ] **Step 1: Prepend the status header to each Current doc**
 
@@ -269,6 +279,11 @@ Use the Edit tool to insert each header as the first line (then a blank line bef
 > **Status:** Current · Created 2026-06-09 · Plain-language overview of open issues — the live "what's open today" doc for the owner.
 ```
 
+`docs/EDITOR-UI-REQUIREMENTS.md`:
+```
+> **Status:** Current · v2.0 approved 2026-03-04 · Spec of record for the live Location Editor (search-first, grouped results, soft-delete Trash, batch ops). Implemented; later refinements live in superpowers/ specs.
+```
+
 - [ ] **Step 2: Prepend the status header to each Pinned doc**
 
 `docs/batches.md`:
@@ -293,14 +308,14 @@ Use the Edit tool to insert each header as the first line (then a blank line bef
 
 - [ ] **Step 3: Verify every in-place doc now has a status header**
 
-Run: `for f in docs/01-PROJECT-OVERVIEW.md docs/02-REQUIREMENTS.md docs/03-ARCHITECTURE.md docs/AWS-INFRASTRUCTURE.md docs/issues-plain-language-overview-2026-06-09.md docs/batches.md docs/run-history-insights.md docs/audits/2026-05-12-orphan-panel-audit.md docs/audits/2026-05-13-floor-svg-stale-cache.md; do head -1 "$f" | grep -q '> \*\*Status:\*\*' && echo "OK  $f" || echo "MISSING  $f"; done`
+Run: `for f in docs/01-PROJECT-OVERVIEW.md docs/02-REQUIREMENTS.md docs/03-ARCHITECTURE.md docs/AWS-INFRASTRUCTURE.md docs/issues-plain-language-overview-2026-06-09.md docs/EDITOR-UI-REQUIREMENTS.md docs/batches.md docs/run-history-insights.md docs/audits/2026-05-12-orphan-panel-audit.md docs/audits/2026-05-13-floor-svg-stale-cache.md; do head -1 "$f" | grep -q '> \*\*Status:\*\*' && echo "OK  $f" || echo "MISSING  $f"; done`
 Expected: every line starts with `OK`
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add docs/01-PROJECT-OVERVIEW.md docs/02-REQUIREMENTS.md docs/03-ARCHITECTURE.md docs/AWS-INFRASTRUCTURE.md docs/issues-plain-language-overview-2026-06-09.md docs/batches.md docs/run-history-insights.md docs/audits
-git commit -m "docs: add status headers to current + pinned docs"
+git add docs/01-PROJECT-OVERVIEW.md docs/02-REQUIREMENTS.md docs/03-ARCHITECTURE.md docs/AWS-INFRASTRUCTURE.md docs/issues-plain-language-overview-2026-06-09.md docs/EDITOR-UI-REQUIREMENTS.md docs/batches.md docs/run-history-insights.md docs/audits
+git commit -m "docs: relocate EDITOR-UI-REQUIREMENTS into docs/; add status headers to current + pinned docs"
 ```
 
 ---
@@ -338,6 +353,7 @@ CLAUDE.md references it.
 | `02-REQUIREMENTS.md` | Current | 2026-02-26 | Functional / non-functional requirements. |
 | `03-ARCHITECTURE.md` | Current | 2026-02-26 | Serverless architecture reference. |
 | `AWS-INFRASTRUCTURE.md` | Current | 2026-05-18 | CloudFront / S3 / CORS configuration. |
+| `EDITOR-UI-REQUIREMENTS.md` | Current | 2026-03-04 | Spec of record for the live Location Editor (v2.0). |
 | `issues-plain-language-overview-2026-06-09.md` | Current | 2026-06-09 | Plain-language open-issues overview — the live "today" doc. |
 
 ## Pinned — fixed path, do not move
@@ -378,13 +394,12 @@ CLAUDE.md references it.
 | `archive/qa/2026-05-14-sot-foundation-ui-test.md` | Historical | 2026-05-14 | Manual QA log — SoT foundation UI test. |
 | `archive/qa/2026-05-17-sot-foundation-retest.md` | Historical | 2026-05-17 | Manual QA log — SoT foundation retest. |
 | `archive/qa/2026-05-17-sot-foundation-test-session.md` | Historical | 2026-05-17 | Manual QA log — SoT foundation test session. |
+| `archive/legacy/index.html` | Historical | 2026-02-25 | Legacy "Welcome" splash page; not project docs, kept for the record. |
 
-## Open items (owner decision)
+## Open items
 
-- `EDITOR-UI-REQUIREMENTS.md` (repo root, 2026-03-05) — likely superseded by the
-  shipped editor; verify, then header Current or move to `archive/`.
-- `archive/index.html` (repo root, 2026-02-25) — stray legacy HTML; review and
-  decide keep/move/delete.
+None outstanding. (`EDITOR-UI-REQUIREMENTS.md` is kept as Current in `docs/`;
+the legacy root `archive/` welcome page moved to `archive/legacy/index.html`.)
 ```
 
 - [ ] **Step 2: Verify the index links resolve**
@@ -401,12 +416,13 @@ git commit -m "docs: add INDEX.md front-door catalog"
 
 ---
 
-## Task 7: Delete the untracked root scratch PNGs
+## Task 7: Root cleanup — delete scratch PNGs, preserve the legacy welcome page
 
 **Files:**
 - Delete: `editor-add-line-FIXED.png`, `editor-add-line-locked.png`, `editor-map-unlocked.png` (repo root, untracked)
+- Move: `archive/index.html` (repo root, untracked) → `docs/archive/legacy/index.html`; remove the now-empty root `archive/`
 
-- [ ] **Step 1: Confirm they are untracked scratch before deleting**
+- [ ] **Step 1: Confirm the PNGs are untracked scratch before deleting**
 
 Run: `git status --porcelain | grep -E '\.png$'`
 Expected:
@@ -417,19 +433,40 @@ Expected:
 ```
 (All `??` = untracked. If any show as tracked/modified, STOP and surface to the owner.)
 
-- [ ] **Step 2: Delete them**
+- [ ] **Step 2: Delete the scratch PNGs**
 
 ```bash
 cd /home/hagaybar/projects/primo_maps
 rm editor-add-line-FIXED.png editor-add-line-locked.png editor-map-unlocked.png
 ```
 
-- [ ] **Step 3: Verify they are gone and the tree is clean**
+- [ ] **Step 3: Verify they are gone**
 
 Run: `ls editor-*.png 2>&1`
 Expected: `ls: cannot access 'editor-*.png': No such file or directory`
 
-(No commit — deleting untracked files leaves nothing for git to record.)
+- [ ] **Step 4: Preserve the legacy welcome page (untracked → tracked, out of root)**
+
+`archive/index.html` is the "Welcome Oded Zrachia" splash page — not project docs, and untracked (no git history). Move it under `docs/archive/legacy/` and `git add` it so it is actually preserved, then drop the empty root `archive/`.
+
+```bash
+cd /home/hagaybar/projects/primo_maps
+mkdir -p docs/archive/legacy
+mv archive/index.html docs/archive/legacy/index.html
+rmdir archive
+git add docs/archive/legacy/index.html
+```
+
+- [ ] **Step 5: Verify the relocation**
+
+Run: `test -f docs/archive/legacy/index.html && test ! -d archive && echo "legacy relocated, root archive/ removed"`
+Expected: `legacy relocated, root archive/ removed`
+
+- [ ] **Step 6: Commit (the legacy page only; the PNGs are gone, nothing to commit for them)**
+
+```bash
+git commit -m "docs: preserve legacy welcome page at archive/legacy/; drop root archive/"
+```
 
 ---
 
@@ -459,8 +496,8 @@ Expected: the targeted suite passes (no new failures introduced by the docs move
 
 - [ ] **Step 4: Final tree sanity check**
 
-Run: `ls docs/*.md && echo "---archive---" && find docs/archive -name '*.md' | sort`
-Expected: `docs/*.md` shows only `01/02/03`, `AWS-INFRASTRUCTURE`, `INDEX`, `issues-plain-language-overview`, `batches`, `run-history-insights` (no `PHASE-*`, no `04-PROJECT-PHASES`, no `HANDOFF-*`); the archive list shows the 10 relocated docs.
+Run: `ls docs/*.md && echo "---archive---" && find docs/archive -type f | sort && echo "---root---" && (test ! -d archive && echo "no root archive/" ) && (test ! -f EDITOR-UI-REQUIREMENTS.md && echo "EDITOR relocated")`
+Expected: `docs/*.md` shows only `01/02/03`, `AWS-INFRASTRUCTURE`, `EDITOR-UI-REQUIREMENTS`, `INDEX`, `issues-plain-language-overview`, `batches`, `run-history-insights` (no `PHASE-*`, no `04-PROJECT-PHASES`, no `HANDOFF-*`); the archive list shows the 10 relocated docs plus `legacy/index.html`; `no root archive/` and `EDITOR relocated` both print.
 
 - [ ] **Step 5: Confirm clean working tree**
 

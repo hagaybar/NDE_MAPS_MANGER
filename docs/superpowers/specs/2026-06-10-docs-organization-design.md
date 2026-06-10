@@ -160,13 +160,15 @@ For each **moved** file, the implementation must, in the same commit:
 Memory files under `~/.claude/...` may reference old doc paths; those are
 outside the repo and out of scope (note, don't edit).
 
-## Open items (flag, don't block)
+## Open items — RESOLVED 2026-06-10
 
-- **`EDITOR-UI-REQUIREMENTS.md`** (repo root, Mar 5) — likely superseded by the
-  shipped editor + map-editor redesign, but unread. Verify, then either header
-  it Current or move to `archive/`. Not in the agreed scope; surface to owner.
-- **Repo-root `archive/index.html`** (18 KB, Feb 25, unread) — a stray legacy
-  HTML at the repo root. Surface to owner; do not move blindly.
+- **`EDITOR-UI-REQUIREMENTS.md`** (repo root, Mar 4) — verified: it is the spec
+  of record for the **live** Location Editor (its components all exist in
+  `admin/components/`). → **Move into `docs/`, header Current.** Not historical.
+- **Repo-root `archive/index.html`** (18 KB, Feb 25) — verified: a personal
+  "Welcome" splash page, not project docs, and **untracked**. → **Preserve at
+  `docs/archive/legacy/index.html`** (git-add it) and remove the empty root
+  `archive/` (kills the name collision with `docs/archive/`).
 
 ## Acceptance criteria
 
