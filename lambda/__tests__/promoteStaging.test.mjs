@@ -135,6 +135,56 @@ Lib,LibHe,Coll,CollHe,000,999,CC_X,,,1,,,,
     expect(JSON.parse(resp.body).errors).toBeDefined();
   });
 
+  // #88: a staged CSV with a blank-floor row must NOT be promotable, even when
+  // its svgCode is a real floor-0 shelf. Pre-fix `Number('')===0` let CB_0
+  // resolve against floor 0 and the promote succeeded (200), publishing a
+  // blank-floor row that the Primo add-on then mislocated to floor 2.
+  test('returns 422 and does not overwrite production when a staged row has a blank floor', async () => {
+    s3Mock.on(GetObjectCommand, { Key: 'staging/.meta.json' }).resolves(
+      streamFromString(JSON.stringify({
+        locked: true,
+        owner: 'alice',
+        files: ['data/mapping.csv'],
+      }))
+    );
+    // No staged SVGs — fall back to prod for re-validation.
+    s3Mock.on(GetObjectCommand, { Key: 'staging/maps/floor_0.svg' }).rejects(
+      Object.assign(new Error('NoSuchKey'), { name: 'NoSuchKey' })
+    );
+    s3Mock.on(GetObjectCommand, { Key: 'staging/maps/floor_1.svg' }).rejects(
+      Object.assign(new Error('NoSuchKey'), { name: 'NoSuchKey' })
+    );
+    s3Mock.on(GetObjectCommand, { Key: 'staging/maps/floor_2.svg' }).rejects(
+      Object.assign(new Error('NoSuchKey'), { name: 'NoSuchKey' })
+    );
+    // CB_0 is a real floor-0 shelf in production.
+    s3Mock.on(GetObjectCommand, { Key: 'maps/floor_0.svg' }).resolves(
+      streamFromString('<svg><rect id="CB_0" data-map-object="shelf"/></svg>')
+    );
+    s3Mock.on(GetObjectCommand, { Key: 'maps/floor_1.svg' }).resolves(streamFromString('<svg/>'));
+    s3Mock.on(GetObjectCommand, { Key: 'maps/floor_2.svg' }).resolves(streamFromString('<svg/>'));
+    // Staged CSV: CB_0 row with a BLANK floor (10th column empty).
+    s3Mock.on(GetObjectCommand, { Key: 'staging/data/mapping.csv' }).resolves(
+      streamFromString(`libraryName,libraryNameHe,collectionName,collectionNameHe,rangeStart,rangeEnd,svgCode,description,descriptionHe,floor,shelfLabel,shelfLabelHe,notes,notesHe
+Lib,LibHe,Coll,CollHe,000,999,CB_0,,,,,,,
+`)
+    );
+
+    const resp = await handler(event());
+    expect(resp.statusCode).toBe(422);
+    expect(JSON.parse(resp.body).errors).toContainEqual(
+      expect.objectContaining({ svgCode: 'CB_0', type: 'invalid-floor' })
+    );
+
+    // Production must be untouched — no copy or stamped put to data/mapping.csv.
+    const csvCopies = s3Mock.commandCalls(CopyObjectCommand)
+      .filter(c => c.args[0].input.Key === 'data/mapping.csv');
+    const csvPuts = s3Mock.commandCalls(PutObjectCommand)
+      .filter(c => c.args[0].input.Key === 'data/mapping.csv');
+    expect(csvCopies.length).toBe(0);
+    expect(csvPuts.length).toBe(0);
+  });
+
   // --- Version-backup behavior (issue #60) ---
 
   // Shared setup helper for the backup tests.
