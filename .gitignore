@@ -16,7 +16,7 @@ lambda/staging-build/
 .DS_Store
 Thumbs.db
 
-# Python compile cache (used by docs/manual-qa scripts)
+# Python compile cache (used by the archived docs/archive/dashboards scripts)
 __pycache__/
 *.pyc
 

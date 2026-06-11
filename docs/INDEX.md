@@ -35,12 +35,12 @@ CLAUDE.md references it.
 | `audits/2026-05-12-orphan-panel-audit.md` | Pinned | Referenced by a test; investigation record. |
 | `audits/2026-05-13-floor-svg-stale-cache.md` | Pinned | Referenced by CLAUDE.md; investigation record. |
 
-## Tooling (not docs)
+## Dashboards
 
 | Path | What |
 |------|------|
-| `manual-qa/qa-server.py`, `qa-watch.sh`, `qa-reply.sh` | Reusable live QA dashboard harness. |
-| `manual-qa/*.html` (6 dated dashboards) | Served by the harness; kept alongside it. |
+| [`dashboards/`](dashboards/) | **Live** HTML dashboard outputs. Built with the global `html-dashboard` skill (static or interactive); the repo carries no engine. See [`dashboards/README.md`](dashboards/README.md). |
+| [`archive/dashboards/`](archive/dashboards/) | Archived dated QA dashboards + the old custom `qa-server.py` bridge (superseded by the skill). |
 
 ## Figures (referenced by `superpowers/` design docs — kept in place)
 
@@ -65,6 +65,7 @@ CLAUDE.md references it.
 | `archive/qa/2026-05-17-sot-foundation-retest.md` | Historical | 2026-05-17 | Manual QA log — SoT foundation retest. |
 | `archive/qa/2026-05-17-sot-foundation-test-session.md` | Historical | 2026-05-17 | Manual QA log — SoT foundation test session. |
 | `archive/legacy/index.html` | Historical | 2026-02-25 | Legacy "Welcome" splash page; not project docs, kept for the record. |
+| `archive/dashboards/` (6 html + bridge) | Historical | 2026-06-11 | Dated QA dashboards + the old custom `qa-server.py` bridge; superseded by the `html-dashboard` skill. See its README. |
 
 ## Open items
 
