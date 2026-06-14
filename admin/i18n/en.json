@@ -39,7 +39,11 @@
     "noAccessDescription": "Your account does not have permission to edit any locations. Range restrictions are either disabled or no filter groups are defined.",
     "contactAdmin": "Please contact an administrator to configure your access permissions.",
     "orphanFilter": "Showing only unassigned shelves on floor {floor}. Saving still writes the whole file.",
-    "orphanFilterClear": "Show all rows"
+    "orphanFilterClear": "Show all rows",
+    "saveBlocked": "{count} problem(s) must be fixed before saving. They are highlighted below.",
+    "noProblems": "No problems — ready to save",
+    "problemCount": "{count} problem(s) to fix",
+    "anchorColumn": "Row"
   },
   "svg": {
     "title": "Map Files",
