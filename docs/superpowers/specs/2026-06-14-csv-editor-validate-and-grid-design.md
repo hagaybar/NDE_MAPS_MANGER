@@ -4,7 +4,7 @@
 > CSV Editor so it (1) blocks saving invalid data and shows the reason up front,
 > and (2) makes the wide edit grid usable (frozen header, frozen anchor column,
 > always-visible scrollbar). Drives the implementation plan of the same date.
-> Owner-approved (brainstorming, 2026-06-14).
+> Owner-approved (brainstorming, 2026-06-14). Tracking issue: **#187**.
 
 ## Problem
 
