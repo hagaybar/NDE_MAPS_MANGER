@@ -677,6 +677,18 @@ function renderTable() {
 
   const headers = Object.keys(csvData[0]);
 
+  const gate = validateDataset(csvData, svgShelfIdsByFloor);
+  // field -> {kind:'error'|'warning', message} for a given row index
+  const problemFor = (rowIndex, header) => {
+    const p = gate.problemsByRow.get(rowIndex);
+    if (!p) return null;
+    const err = p.errors.find(e => e.field === header);
+    if (err) return { kind: 'error', message: err.message };
+    const warn = p.warnings.find(w => w.field === header);
+    if (warn) return { kind: 'warning', message: warn.message };
+    return null;
+  };
+
   tableContainer.innerHTML = `
     <table class="min-w-full border-collapse" id="csv-table">
       <thead class="bg-gray-50 sticky top-0">
@@ -694,8 +706,13 @@ function renderTable() {
       <tbody class="bg-white divide-y divide-gray-200">
         ${csvData.map((row, rowIndex) => `
           <tr class="csv-row hover:bg-gray-50" data-row-index="${rowIndex}">
-            ${headers.map(header => `
-              <td class="px-2 py-2 border-b border-gray-100">
+            ${headers.map(header => {
+              const prob = problemFor(rowIndex, header);
+              const tdClass = 'px-2 py-2 border-b border-gray-100'
+                + (prob?.kind === 'error' ? ' csv-cell-error' : prob?.kind === 'warning' ? ' csv-cell-warning' : '');
+              const titleAttr = prob ? ` title="${escapeHtml(prob.message)}"` : '';
+              return `
+              <td class="${tdClass}"${titleAttr}>
                 <input
                   type="text"
                   class="csv-input w-full px-2 py-1 text-sm border border-gray-200 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none"
@@ -704,8 +721,8 @@ function renderTable() {
                   value="${escapeHtml(row[header] || '')}"
                   dir="auto"
                 >
-              </td>
-            `).join('')}
+              </td>`;
+            }).join('')}
             <td class="px-2 py-2 text-center border-b border-gray-100">
               <button
                 class="btn-delete-row p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors"

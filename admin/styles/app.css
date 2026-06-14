@@ -3252,3 +3252,8 @@ textarea:focus-visible,
   font-size: 14px;
   line-height: 1;
 }
+
+/* #187 CSV Editor — inline validation marks */
+#csv-table td.csv-cell-error { background: #fef2f2; box-shadow: inset 0 0 0 1px #f87171; }   /* red-50 / red-400 */
+#csv-table td.csv-cell-error input { color: #991b1b; }                                       /* red-800 */
+#csv-table td.csv-cell-warning { background: #fffbeb; box-shadow: inset 0 0 0 1px #fcd34d; }  /* amber-50 / amber-300 */

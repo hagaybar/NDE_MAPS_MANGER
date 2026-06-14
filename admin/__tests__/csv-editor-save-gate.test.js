@@ -137,4 +137,14 @@ describe('csv-editor — save gate (#187)', () => {
     const indicator = document.getElementById('csv-problem-count');
     expect(indicator.textContent).toMatch(/No problems|ready/i);
   });
+
+  test('a cell with a blocking error renders the error class + the reason in its title', async () => {
+    addRowForTest();          // empty row → E001 on required fields incl. floor
+    // renderTable runs inside addRow; find the new row (last data-row-index).
+    const rows = [...document.querySelectorAll('#csv-table tr[data-row-index]')];
+    const last = rows[rows.length - 1];
+    const floorCell = last.querySelector('input.csv-input[data-column="floor"]');
+    expect(floorCell.closest('td').classList.contains('csv-cell-error')).toBe(true);
+    expect(floorCell.closest('td').getAttribute('title')).toMatch(/required|empty|Required/i);
+  });
 });
