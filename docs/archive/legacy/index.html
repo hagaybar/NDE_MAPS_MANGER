@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome Oded Zrachia</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0a0a1a 0%, #1a0a2e 50%, #0a1a2a 100%);
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Animated background particles */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: 0;
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: radial-gradient(circle, #fff 0%, transparent 70%);
+            border-radius: 50%;
+            animation: float 15s infinite ease-in-out;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(-100vh) rotate(720deg); opacity: 0; }
+        }
+
+        /* Main container */
+        .container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            z-index: 1;
+            padding: 2rem;
+        }
+
+        /* Glowing orb background */
+        .glow-orb {
+            position: fixed;
+            width: 600px;
+            height: 600px;
+            border-radius: 50%;
+            filter: blur(100px);
+            opacity: 0.3;
+            animation: orbFloat 8s infinite ease-in-out;
+        }
+
+        .orb-1 {
+            background: #8b5cf6;
+            top: -200px;
+            left: -200px;
+            animation-delay: 0s;
+        }
+
+        .orb-2 {
+            background: #06b6d4;
+            bottom: -200px;
+            right: -200px;
+            animation-delay: -4s;
+        }
+
+        .orb-3 {
+            background: #ec4899;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            animation-delay: -2s;
+        }
+
+        @keyframes orbFloat {
+            0%, 100% { transform: scale(1) translate(0, 0); }
+            50% { transform: scale(1.2) translate(30px, -30px); }
+        }
+
+        /* Welcome text */
+        .welcome-text {
+            font-size: clamp(1rem, 3vw, 1.5rem);
+            color: #a78bfa;
+            text-transform: uppercase;
+            letter-spacing: 0.5em;
+            margin-bottom: 1rem;
+            animation: fadeInDown 1s ease-out;
+            text-shadow: 0 0 20px rgba(167, 139, 250, 0.5);
+        }
+
+        /* Main name */
+        .name {
+            font-size: clamp(3rem, 10vw, 8rem);
+            font-weight: 900;
+            background: linear-gradient(135deg, #fff 0%, #a78bfa 25%, #06b6d4 50%, #ec4899 75%, #fff 100%);
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradientShift 3s ease infinite, fadeInUp 1s ease-out;
+            text-align: center;
+            line-height: 1.1;
+            position: relative;
+        }
+
+        .name::after {
+            content: 'Oded Zrachia';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: linear-gradient(135deg, #fff 0%, #a78bfa 25%, #06b6d4 50%, #ec4899 75%, #fff 100%);
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            filter: blur(30px);
+            opacity: 0.7;
+            animation: gradientShift 3s ease infinite;
+            z-index: -1;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(50px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-50px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Tagline */
+        .tagline {
+            font-size: clamp(1rem, 2vw, 1.5rem);
+            color: #64748b;
+            margin-top: 1.5rem;
+            animation: fadeIn 1s ease-out 0.5s both;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* Button container */
+        .buttons {
+            display: flex;
+            gap: 1.5rem;
+            margin-top: 3rem;
+            flex-wrap: wrap;
+            justify-content: center;
+            animation: fadeIn 1s ease-out 0.8s both;
+        }
+
+        /* Fancy buttons */
+        .btn {
+            padding: 1rem 2.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%);
+            color: white;
+            box-shadow: 0 4px 30px rgba(139, 92, 246, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 8px 40px rgba(139, 92, 246, 0.6);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: #a78bfa;
+            border: 2px solid #a78bfa;
+            box-shadow: 0 0 20px rgba(167, 139, 250, 0.2);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(167, 139, 250, 0.1);
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 0 30px rgba(167, 139, 250, 0.4);
+        }
+
+        .btn-surprise {
+            background: linear-gradient(135deg, #ec4899 0%, #f59e0b 100%);
+            color: white;
+            box-shadow: 0 4px 30px rgba(236, 72, 153, 0.4);
+        }
+
+        .btn-surprise:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 8px 40px rgba(236, 72, 153, 0.6);
+        }
+
+        /* Ripple effect */
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn:active::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        /* Confetti container */
+        .confetti-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            animation: confettiFall 3s ease-out forwards;
+        }
+
+        @keyframes confettiFall {
+            0% { transform: translateY(-100%) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+        }
+
+        /* Emoji burst */
+        .emoji-burst {
+            position: fixed;
+            font-size: 3rem;
+            animation: emojiBurst 2s ease-out forwards;
+            pointer-events: none;
+            z-index: 1001;
+        }
+
+        @keyframes emojiBurst {
+            0% { transform: scale(0) rotate(0deg); opacity: 1; }
+            50% { transform: scale(1.5) rotate(180deg); opacity: 1; }
+            100% { transform: scale(0) rotate(360deg) translateY(-100px); opacity: 0; }
+        }
+
+        /* Counter display */
+        .counter-display {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 1rem 1.5rem;
+            border-radius: 15px;
+            color: #a78bfa;
+            font-size: 0.9rem;
+            border: 1px solid rgba(167, 139, 250, 0.3);
+            animation: fadeIn 1s ease-out 1.2s both;
+        }
+
+        .counter-display span {
+            font-weight: bold;
+            color: #06b6d4;
+            font-size: 1.2rem;
+        }
+
+        /* Theme toggle */
+        .theme-indicator {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            font-size: 2rem;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+            animation: fadeIn 1s ease-out 1s both;
+        }
+
+        .theme-indicator:hover {
+            transform: scale(1.2) rotate(20deg);
+        }
+
+        /* Music visualizer */
+        .visualizer {
+            display: flex;
+            gap: 4px;
+            margin-top: 2rem;
+            animation: fadeIn 1s ease-out 1s both;
+        }
+
+        .bar {
+            width: 8px;
+            background: linear-gradient(to top, #8b5cf6, #06b6d4);
+            border-radius: 4px;
+            animation: bounce 0.5s ease-in-out infinite alternate;
+        }
+
+        @keyframes bounce {
+            from { height: 10px; }
+            to { height: 40px; }
+        }
+
+        /* Secret message */
+        .secret-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            padding: 3rem;
+            border-radius: 20px;
+            border: 2px solid #8b5cf6;
+            box-shadow: 0 0 60px rgba(139, 92, 246, 0.5);
+            z-index: 2000;
+            text-align: center;
+            transition: transform 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        .secret-message.show {
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        .secret-message h2 {
+            color: #fff;
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .secret-message p {
+            color: #a78bfa;
+            font-size: 1.2rem;
+        }
+
+        .secret-message .close-btn {
+            margin-top: 1.5rem;
+            padding: 0.8rem 2rem;
+            background: #8b5cf6;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .secret-message .close-btn:hover {
+            background: #a78bfa;
+            transform: scale(1.05);
+        }
+
+        /* Crown animation */
+        .crown {
+            font-size: 4rem;
+            animation: crownBounce 2s ease-in-out infinite;
+            margin-bottom: 1rem;
+        }
+
+        @keyframes crownBounce {
+            0%, 100% { transform: translateY(0) rotate(-5deg); }
+            50% { transform: translateY(-15px) rotate(5deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Background orbs -->
+    <div class="glow-orb orb-1"></div>
+    <div class="glow-orb orb-2"></div>
+    <div class="glow-orb orb-3"></div>
+
+    <!-- Particles -->
+    <div class="particles" id="particles"></div>
+
+    <!-- Confetti container -->
+    <div class="confetti-container" id="confetti"></div>
+
+    <!-- Theme toggle -->
+    <div class="theme-indicator" id="themeToggle">✨</div>
+
+    <!-- Main content -->
+    <div class="container">
+        <div class="crown">👑</div>
+        <p class="welcome-text">Welcome, Your Majesty</p>
+        <h1 class="name">Oded Zrachia</h1>
+        <p class="tagline">The legend has arrived</p>
+
+        <!-- Visualizer -->
+        <div class="visualizer" id="visualizer">
+            <div class="bar" style="animation-delay: 0s;"></div>
+            <div class="bar" style="animation-delay: 0.1s;"></div>
+            <div class="bar" style="animation-delay: 0.2s;"></div>
+            <div class="bar" style="animation-delay: 0.3s;"></div>
+            <div class="bar" style="animation-delay: 0.4s;"></div>
+            <div class="bar" style="animation-delay: 0.3s;"></div>
+            <div class="bar" style="animation-delay: 0.2s;"></div>
+            <div class="bar" style="animation-delay: 0.1s;"></div>
+        </div>
+
+        <!-- Buttons -->
+        <div class="buttons">
+            <button class="btn btn-primary" onclick="celebrate()">Celebrate!</button>
+            <button class="btn btn-secondary" onclick="changeColor()">Magic Colors</button>
+            <button class="btn btn-surprise" onclick="showSecret()">Secret Message</button>
+        </div>
+    </div>
+
+    <!-- Counter -->
+    <div class="counter-display">
+        Celebrations: <span id="counter">0</span>
+    </div>
+
+    <!-- Secret message modal -->
+    <div class="secret-message" id="secretModal">
+        <h2>🎉 Special Message 🎉</h2>
+        <p>Oded, you're absolutely amazing!<br>Keep being awesome! 🚀</p>
+        <button class="close-btn" onclick="closeSecret()">Thanks! 💜</button>
+    </div>
+
+    <script>
+        // Create floating particles
+        function createParticles() {
+            const container = document.getElementById('particles');
+            for (let i = 0; i < 50; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 15 + 's';
+                particle.style.animationDuration = (10 + Math.random() * 10) + 's';
+                container.appendChild(particle);
+            }
+        }
+
+        // Celebration counter
+        let celebrationCount = 0;
+
+        // Celebrate function - confetti explosion
+        function celebrate() {
+            celebrationCount++;
+            document.getElementById('counter').textContent = celebrationCount;
+
+            const container = document.getElementById('confetti');
+            const colors = ['#8b5cf6', '#06b6d4', '#ec4899', '#f59e0b', '#10b981', '#fff'];
+
+            for (let i = 0; i < 50; i++) {
+                setTimeout(() => {
+                    const confetti = document.createElement('div');
+                    confetti.className = 'confetti';
+                    confetti.style.left = Math.random() * 100 + '%';
+                    confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+                    confetti.style.animationDuration = (2 + Math.random() * 2) + 's';
+                    confetti.style.transform = `rotate(${Math.random() * 360}deg)`;
+                    container.appendChild(confetti);
+
+                    setTimeout(() => confetti.remove(), 3000);
+                }, i * 20);
+            }
+
+            // Emoji burst
+            const emojis = ['🎉', '🎊', '✨', '🌟', '💫', '🔥', '💜', '🚀'];
+            for (let i = 0; i < 8; i++) {
+                setTimeout(() => {
+                    const emoji = document.createElement('div');
+                    emoji.className = 'emoji-burst';
+                    emoji.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+                    emoji.style.left = (20 + Math.random() * 60) + '%';
+                    emoji.style.top = (20 + Math.random() * 60) + '%';
+                    document.body.appendChild(emoji);
+
+                    setTimeout(() => emoji.remove(), 2000);
+                }, i * 100);
+            }
+        }
+
+        // Color changing magic
+        let colorIndex = 0;
+        const colorSchemes = [
+            { primary: '#8b5cf6', secondary: '#06b6d4', accent: '#ec4899' },
+            { primary: '#10b981', secondary: '#f59e0b', accent: '#ef4444' },
+            { primary: '#3b82f6', secondary: '#8b5cf6', accent: '#06b6d4' },
+            { primary: '#f43f5e', secondary: '#fb923c', accent: '#fbbf24' },
+        ];
+
+        function changeColor() {
+            colorIndex = (colorIndex + 1) % colorSchemes.length;
+            const scheme = colorSchemes[colorIndex];
+
+            document.querySelectorAll('.glow-orb').forEach((orb, i) => {
+                const colors = [scheme.primary, scheme.secondary, scheme.accent];
+                orb.style.background = colors[i % 3];
+            });
+
+            // Flash effect
+            const flash = document.createElement('div');
+            flash.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: white;
+                opacity: 0.3;
+                pointer-events: none;
+                z-index: 999;
+            `;
+            document.body.appendChild(flash);
+            setTimeout(() => flash.remove(), 100);
+        }
+
+        // Secret message
+        function showSecret() {
+            document.getElementById('secretModal').classList.add('show');
+            celebrate();
+        }
+
+        function closeSecret() {
+            document.getElementById('secretModal').classList.remove('show');
+        }
+
+        // Theme toggle sparkle effect
+        document.getElementById('themeToggle').addEventListener('click', function() {
+            const sparkles = ['✨', '💫', '⭐', '🌟'];
+            this.textContent = sparkles[Math.floor(Math.random() * sparkles.length)];
+            changeColor();
+        });
+
+        // Initialize
+        createParticles();
+
+        // Auto celebrate on load
+        setTimeout(celebrate, 1500);
+
+        // Easter egg: Konami code
+        let konamiCode = [];
+        const konamiPattern = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
+
+        document.addEventListener('keydown', (e) => {
+            konamiCode.push(e.key);
+            konamiCode = konamiCode.slice(-10);
+
+            if (konamiCode.join(',') === konamiPattern.join(',')) {
+                for (let i = 0; i < 5; i++) {
+                    setTimeout(celebrate, i * 300);
+                }
+            }
+        });
+    </script>
+</body>
+</html>

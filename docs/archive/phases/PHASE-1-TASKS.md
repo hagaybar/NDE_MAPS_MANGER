@@ -1,3 +1,5 @@
+> **Status:** Historical · Created 2026-02-26 · Phase-1 (Foundation) task breakdown. Shipped long ago; kept for the record.
+
 # Phase 1: Foundation & File Serving - Detailed Tasks
 
 ## Summary

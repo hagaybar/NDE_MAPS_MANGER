@@ -1,3 +1,5 @@
+> **Status:** Historical · Created 2026-05-25 · Session handoff for Phase 4a (reconcile-wizard renames). Superseded by shipped work; kept for the record.
+
 # Session handoff — 2026-05-25 — Phase 4a on hold at manual e2e
 
 ## TL;DR — exactly where we stopped

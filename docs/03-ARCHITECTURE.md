@@ -1,3 +1,5 @@
+> **Status:** Current · Created 2026-02-26 · Serverless architecture reference (S3 / CloudFront / Lambda / Cognito).
+
 # Architecture Design
 
 ## 1. System Overview

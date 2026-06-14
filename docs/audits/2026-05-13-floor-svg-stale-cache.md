@@ -1,3 +1,5 @@
+> **Status:** Pinned · Created 2026-05-13 · Investigation record (stale-cache bug). Fixed path — referenced by CLAUDE.md (the no-cache sticky fix).
+
 # Floor SVG stale browser cache — recurring badge / clickability bug
 
 **Date:** 2026-05-13
