@@ -147,4 +147,21 @@ describe('csv-editor — save gate (#187)', () => {
     expect(floorCell.closest('td').classList.contains('csv-cell-error')).toBe(true);
     expect(floorCell.closest('td').getAttribute('title')).toMatch(/required|empty|Required/i);
   });
+
+  test('an empty added row blocks save, and removing it unblocks', async () => {
+    addRowForTest();
+    fetchSpy.mockClear();
+    await saveForTest();
+    let puts = fetchSpy.mock.calls.filter(([u, o]) => String(u).includes('/api/csv') && o?.method === 'PUT');
+    expect(puts.length).toBe(0);   // blocked
+
+    // Remove the just-added (last) row via its delete button.
+    const rows = [...document.querySelectorAll('#csv-table tr[data-row-index]')];
+    rows[rows.length - 1].querySelector('.btn-delete-row').click();
+
+    fetchSpy.mockClear();
+    await saveForTest();
+    puts = fetchSpy.mock.calls.filter(([u, o]) => String(u).includes('/api/csv') && o?.method === 'PUT');
+    expect(puts.length).toBe(1);   // unblocked, save proceeds
+  });
 });
