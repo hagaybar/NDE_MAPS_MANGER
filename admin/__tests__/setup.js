@@ -29,10 +29,15 @@ const mockFetch = () =>
 
 global.fetch = mockFetch;
 
-// Reset DOM before each test
+// Reset DOM before each test.
+// Guarded for the `@jest-environment node` test files (e.g. the pure
+// csv-validation unit test), which have no `document` — the DOM reset is
+// simply skipped there; jsdom tests are unaffected.
 beforeEach(() => {
-  document.body.innerHTML = '';
-  document.documentElement.dir = 'ltr';
-  document.documentElement.lang = 'en';
+  if (typeof document !== 'undefined') {
+    document.body.innerHTML = '';
+    document.documentElement.dir = 'ltr';
+    document.documentElement.lang = 'en';
+  }
   localStorageMock.clear();
 });
