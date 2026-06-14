@@ -189,4 +189,50 @@ describe('putCsv — bundle invariant', () => {
       .filter((c) => c.args[0].input.Key === 'data/mapping.csv');
     expect(dataPuts.length).toBeGreaterThan(0);
   });
+
+  // #88: a blank floor must be rejected, NOT silently coerced to floor 0.
+  // CB_0 is a real floor-0 shelf, so pre-fix `Number('')===0` makes the row
+  // resolve against floor 0 and the save is accepted (200) — the bug. The
+  // producer/consumer then disagree on the floor and the Primo highlight fails.
+  test('with flag ON: rejects 422 when a row has a blank floor (even if svgCode is a real floor-0 shelf)', async () => {
+    process.env.BUNDLE_INVARIANT_ENABLED = 'true';
+    // floor column (10th) left blank; svgCode CB_0 IS present on floor 0.
+    const csv = `${HEADER_LINE}\nLib,LibHe,Coll,CollHe,000,999,CB_0,,,,,,,`;
+
+    const resp = await handler(makeEvent(csv));
+
+    expect(resp.statusCode).toBe(422);
+    const body = JSON.parse(resp.body);
+    expect(body.errors).toContainEqual(
+      expect.objectContaining({
+        svgCode: 'CB_0',
+        type: 'invalid-floor',
+      })
+    );
+
+    // Nothing must be written.
+    const dataPuts = s3Mock
+      .commandCalls(PutObjectCommand)
+      .filter((c) => c.args[0].input.Key === 'data/mapping.csv');
+    expect(dataPuts.length).toBe(0);
+  });
+
+  // #88 generalization: a non-blank but out-of-range floor ('3') is rejected
+  // with the same clear 'invalid-floor' error rather than a confusing
+  // 'shelf-not-found'.
+  test('with flag ON: rejects 422 with invalid-floor when floor is out of range', async () => {
+    process.env.BUNDLE_INVARIANT_ENABLED = 'true';
+    const csv = `${HEADER_LINE}\nLib,LibHe,Coll,CollHe,000,999,CB_0,,,3,,,,`;
+
+    const resp = await handler(makeEvent(csv));
+
+    expect(resp.statusCode).toBe(422);
+    const body = JSON.parse(resp.body);
+    expect(body.errors).toContainEqual(
+      expect.objectContaining({
+        svgCode: 'CB_0',
+        type: 'invalid-floor',
+      })
+    );
+  });
 });

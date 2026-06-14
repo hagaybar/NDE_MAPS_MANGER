@@ -1,3 +1,5 @@
+> **Status:** Pinned · Regenerated each grooming cycle · Fixed path — WORKFLOW.md writes the 3 batching options here.
+
 # Batching plan — open issues
 
 > **Decision recorded 2026-05-31.** The owner reviewed the three batching options

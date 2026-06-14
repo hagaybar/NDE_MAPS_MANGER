@@ -1,3 +1,5 @@
+> **Status:** Current · Updated 2026-05-18 · CloudFront / S3 / CORS configuration reference.
+
 # AWS Infrastructure Configuration
 
 This document describes the AWS infrastructure configuration for the Primo Maps Management System.

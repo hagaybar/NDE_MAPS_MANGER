@@ -49,7 +49,9 @@ export const handler = async (event) => {
   const csvRowsForValidation = rows.map((row, idx) => ({
     rowIndex: idx,
     svgCode: String(row.svgCode || ''),
-    floor: Number(row.floor),
+    // Raw floor so the Validate dry-run flags a blank floor like promote does
+    // (validateBundle validates {0,1,2}; no Number('')===0 coercion). See #88.
+    floor: row.floor,
   }));
   const result = validateBundle(csvRowsForValidation, svgShelfIdsByFloor);
 

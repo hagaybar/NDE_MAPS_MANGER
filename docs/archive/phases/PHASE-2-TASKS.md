@@ -1,3 +1,5 @@
+> **Status:** Historical · Created 2026-02-26 · Phase-2 (Admin UI) task breakdown. Shipped long ago; kept for the record.
+
 # Phase 2: Admin UI - File Management (Bilingual) - Detailed Tasks
 
 ## Summary

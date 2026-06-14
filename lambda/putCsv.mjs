@@ -134,7 +134,9 @@ export const handler = async (event) => {
     const csvRowsForValidation = parsedRows.map((row, idx) => ({
       rowIndex: idx,
       svgCode: String(row.svgCode || ''),
-      floor: Number(row.floor),
+      // Pass the raw floor — validateBundle validates {0,1,2} and must see a
+      // blank as blank (not Number('')===0). See #88.
+      floor: row.floor,
     }));
     const validation = validateBundle(csvRowsForValidation, svgShelfIdsByFloor);
 

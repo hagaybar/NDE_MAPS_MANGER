@@ -1,3 +1,5 @@
+> **Status:** Current · Created 2026-06-09 · Plain-language overview of open issues — the live "what's open today" doc for the owner.
+
 # The Library Map System: What's Still Unfinished
 
 > A plain-language, non-technical tour of the open issues, grouped by what they
@@ -6,7 +8,7 @@
 > **Snapshot: 2026-06-09** (after the data-quality dashboard chapter shipped —
 > #157/#156/#158/#105 closed — and the staff-email PII logging fix, #63). Issues
 > change over time — re-generate from `gh issue list` when revisiting. For the
-> technical record of what shipped, see `docs/sessions/2026-06-08-summary.md`.
+> technical record of what shipped, see `docs/archive/sessions/2026-06-08-summary.md`.
 
 The app is in good shape — the dangerous, day-one problems are gone, and the
 **data-quality report is now trustworthy** (its on-screen / Excel / print numbers

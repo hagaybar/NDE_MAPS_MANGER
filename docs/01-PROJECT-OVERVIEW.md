@@ -1,3 +1,5 @@
+> **Status:** Current · Created 2026-02-26 · High-level overview of what Primo Maps is and why it exists.
+
 # Project Overview: Primo Maps Management System
 
 ## Executive Summary
