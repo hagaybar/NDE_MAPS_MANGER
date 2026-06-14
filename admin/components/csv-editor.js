@@ -350,6 +350,7 @@ function applyBrokenRefsFilter() {
       deleteRow(Number(idx));
       markChanged();
       renderBrokenRefsToggle();  // recompute count after row removed
+      updateProblemIndicator();  // #187: recompute the save-gate after the delete
     });
     tr.appendChild(actions);
   });
