@@ -6,6 +6,7 @@ import { applyRoleBasedUI, isAdmin } from '../auth-guard.js?v=5';
 import authService from '../auth-service.js?v=5';
 import { filterRowsByRange, getMatchingRowIndices } from '../utils/range-filter.js?v=5';
 import { getBrokenRefs } from '../services/data-model.js';
+import { validateDataset } from '../services/csv-validation.js';
 import { parseSvg } from '../services/svg-shelves.js?v=5';
 
 // Fallback translations if i18n hasn't loaded yet
@@ -27,6 +28,10 @@ const FALLBACKS = {
   'csv.deleteRow':           { en: 'Delete row',                                he: 'מחק שורה' },
   'csv.deleteRowConfirm':    { en: 'Delete row {idx} (svgCode "{code}")? This cannot be undone here — recover via S3 version history if needed.',
                                he: 'מחק שורה {idx} (svgCode "{code}")? לא ניתן לבטל; שחזור דרך היסטוריית גרסאות S3.' },
+  'csv.saveBlocked': { en: '{count} problem(s) must be fixed before saving. They are highlighted below.', he: 'יש לתקן {count} בעיות לפני השמירה. הן מסומנות למטה.' },
+  'csv.noProblems': { en: 'No problems — ready to save', he: 'אין בעיות — מוכן לשמירה' },
+  'csv.problemCount': { en: '{count} problem(s) to fix', he: '{count} בעיות לתיקון' },
+  'csv.anchorColumn': { en: 'Row', he: 'שורה' },
   'common.error': { en: 'An error occurred', he: 'אירעה שגיאה' },
   'common.loading': { en: 'Loading...', he: 'טוען...' }
 };
@@ -774,6 +779,9 @@ function updateSaveButton() {
   }
 }
 
+// #187 Task 2 temporary no-op — replaced by the real implementation in Task 4.
+function updateProblemIndicator() {}
+
 /**
  * Add a new row to the table
  */
@@ -895,6 +903,18 @@ async function saveCSV() {
     return;
   }
 
+  // --- Save gate (#187): the whole file must be valid. Block before any
+  // network call so the reason is shown up front instead of a slow,
+  // unexplained server rejection. ---
+  const dataToSave = buildFullCsvData();
+  const gate = validateDataset(dataToSave, svgShelfIdsByFloor);
+  if (gate.hasBlocking) {
+    showToast(t('csv.saveBlocked').replace('{count}', String(gate.blockingCount)), 'error');
+    renderTable();            // re-render so the inline error marks (Task 5) show
+    updateProblemIndicator();  // refresh the count + keep Save disabled (Task 4)
+    return;                    // do NOT contact the server
+  }
+
   try {
     saveBtn.disabled = true;
     saveBtn.innerHTML = `
@@ -905,8 +925,6 @@ async function saveCSV() {
       ${escapeHtml(t('common.loading'))}
     `;
 
-    // Build full CSV data (merge editor changes for filtered views)
-    const dataToSave = buildFullCsvData();
     const csvContent = toCSV(dataToSave);
 
     const response = await fetch(`${API_ENDPOINT}/api/csv`, {
@@ -1017,3 +1035,8 @@ function escapeHtml(str) {
   div.textContent = String(str);
   return div.innerHTML;
 }
+
+// Test-only hooks (no behavioral effect in the app).
+export const __addRowForTest = () => addRow();
+export const __saveForTest = () => saveCSV();
+export const __updateProblemIndicatorForTest = () => updateProblemIndicator();
