@@ -8,7 +8,7 @@ import { jest } from '@jest/globals';
 // E006/E001 paths are reachable without real SVG fetches.
 describe('csv-editor — save gate (#187)', () => {
   let initCSVEditor, addRowForTest, saveForTest, updateProblemIndicatorForTest;
-  let fetchSpy;
+  let fetchSpy, toastSpy;
 
   const HEADERS = 'libraryName,libraryNameHe,collectionName,collectionNameHe,rangeStart,rangeEnd,svgCode,description,descriptionHe,floor,shelfLabel,shelfLabelHe,notes,notesHe';
   // One valid row (CB_0 on floor 0) + header. CB_0 is in the floor_0 SVG mock.
@@ -58,6 +58,11 @@ describe('csv-editor — save gate (#187)', () => {
       getAuthHeaders: () => ({}),
       getCurrentUsername: () => 'tester',
     }));
+    // ESM module namespaces are read-only, so the real showToast can't be
+    // spied with jest.spyOn. Mock the toast module with a jest.fn() and assert
+    // on the message argument (the stable boundary: what text the user sees).
+    toastSpy = jest.fn();
+    jest.unstable_mockModule('../components/toast.js', () => ({ showToast: toastSpy }));
 
     const mod = await import('../components/csv-editor.js');
     initCSVEditor = mod.initCSVEditor;
@@ -85,5 +90,28 @@ describe('csv-editor — save gate (#187)', () => {
     await saveForTest();
     const putCalls = fetchSpy.mock.calls.filter(([u, opts]) => String(u).includes('/api/csv') && opts?.method === 'PUT');
     expect(putCalls.length).toBe(1);
+  });
+
+  test('a server 422 surfaces the server message, not the generic toast', async () => {
+    // Force the PUT to return a specific 422 body. The file is valid so the
+    // gate passes and the request is actually sent.
+    fetchSpy.mockImplementation((url, opts) => {
+      const u = String(url);
+      if (u.includes('/api/csv') && opts?.method === 'PUT') {
+        return Promise.resolve({
+          ok: false, status: 422,
+          json: () => Promise.resolve({ error: 'Bundle invariant violation' }),
+        });
+      }
+      if (u.endsWith('mapping.csv')) return Promise.resolve({ ok: true, status: 200, text: () => Promise.resolve(`${HEADERS}\n${VALID_ROW}`) });
+      if (u.includes('floor_0.svg')) return Promise.resolve({ ok: true, status: 200, text: () => Promise.resolve('<svg><rect id="CB_0" data-map-object="shelf"/></svg>') });
+      return Promise.resolve({ ok: true, status: 200, text: () => Promise.resolve('<svg></svg>') });
+    });
+
+    toastSpy.mockClear();
+    await saveForTest();
+
+    const messages = toastSpy.mock.calls.map(c => c[0]);
+    expect(messages.some(m => /Bundle invariant violation/.test(m))).toBe(true);
   });
 });

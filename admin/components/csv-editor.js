@@ -940,7 +940,11 @@ async function saveCSV() {
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      // #134/#187: surface the server's specific reason instead of a generic
+      // toast. The putCsv Lambda returns it under the `error` key.
+      let serverMsg = '';
+      try { const body = await response.json(); serverMsg = body?.error || body?.message || ''; } catch (_) { /* non-JSON body */ }
+      throw new Error(serverMsg || `HTTP error! status: ${response.status}`);
     }
 
     const result = await response.json();
@@ -956,7 +960,7 @@ async function saveCSV() {
     }
   } catch (error) {
     console.error('Failed to save CSV:', error);
-    showToast(t('csv.saveError'), 'error');
+    showToast(error?.message || t('csv.saveError'), 'error');
   } finally {
     saveBtn.disabled = !hasChanges;
     saveBtn.innerHTML = `
