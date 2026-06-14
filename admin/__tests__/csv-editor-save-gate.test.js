@@ -64,6 +64,12 @@ describe('csv-editor — save gate (#187)', () => {
     toastSpy = jest.fn();
     jest.unstable_mockModule('../components/toast.js', () => ({ showToast: toastSpy }));
 
+    // The app's i18n defaults to Hebrew (init() is never called here); force
+    // English so the indicator's fallback text is the English the assertions
+    // check. Same shared i18n instance the editor's t() reads.
+    const i18n = (await import('../i18n.js?v=5')).default;
+    i18n.setLocale('en');
+
     const mod = await import('../components/csv-editor.js');
     initCSVEditor = mod.initCSVEditor;
     // helpers exported in Step 3 for test access:
@@ -113,5 +119,22 @@ describe('csv-editor — save gate (#187)', () => {
 
     const messages = toastSpy.mock.calls.map(c => c[0]);
     expect(messages.some(m => /Bundle invariant violation/.test(m))).toBe(true);
+  });
+
+  test('the indicator shows the blocking count and disables Save', async () => {
+    addRowForTest();                       // empty row → blocking
+    updateProblemIndicatorForTest();       // exported hook (Step 3)
+    const indicator = document.getElementById('csv-problem-count');
+    expect(indicator).toBeTruthy();
+    expect(indicator.textContent).toMatch(/1/);          // 1 problem row
+    expect(document.getElementById('btn-save').disabled).toBe(true);
+  });
+
+  test('with no problems the indicator says ready and Save is enabled after a change', async () => {
+    // Edit the valid row in place (marks changed) without introducing an error.
+    document.querySelector('input.csv-input[data-column="notes"]')?.dispatchEvent(new Event('input'));
+    updateProblemIndicatorForTest();
+    const indicator = document.getElementById('csv-problem-count');
+    expect(indicator.textContent).toMatch(/No problems|ready/i);
   });
 });

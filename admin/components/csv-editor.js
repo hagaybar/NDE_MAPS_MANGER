@@ -57,6 +57,8 @@ let hasNoAccess = false;    // Whether editor has no access (disabled ranges or 
 let _hashListenerAttached = false;  // Module-singleton guard for the deep-link hashchange listener
 let _localeListenerAttached = false; // Module-singleton guard for the localeChanged re-render listener (leak class #133)
 let brokenRefsFilterActive = false;
+let lastBlockingCount = 0;          // #187: blocking-error rows in the current file
+let problemsFilterActive = false;   // #187: "show only problem rows" view filter
 let orphanFilterFloor = null;       // Floor (string) when the #119 orphan deep-link VIEW filter is active; null otherwise
 let svgShelfIdsByFloor = { 0: new Set(), 1: new Set(), 2: new Set() };
 const API_ENDPOINT = 'https://tt3xt4tr09.execute-api.us-east-1.amazonaws.com/prod';
@@ -113,6 +115,9 @@ export async function initCSVEditor() {
     }
   }));
   renderBrokenRefsToggle();
+  // #187: the shelf sets are now warm — recompute the indicator so E006 rows
+  // (svgCode not on its floor) are counted and Save is gated accordingly.
+  updateProblemIndicator();
 
   // Deep-link consumer: when navigated via #csv-editor?orphans=floor=N, filter
   // visible rows to that floor's orphan ranges (rows whose svgCode is empty
@@ -168,6 +173,12 @@ function renderEditor() {
             </svg>
             ${escapeHtml(t('csv.save'))}
           </button>
+          <button
+            id="csv-problem-count"
+            class="px-3 py-1.5 text-sm rounded hidden"
+            type="button"
+            title="${escapeHtml(t('csv.problemCount'))}"
+          ></button>
         </div>
       </div>
       <div id="filter-info-banner"></div>
@@ -499,6 +510,8 @@ async function loadCSV() {
     applyRoleBasedUI();
     // Apply any deep-link filter (e.g. #csv-editor?orphans=floor=1) once data is loaded.
     applyUrlFilter();
+    // #187: reflect the loaded file's blocking count in the indicator + Save state.
+    updateProblemIndicator();
   } catch (error) {
     console.error('Failed to load CSV:', error);
     tableContainer.innerHTML = `
@@ -733,6 +746,7 @@ function setupEditorEvents() {
       const column = e.target.dataset.column;
       csvData[rowIndex][column] = e.target.value;
       markChanged();
+      updateProblemIndicator();
     }
   });
 
@@ -775,12 +789,46 @@ function markChanged() {
 function updateSaveButton() {
   const saveBtn = document.getElementById('btn-save');
   if (saveBtn) {
-    saveBtn.disabled = !hasChanges;
+    saveBtn.disabled = !hasChanges || lastBlockingCount > 0;
   }
 }
 
-// #187 Task 2 temporary no-op — replaced by the real implementation in Task 4.
-function updateProblemIndicator() {}
+/**
+ * #187: recompute the whole-file blocking count, update the indicator, and
+ * keep Save disabled while problems remain. Clicking the indicator toggles a
+ * "show only problem rows" filter so the user can jump straight to them.
+ */
+function updateProblemIndicator() {
+  const indicator = document.getElementById('csv-problem-count');
+  const gate = validateDataset(csvData, svgShelfIdsByFloor);
+  lastBlockingCount = gate.blockingCount;
+
+  if (indicator) {
+    if (gate.blockingCount > 0) {
+      indicator.textContent = t('csv.problemCount').replace('{count}', String(gate.blockingCount));
+      indicator.className = 'px-3 py-1.5 text-sm rounded bg-red-100 text-red-800 hover:bg-red-200';
+      indicator.onclick = () => { problemsFilterActive = !problemsFilterActive; applyProblemsFilter(); };
+    } else {
+      indicator.textContent = t('csv.noProblems');
+      indicator.className = 'px-3 py-1.5 text-sm rounded bg-green-100 text-green-800';
+      indicator.onclick = null;
+      if (problemsFilterActive) { problemsFilterActive = false; applyProblemsFilter(); }
+    }
+  }
+  updateSaveButton();
+}
+
+/**
+ * #187: when active, hide every row that is NOT a blocking-error row.
+ */
+function applyProblemsFilter() {
+  const gate = validateDataset(csvData, svgShelfIdsByFloor);
+  const blocking = new Set(gate.blockingRowIndexes.map(String));
+  document.querySelectorAll('#csv-table tr[data-row-index]').forEach(tr => {
+    if (!problemsFilterActive) { tr.style.display = ''; return; }
+    tr.style.display = blocking.has(tr.dataset.rowIndex) ? '' : 'none';
+  });
+}
 
 /**
  * Add a new row to the table
@@ -809,6 +857,7 @@ function addRow() {
 
   markChanged();
   renderTable();
+  updateProblemIndicator();
   renderFilterBanner(); // Update row count in banner
 
   // Scroll to the new row
@@ -836,6 +885,7 @@ function deleteRow(rowIndex) {
   originalIndices.splice(rowIndex, 1);
   markChanged();
   renderTable();
+  updateProblemIndicator();
   renderFilterBanner(); // Update row count in banner
 }
 
