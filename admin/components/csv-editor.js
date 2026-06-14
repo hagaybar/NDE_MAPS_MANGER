@@ -56,6 +56,7 @@ let isFiltered = false;     // Whether data is filtered by range restrictions
 let hasNoAccess = false;    // Whether editor has no access (disabled ranges or no filter groups)
 let _hashListenerAttached = false;  // Module-singleton guard for the deep-link hashchange listener
 let _localeListenerAttached = false; // Module-singleton guard for the localeChanged re-render listener (leak class #133)
+let _resizeListenerAttached = false; // #187: Module-singleton guard for the fitCsvEditorViewport resize listener
 let brokenRefsFilterActive = false;
 let lastBlockingCount = 0;          // #187: blocking-error rows in the current file
 let problemsFilterActive = false;   // #187: "show only problem rows" view filter
@@ -136,6 +137,15 @@ export async function initCSVEditor() {
     _localeListenerAttached = true;
     document.addEventListener('localeChanged', handleCsvLocaleChanged);
   }
+
+  // #187: keep the table's scroll window sized to the viewport on resize, so
+  // the frozen header + anchor column stay put and the horizontal scrollbar
+  // stays on screen. Bind exactly once (same leak-class guard as above).
+  if (!_resizeListenerAttached) {
+    _resizeListenerAttached = true;
+    window.addEventListener('resize', fitCsvEditorViewport);
+  }
+  fitCsvEditorViewport();
 }
 
 /**
@@ -694,6 +704,9 @@ function renderTable() {
     <table class="min-w-full border-collapse" id="csv-table">
       <thead class="bg-gray-50 sticky top-0">
         <tr>
+          <th class="csv-anchor-cell px-3 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200 whitespace-nowrap bg-gray-50">
+            ${escapeHtml(t('csv.anchorColumn'))}
+          </th>
           ${headers.map(header => `
             <th class="px-3 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200 whitespace-nowrap">
               ${escapeHtml(header)}
@@ -707,6 +720,9 @@ function renderTable() {
       <tbody class="bg-white divide-y divide-gray-200">
         ${csvData.map((row, rowIndex) => `
           <tr class="csv-row hover:bg-gray-50" data-row-index="${rowIndex}">
+            <td class="csv-anchor-cell px-3 py-2 border-b border-gray-100 text-xs text-gray-500 whitespace-nowrap bg-white">
+              ${rowIndex + 1} · ${escapeHtml(row.svgCode || '—')}
+            </td>
             ${headers.map(header => {
               const prob = problemFor(rowIndex, header);
               const tdClass = 'px-2 py-2 border-b border-gray-100'
@@ -746,6 +762,9 @@ function renderTable() {
   applyBrokenRefsFilter();
   // Re-apply the orphan deep-link view filter (#119) after every re-render too.
   applyOrphanFilter();
+  // #187: size the scroll window to the viewport so the sticky header + anchor
+  // column have a real scroll context and the horizontal scrollbar stays visible.
+  fitCsvEditorViewport();
 }
 
 /**
@@ -809,6 +828,20 @@ function updateSaveButton() {
   if (saveBtn) {
     saveBtn.disabled = !hasChanges || lastBlockingCount > 0;
   }
+}
+
+/**
+ * #187: size the table's own scroll window to the space below the toolbar so
+ * the header freezes visibly and the horizontal scrollbar stays on screen.
+ * Mirrors fitMapEditorViewport in map-editor.js.
+ */
+function fitCsvEditorViewport() {
+  const container = document.getElementById('table-container');
+  if (!container) return;
+  const top = container.getBoundingClientRect().top;
+  const bottomMargin = 24; // px breathing room
+  const h = Math.max(200, window.innerHeight - top - bottomMargin);
+  container.style.maxHeight = `${h}px`;
 }
 
 /**
