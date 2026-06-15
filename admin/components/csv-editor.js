@@ -263,7 +263,9 @@ function getCsvRowsForValidation() {
   return csvData.map((row, idx) => ({
     rowIndex: idx,
     svgCode: String(row.svgCode || ''),
-    floor: Number(row.floor),
+    // Raw floor — the Broken-refs filter surfaces blank-floor rows too, since
+    // validateBundle now treats a blank floor as a violation (#88).
+    floor: row.floor,
   }));
 }
 
