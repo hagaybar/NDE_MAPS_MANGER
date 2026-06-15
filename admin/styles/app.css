@@ -3252,3 +3252,58 @@ textarea:focus-visible,
   font-size: 14px;
   line-height: 1;
 }
+
+/* #187 CSV Editor — inline validation marks */
+#csv-table td.csv-cell-error { background: #fef2f2; box-shadow: inset 0 0 0 1px #f87171; }   /* red-50 / red-400 */
+#csv-table td.csv-cell-error input { color: #991b1b; }                                       /* red-800 */
+#csv-table td.csv-cell-warning { background: #fffbeb; box-shadow: inset 0 0 0 1px #fcd34d; }  /* amber-50 / amber-300 */
+
+/* #187 CSV Editor — bounded scroll viewport + frozen header + frozen anchor column.
+   The container scrolls on BOTH axes so the sticky header has a real scroll
+   context (no longer slides under the page nav) and the horizontal scrollbar
+   stays on screen instead of at the bottom of all rows. The #id selector wins
+   over the element's `overflow-x-auto` Tailwind utility on specificity, so both
+   axes scroll. max-height is set at runtime by fitCsvEditorViewport(). */
+#table-container { overflow: auto; }
+
+/* ROOT CAUSE of the covered-corner bug (#187): the markup applies Tailwind
+   `sticky top-0` to the <thead> ELEMENT, so the whole header section is a
+   sticky positioned box with `z-index: auto`. The tbody anchor column's cells
+   are ALSO `position: sticky` (z-index:1). With the header section at
+   `z-index:auto`, the sticky tbody anchor <td>s win the table-level paint order
+   and cover the corner header — and a per-cell `z-index:4` on the corner <th>
+   can't override it, because that only re-orders cells WITHIN the header layer,
+   not the header layer vs the tbody sticky cells. Raising the <thead> section's
+   own z-index lifts the entire header layer (corner included) above the sticky
+   anchor column. This holds in both LTR and RTL. (Verified in real Chromium.) */
+#csv-table thead {
+  z-index: 3;
+}
+
+#csv-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #f9fafb;                            /* opaque gray-50 so rows don't bleed through */
+}
+
+/* Frozen left anchor column. inset-inline-start pins it to the start edge —
+   left in English (LTR), right in Hebrew (RTL) — automatically. */
+#csv-table .csv-anchor-cell {
+  position: sticky;
+  inset-inline-start: 0;
+  z-index: 1;
+}
+#csv-table tbody .csv-anchor-cell { background: #ffffff; }   /* opaque so columns don't show through */
+/* The top-left corner cell is sticky on BOTH axes. The header section's
+   z-index (above) is what keeps it above the tbody sticky anchor column; this
+   per-cell z-index:4 keeps the corner above its sibling header cells WITHIN the
+   header layer (matters on horizontal scroll, when the corner must cover the
+   other <th>s as they slide under it). */
+#csv-table thead .csv-anchor-cell {
+  position: sticky;
+  top: 0;
+  inset-inline-start: 0;
+  z-index: 4;
+  background: #f9fafb;
+}

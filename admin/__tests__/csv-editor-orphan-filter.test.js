@@ -47,6 +47,10 @@ describe('CSV Editor — orphan deep-link is a view filter, not a save filter (#
     }));
     jest.unstable_mockModule('../services/data-model.js', () => ({
       getBrokenRefs: () => [],
+      // csv-editor now imports csv-validation.js, which imports validateRow from
+      // data-model.js. Provide a no-error stub so the import graph resolves and
+      // the #187 save-gate stays inert for these view-filter / save assertions.
+      validateRow: () => ({ errors: [], warnings: [] }),
     }));
     jest.unstable_mockModule('../services/svg-shelves.js', () => ({
       parseSvg: () => ({ shelves: [] }),

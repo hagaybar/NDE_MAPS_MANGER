@@ -6,6 +6,7 @@ import { applyRoleBasedUI, isAdmin } from '../auth-guard.js?v=5';
 import authService from '../auth-service.js?v=5';
 import { filterRowsByRange, getMatchingRowIndices } from '../utils/range-filter.js?v=5';
 import { getBrokenRefs } from '../services/data-model.js';
+import { validateDataset } from '../services/csv-validation.js?v=2';
 import { parseSvg } from '../services/svg-shelves.js?v=5';
 
 // Fallback translations if i18n hasn't loaded yet
@@ -27,6 +28,10 @@ const FALLBACKS = {
   'csv.deleteRow':           { en: 'Delete row',                                he: 'מחק שורה' },
   'csv.deleteRowConfirm':    { en: 'Delete row {idx} (svgCode "{code}")? This cannot be undone here — recover via S3 version history if needed.',
                                he: 'מחק שורה {idx} (svgCode "{code}")? לא ניתן לבטל; שחזור דרך היסטוריית גרסאות S3.' },
+  'csv.saveBlocked': { en: '{count} problem(s) must be fixed before saving. They are highlighted below.', he: 'יש לתקן {count} בעיות לפני השמירה. הן מסומנות למטה.' },
+  'csv.noProblems': { en: 'No problems — ready to save', he: 'אין בעיות — מוכן לשמירה' },
+  'csv.problemCount': { en: '{count} problem(s) to fix', he: '{count} בעיות לתיקון' },
+  'csv.anchorColumn': { en: 'Row', he: 'שורה' },
   'common.error': { en: 'An error occurred', he: 'אירעה שגיאה' },
   'common.loading': { en: 'Loading...', he: 'טוען...' }
 };
@@ -51,7 +56,10 @@ let isFiltered = false;     // Whether data is filtered by range restrictions
 let hasNoAccess = false;    // Whether editor has no access (disabled ranges or no filter groups)
 let _hashListenerAttached = false;  // Module-singleton guard for the deep-link hashchange listener
 let _localeListenerAttached = false; // Module-singleton guard for the localeChanged re-render listener (leak class #133)
+let _resizeListenerAttached = false; // #187: Module-singleton guard for the fitCsvEditorViewport resize listener
 let brokenRefsFilterActive = false;
+let lastBlockingCount = 0;          // #187: blocking-error rows in the current file
+let problemsFilterActive = false;   // #187: "show only problem rows" view filter
 let orphanFilterFloor = null;       // Floor (string) when the #119 orphan deep-link VIEW filter is active; null otherwise
 let svgShelfIdsByFloor = { 0: new Set(), 1: new Set(), 2: new Set() };
 const API_ENDPOINT = 'https://tt3xt4tr09.execute-api.us-east-1.amazonaws.com/prod';
@@ -108,6 +116,13 @@ export async function initCSVEditor() {
     }
   }));
   renderBrokenRefsToggle();
+  // #187: the shelf sets are now warm — re-render so any genuine E006 (svgCode
+  // not on its floor) is marked in the cells, and recompute the indicator. The
+  // first render (inside loadCSV) ran with cold/empty shelf sets, where E006 is
+  // lenient (no false reds on a row whose floor hasn't loaded). This single
+  // re-render runs before any user interaction, so it costs no focus/scroll.
+  renderTable();
+  updateProblemIndicator();
 
   // Deep-link consumer: when navigated via #csv-editor?orphans=floor=N, filter
   // visible rows to that floor's orphan ranges (rows whose svgCode is empty
@@ -126,6 +141,15 @@ export async function initCSVEditor() {
     _localeListenerAttached = true;
     document.addEventListener('localeChanged', handleCsvLocaleChanged);
   }
+
+  // #187: keep the table's scroll window sized to the viewport on resize, so
+  // the frozen header + anchor column stay put and the horizontal scrollbar
+  // stays on screen. Bind exactly once (same leak-class guard as above).
+  if (!_resizeListenerAttached) {
+    _resizeListenerAttached = true;
+    window.addEventListener('resize', fitCsvEditorViewport);
+  }
+  fitCsvEditorViewport();
 }
 
 /**
@@ -163,6 +187,12 @@ function renderEditor() {
             </svg>
             ${escapeHtml(t('csv.save'))}
           </button>
+          <button
+            id="csv-problem-count"
+            class="px-3 py-1.5 text-sm rounded hidden"
+            type="button"
+            title="${escapeHtml(t('csv.problemCount'))}"
+          ></button>
         </div>
       </div>
       <div id="filter-info-banner"></div>
@@ -336,6 +366,7 @@ function applyBrokenRefsFilter() {
       deleteRow(Number(idx));
       markChanged();
       renderBrokenRefsToggle();  // recompute count after row removed
+      updateProblemIndicator();  // #187: recompute the save-gate after the delete
     });
     tr.appendChild(actions);
   });
@@ -496,6 +527,8 @@ async function loadCSV() {
     applyRoleBasedUI();
     // Apply any deep-link filter (e.g. #csv-editor?orphans=floor=1) once data is loaded.
     applyUrlFilter();
+    // #187: reflect the loaded file's blocking count in the indicator + Save state.
+    updateProblemIndicator();
   } catch (error) {
     console.error('Failed to load CSV:', error);
     tableContainer.innerHTML = `
@@ -661,10 +694,25 @@ function renderTable() {
 
   const headers = Object.keys(csvData[0]);
 
+  const gate = validateDataset(csvData, svgShelfIdsByFloor);
+  // field -> {kind:'error'|'warning', message} for a given row index
+  const problemFor = (rowIndex, header) => {
+    const p = gate.problemsByRow.get(rowIndex);
+    if (!p) return null;
+    const err = p.errors.find(e => e.field === header);
+    if (err) return { kind: 'error', message: err.message };
+    const warn = p.warnings.find(w => w.field === header);
+    if (warn) return { kind: 'warning', message: warn.message };
+    return null;
+  };
+
   tableContainer.innerHTML = `
     <table class="min-w-full border-collapse" id="csv-table">
       <thead class="bg-gray-50 sticky top-0">
         <tr>
+          <th class="csv-anchor-cell px-3 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200 whitespace-nowrap bg-gray-50">
+            ${escapeHtml(t('csv.anchorColumn'))}
+          </th>
           ${headers.map(header => `
             <th class="px-3 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200 whitespace-nowrap">
               ${escapeHtml(header)}
@@ -678,8 +726,16 @@ function renderTable() {
       <tbody class="bg-white divide-y divide-gray-200">
         ${csvData.map((row, rowIndex) => `
           <tr class="csv-row hover:bg-gray-50" data-row-index="${rowIndex}">
-            ${headers.map(header => `
-              <td class="px-2 py-2 border-b border-gray-100">
+            <td class="csv-anchor-cell px-3 py-2 border-b border-gray-100 text-xs text-gray-500 text-center whitespace-nowrap bg-white">
+              ${rowIndex + 1}
+            </td>
+            ${headers.map(header => {
+              const prob = problemFor(rowIndex, header);
+              const tdClass = 'px-2 py-2 border-b border-gray-100'
+                + (prob?.kind === 'error' ? ' csv-cell-error' : prob?.kind === 'warning' ? ' csv-cell-warning' : '');
+              const titleAttr = prob ? ` title="${escapeHtml(prob.message)}"` : '';
+              return `
+              <td class="${tdClass}"${titleAttr}>
                 <input
                   type="text"
                   class="csv-input w-full px-2 py-1 text-sm border border-gray-200 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none"
@@ -688,8 +744,8 @@ function renderTable() {
                   value="${escapeHtml(row[header] || '')}"
                   dir="auto"
                 >
-              </td>
-            `).join('')}
+              </td>`;
+            }).join('')}
             <td class="px-2 py-2 text-center border-b border-gray-100">
               <button
                 class="btn-delete-row p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
@@ -712,6 +768,9 @@ function renderTable() {
   applyBrokenRefsFilter();
   // Re-apply the orphan deep-link view filter (#119) after every re-render too.
   applyOrphanFilter();
+  // #187: size the scroll window to the viewport so the sticky header + anchor
+  // column have a real scroll context and the horizontal scrollbar stays visible.
+  fitCsvEditorViewport();
 }
 
 /**
@@ -730,6 +789,7 @@ function setupEditorEvents() {
       const column = e.target.dataset.column;
       csvData[rowIndex][column] = e.target.value;
       markChanged();
+      updateProblemIndicator();
     }
   });
 
@@ -772,8 +832,59 @@ function markChanged() {
 function updateSaveButton() {
   const saveBtn = document.getElementById('btn-save');
   if (saveBtn) {
-    saveBtn.disabled = !hasChanges;
+    saveBtn.disabled = !hasChanges || lastBlockingCount > 0;
   }
+}
+
+/**
+ * #187: size the table's own scroll window to the space below the toolbar so
+ * the header freezes visibly and the horizontal scrollbar stays on screen.
+ * Mirrors fitMapEditorViewport in map-editor.js.
+ */
+function fitCsvEditorViewport() {
+  const container = document.getElementById('table-container');
+  if (!container) return;
+  const top = container.getBoundingClientRect().top;
+  const bottomMargin = 24; // px breathing room
+  const h = Math.max(200, window.innerHeight - top - bottomMargin);
+  container.style.maxHeight = `${h}px`;
+}
+
+/**
+ * #187: recompute the whole-file blocking count, update the indicator, and
+ * keep Save disabled while problems remain. Clicking the indicator toggles a
+ * "show only problem rows" filter so the user can jump straight to them.
+ */
+function updateProblemIndicator() {
+  const indicator = document.getElementById('csv-problem-count');
+  const gate = validateDataset(csvData, svgShelfIdsByFloor);
+  lastBlockingCount = gate.blockingCount;
+
+  if (indicator) {
+    if (gate.blockingCount > 0) {
+      indicator.textContent = t('csv.problemCount').replace('{count}', String(gate.blockingCount));
+      indicator.className = 'px-3 py-1.5 text-sm rounded bg-red-100 text-red-800 hover:bg-red-200';
+      indicator.onclick = () => { problemsFilterActive = !problemsFilterActive; applyProblemsFilter(); };
+    } else {
+      indicator.textContent = t('csv.noProblems');
+      indicator.className = 'px-3 py-1.5 text-sm rounded bg-green-100 text-green-800';
+      indicator.onclick = null;
+      if (problemsFilterActive) { problemsFilterActive = false; applyProblemsFilter(); }
+    }
+  }
+  updateSaveButton();
+}
+
+/**
+ * #187: when active, hide every row that is NOT a blocking-error row.
+ */
+function applyProblemsFilter() {
+  const gate = validateDataset(csvData, svgShelfIdsByFloor);
+  const blocking = new Set(gate.blockingRowIndexes.map(String));
+  document.querySelectorAll('#csv-table tr[data-row-index]').forEach(tr => {
+    if (!problemsFilterActive) { tr.style.display = ''; return; }
+    tr.style.display = blocking.has(tr.dataset.rowIndex) ? '' : 'none';
+  });
 }
 
 /**
@@ -803,6 +914,7 @@ function addRow() {
 
   markChanged();
   renderTable();
+  updateProblemIndicator();
   renderFilterBanner(); // Update row count in banner
 
   // Scroll to the new row
@@ -830,6 +942,7 @@ function deleteRow(rowIndex) {
   originalIndices.splice(rowIndex, 1);
   markChanged();
   renderTable();
+  updateProblemIndicator();
   renderFilterBanner(); // Update row count in banner
 }
 
@@ -897,6 +1010,18 @@ async function saveCSV() {
     return;
   }
 
+  // --- Save gate (#187): the whole file must be valid. Block before any
+  // network call so the reason is shown up front instead of a slow,
+  // unexplained server rejection. ---
+  const dataToSave = buildFullCsvData();
+  const gate = validateDataset(dataToSave, svgShelfIdsByFloor);
+  if (gate.hasBlocking) {
+    showToast(t('csv.saveBlocked').replace('{count}', String(gate.blockingCount)), 'error');
+    renderTable();            // re-render so the inline error marks (Task 5) show
+    updateProblemIndicator();  // refresh the count + keep Save disabled (Task 4)
+    return;                    // do NOT contact the server
+  }
+
   try {
     saveBtn.disabled = true;
     saveBtn.innerHTML = `
@@ -907,8 +1032,6 @@ async function saveCSV() {
       ${escapeHtml(t('common.loading'))}
     `;
 
-    // Build full CSV data (merge editor changes for filtered views)
-    const dataToSave = buildFullCsvData();
     const csvContent = toCSV(dataToSave);
 
     const response = await fetch(`${API_ENDPOINT}/api/csv`, {
@@ -924,7 +1047,11 @@ async function saveCSV() {
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      // #134/#187: surface the server's specific reason instead of a generic
+      // toast. The putCsv Lambda returns it under the `error` key.
+      let serverMsg = '';
+      try { const body = await response.json(); serverMsg = body?.error || body?.message || ''; } catch (_) { /* non-JSON body */ }
+      throw new Error(serverMsg || `HTTP error! status: ${response.status}`);
     }
 
     const result = await response.json();
@@ -940,7 +1067,7 @@ async function saveCSV() {
     }
   } catch (error) {
     console.error('Failed to save CSV:', error);
-    showToast(t('csv.saveError'), 'error');
+    showToast(error?.message || t('csv.saveError'), 'error');
   } finally {
     saveBtn.disabled = !hasChanges;
     saveBtn.innerHTML = `
@@ -1019,3 +1146,8 @@ function escapeHtml(str) {
   div.textContent = String(str);
   return div.innerHTML;
 }
+
+// Test-only hooks (no behavioral effect in the app).
+export const __addRowForTest = () => addRow();
+export const __saveForTest = () => saveCSV();
+export const __updateProblemIndicatorForTest = () => updateProblemIndicator();

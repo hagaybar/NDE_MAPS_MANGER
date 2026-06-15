@@ -64,11 +64,19 @@ describe('CSV Editor — broken-refs Delete row for a filtered editor (#120)', (
         getUser: () => ({ role: 'editor' }),
       },
     }));
-    // Row index 2 is the broken ref (MISSING svgCode on floor 1).
+    // The broken ref is the row whose svgCode === 'MISSING'. Make the mock
+    // DATA-DRIVEN (mirrors the real getBrokenRefs) so it reflects deletions:
+    // once the MISSING row is removed, no broken ref is reported. This keeps the
+    // broken-refs filter working on load AND lets the #187 save-gate unblock
+    // after the broken row is deleted, instead of blocking on a stale rowIndex.
     jest.unstable_mockModule('../services/data-model.js', () => ({
-      getBrokenRefs: () => [
-        { rowIndex: 2, svgCode: 'MISSING', floor: 1, type: 'shelf-not-found' },
-      ],
+      getBrokenRefs: (rows = []) => rows
+        .filter((r) => String(r.svgCode) === 'MISSING')
+        .map((r) => ({ rowIndex: r.rowIndex, svgCode: r.svgCode, floor: r.floor, type: 'shelf-not-found' })),
+      // csv-editor now imports csv-validation.js, which imports validateRow from
+      // data-model.js. Provide a no-error stub so the import graph resolves and
+      // the #187 save-gate stays inert for these delete-behavior assertions.
+      validateRow: () => ({ errors: [], warnings: [] }),
     }));
     jest.unstable_mockModule('../services/svg-shelves.js', () => ({
       parseSvg: () => ({ shelves: [] }),

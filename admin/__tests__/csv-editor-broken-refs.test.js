@@ -233,6 +233,10 @@ describe('CSV Editor — Broken refs filter', () => {
     document.querySelector('[data-action="toggle-broken-refs"]').click();
 
     const deleteBtn = document.querySelector('tr[data-row-index="0"] button[data-action="delete-broken-row"]');
+    // Deleting this row removes the only broken ref, so there are no broken refs
+    // left afterwards — reflect that so the #187 save-gate (which now also reads
+    // getBrokenRefs) doesn't keep Save disabled on a phantom, just-deleted row.
+    mock.getBrokenRefs.mockReturnValue([]);
     const confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(true);
     deleteBtn.click();
 
