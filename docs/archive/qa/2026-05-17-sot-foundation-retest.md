@@ -1,3 +1,5 @@
+> **Status:** Historical · Created 2026-05-17 · Manual QA log — SoT foundation retest. Kept for the record.
+
 # SoT Foundation Manual QA — Re-Test (post PR #41)
 
 **Date:** 2026-05-17 (same day as initial QA, after fixes deployed)

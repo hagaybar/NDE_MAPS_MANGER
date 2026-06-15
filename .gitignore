@@ -16,7 +16,7 @@ lambda/staging-build/
 .DS_Store
 Thumbs.db
 
-# Python compile cache (used by docs/manual-qa scripts)
+# Python compile cache (used by the archived docs/archive/dashboards scripts)
 __pycache__/
 *.pyc
 
@@ -47,8 +47,8 @@ admin/.a5c/
 # Claude Code local project config
 .claude/
 
-# Archive (old files)
-archive/
+# Archive (old root scratch dir; docs/archive/ is tracked finished history)
+/archive/
 
 # Superpowers brainstorming session files
 .superpowers/

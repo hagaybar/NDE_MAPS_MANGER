@@ -1,3 +1,5 @@
+> **Status:** Current · v2.0 approved 2026-03-04 · Spec of record for the live Location Editor (search-first, grouped results, soft-delete Trash, batch ops). Implemented; later refinements live in superpowers/ specs.
+
 # Editor UI Requirements Document
 
 ## Document Information

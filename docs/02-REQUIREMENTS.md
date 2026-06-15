@@ -1,3 +1,5 @@
+> **Status:** Current · Created 2026-02-26 · Functional and non-functional requirements for the system.
+
 # Requirements Document
 
 ## 1. Functional Requirements

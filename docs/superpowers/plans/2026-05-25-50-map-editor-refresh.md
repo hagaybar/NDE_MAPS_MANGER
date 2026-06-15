@@ -656,7 +656,7 @@ bash redeploy.sh   # admin SPA + CloudFront /admin/* invalidation
 
 - [ ] **Step 2: Manual verification via the QA dashboard**
 
-Reuse the bridge in `docs/manual-qa/` (`python3 docs/manual-qa/qa-server.py`, open http://localhost:8765/). With the Map Editor open on floor 1 and DevTools → Network filtered to `floor_1`:
+Reuse the bridge in `docs/archive/dashboards/` (`python3 docs/archive/dashboards/qa-server.py`, open http://localhost:8765/) — or the `html-dashboard` skill's interactive mode. With the Map Editor open on floor 1 and DevTools → Network filtered to `floor_1`:
   - Add a visible test shelf to a local `floor_1.svg`, Replace + Promote it.
   - **At promote success**, confirm an automatic `GET …/maps/floor_1.svg?v=<token>` returns **200** and the **new shelf appears in the Map Editor with no hard refresh**.
   - **Click the new shelf / an existing shelf** → confirm it is still **interactive** (drawer opens) — proves the refresh went through `loadFloor()`.

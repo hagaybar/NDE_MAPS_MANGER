@@ -1,3 +1,5 @@
+> **Status:** Historical · Created 2026-03-01 · Phase-4 (Auth) plan. Shipped long ago; kept for the record.
+
 # Phase 4: Authentication & Authorization - TDD Implementation Plan
 
 **Target**: 90% test pass rate

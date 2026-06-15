@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Docs Organization — Plan</title>
+<style>
+  :root{
+    --bg:#0f1116; --panel:#181b22; --panel-2:#1f242d; --line:#2b313c;
+    --ink:#e6e9ef; --muted:#9aa4b2; --accent:#6ea8fe; --accent-2:#7ee0c0;
+    --info:#6ea8fe; --success:#54d18c; --warn:#f0c36d; --error:#f08a8a;
+    --radius:12px; --gap:16px;
+    --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);line-height:1.55;padding:28px;max-width:1180px;margin:0 auto}
+  h1,h2,h3{line-height:1.25;margin:0 0 .4em}
+  h1{font-size:26px}
+  h2{font-size:19px;margin-top:6px}
+  .sub{color:var(--muted);font-size:14px}
+  header.head{margin-bottom:26px;border-bottom:1px solid var(--line);padding-bottom:18px}
+  section{margin:30px 0}
+  .eyebrow{color:var(--accent);font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;margin-bottom:10px}
+  .grid{display:grid;gap:var(--gap)}
+  .cols-2{grid-template-columns:repeat(auto-fit,minmax(330px,1fr))}
+  .cols-3{grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px}
+  .card h3{font-size:15px;margin-bottom:8px}
+  .muted{color:var(--muted)}
+  code{font-family:var(--mono);background:var(--panel-2);padding:1px 5px;border-radius:5px;font-size:.88em}
+  pre{font-family:var(--mono);background:var(--panel-2);padding:14px;border-radius:8px;overflow:auto;font-size:12.5px;line-height:1.5;border:1px solid var(--line);margin:0}
+  table{border-collapse:collapse;width:100%;font-size:13.5px}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-weight:600}
+  .badge{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:600;white-space:nowrap}
+  .badge.cur{background:rgba(84,209,140,.16);color:var(--success)}
+  .badge.pin{background:rgba(110,168,254,.16);color:var(--info)}
+  .badge.hist{background:rgba(240,195,109,.16);color:var(--warn)}
+  .badge.del{background:rgba(240,138,138,.16);color:var(--error)}
+  .badge.keep{background:rgba(126,224,192,.14);color:var(--accent-2)}
+  .pill{display:inline-block;padding:2px 9px;border-radius:6px;font-size:12px;font-weight:600}
+  .rec{background:rgba(84,209,140,.16);color:var(--success);border:1px solid rgba(84,209,140,.4)}
+  .alt{background:var(--panel-2);color:var(--muted);border:1px solid var(--line)}
+  .tree-col h3{display:flex;align-items:center;gap:8px}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;margin:6px 0 0}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .dot{width:9px;height:9px;border-radius:50%}
+  .arrow{color:var(--accent);font-weight:700}
+  .decision{border-left:3px solid var(--accent-2);padding:14px 16px;background:var(--panel);border-radius:0 var(--radius) var(--radius) 0;margin-bottom:14px;border-top:1px solid var(--line);border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .decision h3{font-size:15px;margin-bottom:4px}
+  .opts{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+  .opt{flex:1;min-width:200px;border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:13px;background:var(--panel-2)}
+  .opt.is-rec{border-color:rgba(84,209,140,.5)}
+  .opt .t{font-weight:600;margin-bottom:3px}
+  ol.steps{margin:0;padding-left:20px}
+  ol.steps li{margin:5px 0}
+  .tasknum{display:inline-flex;width:22px;height:22px;border-radius:6px;background:var(--panel-2);border:1px solid var(--line);align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--accent);margin-right:8px}
+  .foot{margin-top:34px;border-top:1px solid var(--line);padding-top:14px;font-size:12.5px;color:var(--muted)}
+  .kpi{font-size:30px;font-weight:700}
+  .kpi-l{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+  a{color:var(--accent)}
+</style>
+</head>
+<body>
+
+<header class="head">
+  <div class="eyebrow">Implementation Plan · Ready for your go-ahead</div>
+  <h1>Organizing the project's documents</h1>
+  <p class="sub">Make every doc declare <strong>what it is, when, and whether it still matters</strong> — without opening it. Status headers + a single <code>INDEX.md</code> catalog + an <code>archive/</code> for finished history. <strong>Docs only — no code touched.</strong></p>
+  <div class="grid cols-3" style="margin-top:16px">
+    <div class="card"><div class="kpi">10</div><div class="kpi-l">docs moved to archive/</div></div>
+    <div class="card"><div class="kpi">13</div><div class="kpi-l">docs get a status header</div></div>
+    <div class="card"><div class="kpi">3</div><div class="kpi-l">scratch PNGs deleted</div></div>
+  </div>
+</header>
+
+<section>
+  <div class="eyebrow">The problem we're solving</div>
+  <div class="grid cols-3">
+    <div class="card"><h3>No provenance</h3><p class="muted" style="margin:0">Open <code>PHASE-1-TASKS.md</code> and you can't tell when it was written or if it still matters.</p></div>
+    <div class="card"><h3>No front door</h3><p class="muted" style="margin:0">Nothing lists what exists or what's live, so "what's true today" is smeared across several files.</p></div>
+    <div class="card"><h3>Root clutter</h3><p class="muted" style="margin:0">Throwaway <code>.png</code> screenshots parked at the repo root for no reason.</p></div>
+  </div>
+</section>
+
+<section>
+  <div class="eyebrow">Before → After</div>
+  <div class="legend">
+    <span><span class="dot" style="background:var(--success)"></span> Current (trust it)</span>
+    <span><span class="dot" style="background:var(--info)"></span> Pinned (fixed path — script/CLAUDE.md needs it)</span>
+    <span><span class="dot" style="background:var(--warn)"></span> Historical (kept for the record)</span>
+    <span><span class="dot" style="background:var(--accent-2)"></span> Kept / untouched</span>
+    <span><span class="dot" style="background:var(--error)"></span> Deleted</span>
+  </div>
+  <div class="grid cols-2" style="margin-top:14px">
+    <div class="tree-col">
+      <h3>Today <span class="muted" style="font-weight:400;font-size:13px">— flat & ambiguous</span></h3>
+<pre>docs/
+  01-PROJECT-OVERVIEW.md          ?
+  02-REQUIREMENTS.md              ?
+  03-ARCHITECTURE.md              ?
+  04-PROJECT-PHASES.md            ?  which of
+  AWS-INFRASTRUCTURE.md           ?  these is
+  HANDOFF-2026-05-25-phase-4a.md  ?  current?
+  HANDOFF-2026-05-31.md           ?  who knows
+  PHASE-1-TASKS.md                ?  without
+  PHASE-2-TASKS.md                ?  opening
+  PHASE-4-PLAN.md                 ?  each one
+  batches.md                      ?
+  issues-plain-language-...md     ?
+  run-history-insights.md         ?
+  map_editor_new_layout.png
+  orphan_panel_hebrew_UI_bug.png
+  primo_maps_..._feature.pdf
+  audits/  manual-qa/  sessions/
+  superpowers/
+
+(repo root)
+  editor-add-line-FIXED.png       parked
+  editor-add-line-locked.png      scratch
+  editor-map-unlocked.png         PNGs</pre>
+    </div>
+    <div class="tree-col">
+      <h3>After <span class="muted" style="font-weight:400;font-size:13px">— status is obvious</span></h3>
+<pre>docs/
+  <span style="color:var(--accent-2)">INDEX.md            &larr; START HERE (catalog)</span>
+  <span style="color:var(--success)">01 / 02 / 03 + AWS-INFRASTRUCTURE   Current</span>
+  <span style="color:var(--success)">issues-plain-language-overview      Current</span>
+  <span style="color:var(--info)">batches.md, run-history-insights    Pinned</span>
+  <span style="color:var(--accent-2)">*.png / *.pdf figures   (used by specs)</span>
+  <span style="color:var(--info)">audits/             Pinned (+headers)</span>
+  <span style="color:var(--accent-2)">manual-qa/          harness + dashboards</span>
+  <span style="color:var(--accent-2)">superpowers/        UNTOUCHED (trusted)</span>
+  <span style="color:var(--warn)">archive/</span>
+    <span style="color:var(--warn)">phases/    04-PHASES + PHASE-1/2 + PHASE-4</span>
+    <span style="color:var(--warn)">handoffs/  HANDOFF &times;2</span>
+    <span style="color:var(--warn)">sessions/  2026-06-08-summary</span>
+    <span style="color:var(--warn)">qa/        3 dated QA logs</span>
+
+(repo root)
+  <span style="color:var(--error)">(scratch PNGs deleted)</span></pre>
+      <p class="muted" style="font-size:12.5px;margin:8px 0 0">Plus: every doc above carries a one-line <code>&gt; <strong>Status:</strong> …</code> header, so it self-declares even out of context.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="eyebrow">What moves where</div>
+  <table>
+    <thead><tr><th>Doc(s)</th><th>Action</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td><code>PHASE-1/2-TASKS</code>, <code>PHASE-4-PLAN</code>, <code>04-PROJECT-PHASES</code></td><td><span class="badge hist">→ archive/phases</span></td><td>Original roadmaps, all shipped. (04's "Phase 4" naming collides with later "Phase 4a/4b" work — header warns of this.)</td></tr>
+      <tr><td><code>HANDOFF-2026-05-25</code>, <code>HANDOFF-2026-05-31</code></td><td><span class="badge hist">→ archive/handoffs</span></td><td>Point-in-time session handoffs, superseded by shipped work.</td></tr>
+      <tr><td><code>sessions/2026-06-08-summary.md</code></td><td><span class="badge hist">→ archive/sessions</span></td><td>Session record; its one live inbound link gets fixed in the same commit.</td></tr>
+      <tr><td>3 dated <code>manual-qa/*.md</code> QA logs</td><td><span class="badge hist">→ archive/qa</span></td><td>Finished test logs.</td></tr>
+      <tr><td><code>01/02/03</code>, <code>AWS-INFRASTRUCTURE</code>, <code>issues-overview</code></td><td><span class="badge cur">header, stay</span></td><td>Living references — stay at <code>docs/</code> root.</td></tr>
+      <tr><td><code>batches.md</code>, <code>run-history-insights.md</code>, <code>audits/*</code></td><td><span class="badge pin">header, stay</span></td><td>A script or CLAUDE.md/a test reads them at a fixed path — must not move.</td></tr>
+      <tr><td><code>superpowers/</code>, <code>manual-qa/</code> harness + <code>*.html</code>, <code>*.png/.pdf</code> figures</td><td><span class="badge keep">untouched</span></td><td>Trusted / reference-pinned. Moving them would break links or the QA harness.</td></tr>
+      <tr><td>3 root <code>editor-*.png</code></td><td><span class="badge del">deleted</span></td><td>Untracked throwaway debug screenshots.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <div class="eyebrow">How it gets done — 8 bite-sized, reversible tasks</div>
+  <div class="card">
+    <ol class="steps">
+      <li><span class="tasknum">1</span>Scaffold <code>archive/{phases,handoffs,sessions,qa}/</code></li>
+      <li><span class="tasknum">2</span>Move the PHASE docs (<code>git mv</code>) + add headers</li>
+      <li><span class="tasknum">3</span>Move handoffs + session summary + fix the one inbound link</li>
+      <li><span class="tasknum">4</span>Move the 3 dated QA logs (harness + dashboards stay)</li>
+      <li><span class="tasknum">5</span>Add status headers to the in-place Current + Pinned docs</li>
+      <li><span class="tasknum">6</span>Write <code>docs/INDEX.md</code> — the front-door catalog</li>
+      <li><span class="tasknum">7</span>Delete the 3 untracked scratch PNGs</li>
+      <li><span class="tasknum">8</span>Verify: <code>git grep</code> finds no broken links; Jest unaffected</li>
+    </ol>
+    <p class="muted" style="margin:12px 0 0;font-size:12.5px">Every move uses <code>git mv</code> (history preserved). The only deletions are untracked files. Fully reversible.</p>
+  </div>
+</section>
+
+<section>
+  <div class="eyebrow">⬤ Decisions — your call before I execute</div>
+
+  <p class="muted" style="margin-top:0">Two calls I already baked in (override if you disagree), then two that genuinely need you, then how to run it.</p>
+
+  <h2 style="margin-top:18px">Already decided — confirm or override</h2>
+
+  <div class="decision">
+    <h3>A · QA <code>.html</code> dashboards — keep with the harness</h3>
+    <p class="muted" style="margin:0">Recon found <code>qa-server.py</code> globs <code>*-qa.html</code> from <code>manual-qa/</code>; moving them breaks the live QA harness. So only the 3 dated <code>.md</code> logs are archived.</p>
+    <div class="opts">
+      <div class="opt is-rec"><div class="t"><span class="pill rec">Chosen</span> Keep dashboards with harness</div>Harness keeps working; zero code change.</div>
+      <div class="opt"><div class="t"><span class="pill alt">Alt</span> Archive them too</div>Would require editing <code>qa-server.py</code> to repoint.</div>
+    </div>
+  </div>
+
+  <div class="decision">
+    <h3>B · <code>docs/*.png/.pdf</code> figures — leave in place</h3>
+    <p class="muted" style="margin:0">These 3 are referenced by trusted <code>superpowers/</code> specs/plans — they're figures for real design docs, not "parked for no reason." Moving them would edit <code>superpowers/</code> (which we agreed not to touch).</p>
+    <div class="opts">
+      <div class="opt is-rec"><div class="t"><span class="pill rec">Chosen</span> Leave in place</div>Catalogued in INDEX under "Figures."</div>
+      <div class="opt"><div class="t"><span class="pill alt">Alt</span> Move to archive/images</div>Edits 1 spec + 1 plan path.</div>
+    </div>
+  </div>
+
+  <h2 style="margin-top:22px">Needs your call</h2>
+
+  <div class="decision" style="border-left-color:var(--warn)">
+    <h3>C · <code>EDITOR-UI-REQUIREMENTS.md</code> (repo root, Mar 5)</h3>
+    <p class="muted" style="margin:0">A root-level requirements doc, likely superseded by the shipped editor + map-editor redesign — but I haven't read it, and it was outside the agreed scope.</p>
+    <div class="opts">
+      <div class="opt"><div class="t">① Read &amp; archive</div>If superseded → <code>archive/</code> with a header.</div>
+      <div class="opt"><div class="t">② Header as Current</div>If still the editor spec of record.</div>
+      <div class="opt"><div class="t">③ Leave it for now</div>Just note it in INDEX's "open items."</div>
+    </div>
+  </div>
+
+  <div class="decision" style="border-left-color:var(--warn)">
+    <h3>D · <code>archive/index.html</code> (repo root, Feb 25, 18 KB)</h3>
+    <p class="muted" style="margin:0">A stray legacy HTML at the repo root, unread. There's already a separate <code>docs/archive/</code> in the plan, so this root <code>archive/</code> folder is confusing.</p>
+    <div class="opts">
+      <div class="opt"><div class="t">① Fold into docs/archive</div>Move + header as legacy.</div>
+      <div class="opt"><div class="t">② Delete</div>If it's a dead early prototype.</div>
+      <div class="opt"><div class="t">③ Leave it for now</div>Note in INDEX's "open items."</div>
+    </div>
+  </div>
+
+  <h2 style="margin-top:22px">How should I run it?</h2>
+  <div class="decision" style="border-left-color:var(--accent)">
+    <h3>E · Execution approach</h3>
+    <div class="opts">
+      <div class="opt is-rec"><div class="t"><span class="pill rec">Recommended</span> Subagent-driven</div>Fresh agent per task, I review between tasks. Fast, well-isolated — ideal for these mechanical steps.</div>
+      <div class="opt"><div class="t"><span class="pill alt">Or</span> Inline, with checkpoints</div>I run the tasks here in this session, pausing at checkpoints for you.</div>
+      <div class="opt"><div class="t"><span class="pill alt">Or</span> Just do it</div>It's docs-only &amp; reversible — run all 8 tasks straight through, then show you the result.</div>
+    </div>
+  </div>
+</section>
+
+<div class="foot">
+  Spec: <code>docs/superpowers/specs/2026-06-10-docs-organization-design.md</code> &nbsp;·&nbsp;
+  Plan: <code>docs/superpowers/plans/2026-06-10-docs-organization.md</code> &nbsp;·&nbsp;
+  This dashboard: <code>docs/dashboards/2026-06-10-docs-organization.html</code>
+</div>
+
+</body>
+</html>

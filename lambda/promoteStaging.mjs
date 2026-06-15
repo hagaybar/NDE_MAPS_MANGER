@@ -58,7 +58,9 @@ export const handler = async (event) => {
   const csvRowsForValidation = rows.map((row, idx) => ({
     rowIndex: idx,
     svgCode: String(row.svgCode || ''),
-    floor: Number(row.floor),
+    // Raw floor — validateBundle rejects a blank floor instead of coercing it
+    // to 0 (#88), so a blank-floor bundle can never be promoted to production.
+    floor: row.floor,
   }));
   const result = validateBundle(csvRowsForValidation, svgShelfIdsByFloor);
   if (!result.ok) {
