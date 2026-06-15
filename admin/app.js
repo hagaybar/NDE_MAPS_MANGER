@@ -4,7 +4,7 @@
  */
 
 import i18n from './i18n.js?v=5';
-import { initCSVEditor } from './components/csv-editor.js?v=6';
+import { initCSVEditor } from './components/csv-editor.js?v=7';
 import { initSVGManager } from './components/svg-manager.js?v=5';
 import { initVersionHistory } from './components/version-history.js?v=5';
 import { showRestoreDialog, updateRestoreDialog, hideRestoreDialog } from './components/restore-confirm-dialog.js?v=5';
