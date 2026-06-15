@@ -68,4 +68,23 @@ describe('validateDataset', () => {
     expect(res.blockingRowIndexes).toEqual([0, 1]);
     expect(res.problemsByRow.get(0).errors.some(e => e.code === 'E005')).toBe(true);
   });
+
+  // #187 regression: on a cold page load the floor SVGs haven't loaded yet, so
+  // every floor's shelf set is empty. E006 must be LENIENT then — otherwise the
+  // first render flags every svgCode red (the bug the owner saw). A valid row
+  // against all-empty sets must NOT be flagged E006 and must not block.
+  test('does NOT flag E006 when the floor shelf sets are not loaded yet (cold load is lenient)', () => {
+    const cold = { 0: new Set(), 1: new Set(), 2: new Set() };
+    const res = validateDataset([row()], cold); // valid floor-0 CB_0 row
+    expect(res.problemsByRow.get(0)?.errors.some(e => e.code === 'E006')).toBeFalsy();
+    expect(res.hasBlocking).toBe(false);
+  });
+
+  // A floor that IS loaded (set has shelves) but lacks this svgCode is still a
+  // real broken ref — leniency only covers the not-loaded case.
+  test('still flags E006 on a LOADED floor whose set lacks the svgCode', () => {
+    const partial = { 0: new Set(['CB_0']), 1: new Set(['CC_1']), 2: new Set() };
+    const res = validateDataset([row({ floor: '1', svgCode: 'CB_0' })], partial);
+    expect(res.problemsByRow.get(0).errors.some(e => e.code === 'E006')).toBe(true);
+  });
 });

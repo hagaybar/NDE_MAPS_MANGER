@@ -6,7 +6,7 @@ import { applyRoleBasedUI, isAdmin } from '../auth-guard.js?v=5';
 import authService from '../auth-service.js?v=5';
 import { filterRowsByRange, getMatchingRowIndices } from '../utils/range-filter.js?v=5';
 import { getBrokenRefs } from '../services/data-model.js';
-import { validateDataset } from '../services/csv-validation.js';
+import { validateDataset } from '../services/csv-validation.js?v=2';
 import { parseSvg } from '../services/svg-shelves.js?v=5';
 
 // Fallback translations if i18n hasn't loaded yet
@@ -116,8 +116,12 @@ export async function initCSVEditor() {
     }
   }));
   renderBrokenRefsToggle();
-  // #187: the shelf sets are now warm — recompute the indicator so E006 rows
-  // (svgCode not on its floor) are counted and Save is gated accordingly.
+  // #187: the shelf sets are now warm — re-render so any genuine E006 (svgCode
+  // not on its floor) is marked in the cells, and recompute the indicator. The
+  // first render (inside loadCSV) ran with cold/empty shelf sets, where E006 is
+  // lenient (no false reds on a row whose floor hasn't loaded). This single
+  // re-render runs before any user interaction, so it costs no focus/scroll.
+  renderTable();
   updateProblemIndicator();
 
   // Deep-link consumer: when navigated via #csv-editor?orphans=floor=N, filter
@@ -720,8 +724,8 @@ function renderTable() {
       <tbody class="bg-white divide-y divide-gray-200">
         ${csvData.map((row, rowIndex) => `
           <tr class="csv-row hover:bg-gray-50" data-row-index="${rowIndex}">
-            <td class="csv-anchor-cell px-3 py-2 border-b border-gray-100 text-xs text-gray-500 whitespace-nowrap bg-white">
-              ${rowIndex + 1} · ${escapeHtml(row.svgCode || '—')}
+            <td class="csv-anchor-cell px-3 py-2 border-b border-gray-100 text-xs text-gray-500 text-center whitespace-nowrap bg-white">
+              ${rowIndex + 1}
             </td>
             ${headers.map(header => {
               const prob = problemFor(rowIndex, header);

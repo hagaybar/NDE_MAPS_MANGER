@@ -46,13 +46,20 @@ export function validateDataset(rows, svgShelfIdsByFloor) {
     }
   });
 
-  // E006 — deterministic from the passed shelf sets.
+  // E006 — deterministic from the passed shelf sets. LENIENT when a floor's
+  // shelves are not loaded yet (empty/missing set): the editor renders the table
+  // once before the floor SVGs finish loading, so without this guard every
+  // svgCode would be falsely flagged "not on its floor" on a cold page load
+  // (#187). A genuine broken ref on a LOADED floor (set has shelves but not this
+  // svgCode) is still flagged; the server bundle-invariant is the backstop.
   const refRows = (rows || []).map((r, i) => ({
     rowIndex: i,
     svgCode: String(r.svgCode || ''),
     floor: Number(r.floor),
   }));
   for (const b of getBrokenRefs(refRows, svgShelfIdsByFloor)) {
+    const set = svgShelfIdsByFloor && svgShelfIdsByFloor[Number(b.floor)];
+    if (!set || set.size === 0) continue; // floor's shelves not loaded → lenient
     const p = ensure(b.rowIndex);
     if (!p.errors.some(e => e.code === 'E006')) {
       p.errors.push({ field: 'svgCode', code: 'E006', message: `SVG code "${b.svgCode}" not found on floor ${b.floor}` });

@@ -3281,4 +3281,14 @@ textarea:focus-visible,
   z-index: 1;
 }
 #csv-table tbody .csv-anchor-cell { background: #ffffff; }   /* opaque so columns don't show through */
-#csv-table thead .csv-anchor-cell { z-index: 3; background: #f9fafb; }   /* corner: above header + column */
+/* The top-left corner cell is sticky on BOTH axes and must sit above the sticky
+   header (z2) and the sticky anchor column (z1) — otherwise the scrolling anchor
+   data cells cover the "Row" header on vertical scroll (#187). Set all four
+   properties explicitly so the corner doesn't depend on rule-combination. */
+#csv-table thead .csv-anchor-cell {
+  position: sticky;
+  top: 0;
+  inset-inline-start: 0;
+  z-index: 4;
+  background: #f9fafb;
+}
