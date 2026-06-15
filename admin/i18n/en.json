@@ -43,7 +43,9 @@
     "saveBlocked": "{count} problem(s) must be fixed before saving. They are highlighted below.",
     "noProblems": "No problems — ready to save",
     "problemCount": "{count} problem(s) to fix",
-    "anchorColumn": "Row"
+    "anchorColumn": "Row",
+    "duplicateRow": "Duplicate row",
+    "rowActions": "Actions"
   },
   "svg": {
     "title": "Map Files",

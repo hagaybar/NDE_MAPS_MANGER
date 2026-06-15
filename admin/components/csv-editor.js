@@ -28,6 +28,8 @@ const FALLBACKS = {
   'csv.deleteRow':           { en: 'Delete row',                                he: 'מחק שורה' },
   'csv.deleteRowConfirm':    { en: 'Delete row {idx} (svgCode "{code}")? This cannot be undone here — recover via S3 version history if needed.',
                                he: 'מחק שורה {idx} (svgCode "{code}")? לא ניתן לבטל; שחזור דרך היסטוריית גרסאות S3.' },
+  'csv.duplicateRow':        { en: 'Duplicate row',                             he: 'שכפל שורה' },
+  'csv.rowActions':          { en: 'Actions',                                   he: 'פעולות' },
   'csv.saveBlocked': { en: '{count} problem(s) must be fixed before saving. They are highlighted below.', he: 'יש לתקן {count} בעיות לפני השמירה. הן מסומנות למטה.' },
   'csv.noProblems': { en: 'No problems — ready to save', he: 'אין בעיות — מוכן לשמירה' },
   'csv.problemCount': { en: '{count} problem(s) to fix', he: '{count} בעיות לתיקון' },
@@ -718,8 +720,8 @@ function renderTable() {
               ${escapeHtml(header)}
             </th>
           `).join('')}
-          <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200 w-16">
-            ${escapeHtml(t('csv.deleteRow'))}
+          <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200 w-24">
+            ${escapeHtml(t('csv.rowActions'))}
           </th>
         </tr>
       </thead>
@@ -746,17 +748,29 @@ function renderTable() {
                 >
               </td>`;
             }).join('')}
-            <td class="px-2 py-2 text-center border-b border-gray-100">
-              <button
-                class="btn-delete-row p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
-                data-row="${rowIndex}"
-                data-role-required="admin"
-                title="${escapeHtml(t('csv.deleteRow'))}"
-              >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                </svg>
-              </button>
+            <td class="px-2 py-2 border-b border-gray-100">
+              <div class="flex items-center justify-center gap-1">
+                <button
+                  class="btn-duplicate-row p-1 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                  data-row="${rowIndex}"
+                  data-role-required="admin"
+                  title="${escapeHtml(t('csv.duplicateRow'))}"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                  </svg>
+                </button>
+                <button
+                  class="btn-delete-row p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
+                  data-row="${rowIndex}"
+                  data-role-required="admin"
+                  title="${escapeHtml(t('csv.deleteRow'))}"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                  </svg>
+                </button>
+              </div>
             </td>
           </tr>
         `).join('')}
@@ -793,8 +807,13 @@ function setupEditorEvents() {
     }
   });
 
-  // Delegate delete button clicks
+  // Delegate duplicate + delete button clicks
   tableContainer?.addEventListener('click', (e) => {
+    const dupBtn = e.target.closest('.btn-duplicate-row');
+    if (dupBtn) {
+      duplicateRow(parseInt(dupBtn.dataset.row, 10));
+      return;
+    }
     const deleteBtn = e.target.closest('.btn-delete-row');
     if (deleteBtn) {
       const rowIndex = parseInt(deleteBtn.dataset.row, 10);
@@ -944,6 +963,36 @@ function deleteRow(rowIndex) {
   renderTable();
   updateProblemIndicator();
   renderFilterBanner(); // Update row count in banner
+}
+
+/**
+ * #190: Duplicate a row in place — insert a pre-filled copy directly BELOW the
+ * source row (in context), reusing its values, so the editor only changes the
+ * distinguishing field instead of re-typing everything or adding a blank row at
+ * the end. The copy is a brand-new row (not in allCsvData); mirror addRow's
+ * filtered bookkeeping (-1 sentinel) so originalIndices stays aligned. The copy
+ * starts as an exact duplicate, so the #187 save gate flags it (E005) until the
+ * editor changes a distinguishing field — the intended nudge, not a bug.
+ */
+function duplicateRow(rowIndex) {
+  if (hasNoAccess) return;
+  if (rowIndex < 0 || rowIndex >= csvData.length) return;
+
+  const copy = JSON.parse(JSON.stringify(csvData[rowIndex]));
+  csvData.splice(rowIndex + 1, 0, copy);
+  if (isFiltered) {
+    originalIndices.splice(rowIndex + 1, 0, -1); // new row, appended on save
+  }
+
+  markChanged();
+  renderTable();
+  updateProblemIndicator();
+  renderFilterBanner(); // Update row count in banner
+
+  // Land on the new row, ready to edit the distinguishing field.
+  const newRowEl = document.querySelector(`#csv-table tr[data-row-index="${rowIndex + 1}"]`);
+  newRowEl?.scrollIntoView?.({ block: 'nearest' }); // scrollIntoView absent under jsdom
+  newRowEl?.querySelector('input.csv-input')?.focus();
 }
 
 /**
