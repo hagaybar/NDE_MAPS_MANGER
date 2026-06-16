@@ -347,6 +347,96 @@ Lib,LibHe,Coll,CollHe,000,999,CB_0,,,0,,,,
     ]));
   });
 
+  // --- Atomic promote / rollback (issue #89) ---
+  //
+  // A promote that touches more than one production file must be all-or-nothing.
+  // If a later file's write fails after an earlier file already landed in
+  // production, the already-promoted file(s) must be restored so production is
+  // never left serving a mismatched CSV/SVG pair.
+
+  // Shared fixtures for a 2-file promote (CSV first, then floor_1 SVG) where the
+  // floor_1 SVG production write fails. `csvHasPriorProd` controls whether the
+  // CSV is a first-ever promote (no prior prod to back up) or has a prior.
+  function setupTwoFilePromoteWithSvgWriteFailure({ csvHasPriorProd }) {
+    s3Mock.on(GetObjectCommand, { Key: 'staging/.meta.json' }).resolves(
+      streamFromString(JSON.stringify({
+        locked: true,
+        owner: 'alice',
+        // Order matters: CSV promotes first (succeeds), SVG second (fails).
+        files: ['data/mapping.csv', 'maps/floor_1.svg'],
+      }))
+    );
+    // Re-validation: staged floor_1 has CC_NEW; floors 0+2 staged absent.
+    s3Mock.on(GetObjectCommand, { Key: 'staging/maps/floor_1.svg' }).resolves(
+      streamFromString('<svg><rect id="CC_NEW" data-map-object="shelf"/></svg>')
+    );
+    s3Mock.on(GetObjectCommand, { Key: 'staging/maps/floor_0.svg' }).rejects(
+      Object.assign(new Error('NoSuchKey'), { name: 'NoSuchKey' })
+    );
+    s3Mock.on(GetObjectCommand, { Key: 'staging/maps/floor_2.svg' }).rejects(
+      Object.assign(new Error('NoSuchKey'), { name: 'NoSuchKey' })
+    );
+    s3Mock.on(GetObjectCommand, { Key: 'maps/floor_0.svg' }).resolves(streamFromString('<svg/>'));
+    s3Mock.on(GetObjectCommand, { Key: 'maps/floor_2.svg' }).resolves(streamFromString('<svg/>'));
+    // Staged CSV: one row referencing CC_NEW on floor 1 (validates clean).
+    s3Mock.on(GetObjectCommand, { Key: 'staging/data/mapping.csv' }).resolves(
+      streamFromString(`libraryName,libraryNameHe,collectionName,collectionNameHe,rangeStart,rangeEnd,svgCode,description,descriptionHe,floor,shelfLabel,shelfLabelHe,notes,notesHe
+Lib,LibHe,Coll,CollHe,000,999,CC_NEW,,,1,,,,
+`)
+    );
+    // Prod floor_1 exists (backup read for the SVG file).
+    s3Mock.on(GetObjectCommand, { Key: 'maps/floor_1.svg' }).resolves(
+      streamFromString('<svg><rect id="OLD_SHELF" data-map-object="shelf"/></svg>')
+    );
+    // Prod CSV: exists (so it gets backed up) or absent (first promote).
+    if (csvHasPriorProd) {
+      s3Mock.on(GetObjectCommand, { Key: 'data/mapping.csv' }).resolves(
+        streamFromString('prior-production-csv-bytes')
+      );
+    } else {
+      s3Mock.on(GetObjectCommand, { Key: 'data/mapping.csv' }).rejects(
+        Object.assign(new Error('NoSuchKey'), { name: 'NoSuchKey' })
+      );
+    }
+    // The production write of floor_1.svg fails mid-promote (CSV already landed).
+    s3Mock.on(PutObjectCommand, { Key: 'maps/floor_1.svg' }).rejects(
+      new Error('Simulated S3 failure writing maps/floor_1.svg')
+    );
+  }
+
+  test('rolls back an already-promoted file when a later file fails to publish', async () => {
+    setupTwoFilePromoteWithSvgWriteFailure({ csvHasPriorProd: true });
+
+    const resp = await handler(event());
+    expect(resp.statusCode).toBe(500);
+    expect(JSON.parse(resp.body).recovery).toBe('rolled-back');
+
+    // The CSV landed in production (forward copy from staging) before the SVG
+    // write failed. Rollback must restore production CSV from its just-made
+    // version backup — i.e. a CopyObject INTO data/mapping.csv whose source is a
+    // versions/ backup (distinct from the forward copy whose source is staging/).
+    const csvCopies = s3Mock.commandCalls(CopyObjectCommand)
+      .filter(c => c.args[0].input.Key === 'data/mapping.csv');
+    const rollbackCopy = csvCopies.find(c =>
+      /versions\/data\/mapping_.+_alice\.csv$/.test(c.args[0].input.CopySource)
+    );
+    expect(rollbackCopy).toBeDefined();
+  });
+
+  test('rolls back a first-ever-promoted file by deleting it when a later file fails', async () => {
+    setupTwoFilePromoteWithSvgWriteFailure({ csvHasPriorProd: false });
+
+    const resp = await handler(event());
+    expect(resp.statusCode).toBe(500);
+    expect(JSON.parse(resp.body).recovery).toBe('rolled-back');
+
+    // The CSV had no prior production object (first promote → no backup), so the
+    // only way to undo its forward copy is to delete the new production object.
+    const csvDeletes = s3Mock.commandCalls(DeleteObjectCommand)
+      .filter(c => c.args[0].input.Key === 'data/mapping.csv');
+    expect(csvDeletes.length).toBeGreaterThan(0);
+  });
+
   test('NoSuchKey on production file is non-fatal — promote proceeds without backup', async () => {
     s3Mock.on(GetObjectCommand, { Key: 'staging/.meta.json' }).resolves(
       streamFromString(JSON.stringify({
