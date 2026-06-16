@@ -85,13 +85,23 @@ export const handler = async (event) => {
   const promotedVersions = {};
   const cdnPaths = [];
   const backedUpPrefixes = new Set();
+  // #89: a promote that touches >1 file must be all-or-nothing. We record how to
+  // undo each file that successfully lands so that if a LATER file's write fails
+  // we can restore production to its pre-promote state (no half-promoted bundle).
+  const rollbackActions = [];
   for (const file of meta.files || []) {
     const stagedKey = `staging/${file}`;
     const prodKey = file;
 
     // Step A: read the current production file and write it to versions/.
     // First-time promotes (prodKey absent) skip backup and proceed with copy.
+    //
+    // `restorePlan` captures how to revert THIS file if a later file fails:
+    //   { kind: 'copy', from }   restore prior bytes from the backup we just made
+    //   { kind: 'delete' }       first-ever promote (no prior) → delete the new object
+    //   { kind: 'unrecoverable' } no clean backup (unknown ext / backup read error)
     const versionInfo = buildVersionKey(prodKey, timestamp, sanitizedUsername);
+    let restorePlan = { kind: 'unrecoverable' };
     if (versionInfo) {
       try {
         const currentResp = await s3.send(new GetObjectCommand({
@@ -106,11 +116,16 @@ export const handler = async (event) => {
           ContentType: versionInfo.contentType,
         }));
         backedUpPrefixes.add(versionInfo.listPrefix);
+        restorePlan = { kind: 'copy', from: versionInfo.key };
         console.log(`Backed up ${prodKey} -> ${versionInfo.key}`);
       } catch (err) {
         if (err.name === 'NoSuchKey' || err.Code === 'NoSuchKey') {
+          restorePlan = { kind: 'delete' };
           console.log(`No prior production object at ${prodKey}; skipping backup (first promote).`);
         } else {
+          // We still overwrite (legacy behavior) but cannot cleanly restore this
+          // one if a later file fails — surfaced in the rollback report.
+          restorePlan = { kind: 'unrecoverable' };
           console.error(`Failed to back up ${prodKey} before promote:`, err);
         }
       }
@@ -148,15 +163,23 @@ export const handler = async (event) => {
       }
       promotedVersions[file] = 'updated';
       cdnPaths.push(`/${prodKey}`);
+      rollbackActions.push({ prodKey, restorePlan });
     } catch (err) {
-      // Attempt rollback: nothing to roll back at this point because we've only
-      // touched this single file. Return 500 with explicit instructions.
+      // #89: this file's write failed AFTER earlier files in meta.files may have
+      // already landed in production. Roll those back so production is never left
+      // serving a mismatched CSV/SVG bundle. The staging lock is intentionally
+      // left held so the owner can retry the promote.
       console.error(`Promote failed at ${prodKey}:`, err);
+      const rollback = await rollbackPromotedFiles(rollbackActions);
+      const allRestored = rollback.every((r) => r.restored);
       return createAuthResponse(500, {
-        error: 'Promote failed mid-copy',
-        recovery: 'failed',
-        partialState: promotedVersions,
-        manualRecovery: 'Check S3 version history for affected files',
+        error: allRestored
+          ? 'Promote failed mid-copy; production was rolled back to its pre-promote state.'
+          : 'Promote failed mid-copy and rollback was incomplete; production may be inconsistent — check the Versions tab / S3 version history.',
+        recovery: allRestored ? 'rolled-back' : 'rollback-incomplete',
+        failedFile: prodKey,
+        promoted: promotedVersions,
+        rollback,
       }, CORS_HEADERS);
     }
   }
@@ -213,6 +236,50 @@ export const handler = async (event) => {
     promotedVersions,
   }, CORS_HEADERS);
 };
+
+/**
+ * Undo already-promoted production objects after a mid-loop write failure (#89),
+ * restoring production to its pre-promote state. Restores in reverse order of
+ * promotion. Each action carries a `restorePlan`:
+ *   - { kind: 'copy', from }   server-side copy the just-made versions/ backup
+ *                              back over the production key (restore prior bytes)
+ *   - { kind: 'delete' }       remove a first-ever-promoted object (no prior)
+ *   - { kind: 'unrecoverable' } no clean backup existed — cannot restore
+ *
+ * Never throws: a failed restore is reported (restored:false) so the caller can
+ * signal `rollback-incomplete` rather than masking it.
+ *
+ * @param {Array<{prodKey: string, restorePlan: object}>} actions
+ * @returns {Promise<Array<{prodKey: string, restored: boolean, method: string, error?: string}>>}
+ */
+async function rollbackPromotedFiles(actions) {
+  const results = [];
+  for (let i = actions.length - 1; i >= 0; i--) {
+    const { prodKey, restorePlan } = actions[i];
+    try {
+      if (restorePlan.kind === 'copy') {
+        await s3.send(new CopyObjectCommand({
+          Bucket: BUCKET,
+          Key: prodKey,
+          CopySource: `${BUCKET}/${restorePlan.from}`,
+        }));
+        console.log(`Rolled back ${prodKey} from ${restorePlan.from}`);
+        results.push({ prodKey, restored: true, method: 'restore' });
+      } else if (restorePlan.kind === 'delete') {
+        await s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: prodKey }));
+        console.log(`Rolled back ${prodKey} by deleting first-promote object`);
+        results.push({ prodKey, restored: true, method: 'delete' });
+      } else {
+        console.error(`Cannot roll back ${prodKey}: no clean backup was made`);
+        results.push({ prodKey, restored: false, method: 'none' });
+      }
+    } catch (err) {
+      console.error(`Rollback failed for ${prodKey}:`, err);
+      results.push({ prodKey, restored: false, method: restorePlan.kind, error: err.message });
+    }
+  }
+  return results;
+}
 
 /**
  * True for production keys of the form `maps/floor_<N>.svg` — the SVG map files
