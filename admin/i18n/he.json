@@ -43,7 +43,9 @@
     "saveBlocked": "יש לתקן {count} בעיות לפני השמירה. הן מסומנות למטה.",
     "noProblems": "אין בעיות — מוכן לשמירה",
     "problemCount": "{count} בעיות לתיקון",
-    "anchorColumn": "שורה"
+    "anchorColumn": "שורה",
+    "duplicateRow": "שכפל שורה",
+    "rowActions": "פעולות"
   },
   "svg": {
     "title": "קבצי מפות",
