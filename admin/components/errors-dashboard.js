@@ -1,6 +1,6 @@
 // Errors Dashboard Component - Interactive dashboard for viewing and fixing validation issues
 import i18n from '../i18n.js?v=5';
-import { validateRow, VALIDATION_ERRORS, VALIDATION_WARNINGS } from '../services/data-model.js';
+import { validateRow, VALIDATION_ERRORS, VALIDATION_WARNINGS, parseRangeBoundary } from '../services/data-model.js';
 import { preloadAllFloors } from '../services/svg-parser.js';
 import { showEditLocationDialog, setCollections } from './edit-location-dialog.js?v=7';
 import { getAuthHeaders } from '../app.js?v=5';
@@ -48,6 +48,20 @@ const FALLBACKS = {
   'errorsDashboard.overlap.fixRange': { en: 'Fix this range →', he: '← תקן את הטווח הזה' },
   'errorsDashboard.overlap.other': { en: 'Other overlaps', he: 'חפיפות אחרות' },
   'errorsDashboard.overlap.goToRow': { en: 'Go to Row {n}', he: 'מעבר לשורה {n}' },
+  'errorsDashboard.overlap.th.shelf': { en: 'Shelf', he: 'מדף' },
+  'errorsDashboard.overlap.th.floorCollection': { en: 'Floor · Collection', he: 'קומה · אוסף' },
+  'errorsDashboard.overlap.th.range': { en: 'Call-number range', he: 'טווח מספרי מיון' },
+  'errorsDashboard.overlap.th.row': { en: 'Row', he: 'שורה' },
+  'errorsDashboard.overlap.th.explanation': { en: "What's the problem", he: 'מה הבעיה' },
+  'errorsDashboard.overlap.th.action': { en: 'Action', he: 'פעולה' },
+  'errorsDashboard.overlap.explainPair': {
+    en: 'Both shelves claim call numbers in {overlap}, so an item in that range could be sent to either shelf.',
+    he: 'שני המדפים תובעים מספרי מיון בטווח {overlap}, כך שפריט בטווח הזה עלול להישלח לכל אחד משני המדפים.'
+  },
+  'errorsDashboard.overlap.explainPairFallback': {
+    en: 'These two shelves claim overlapping call-number ranges, so an item in the overlap could be sent to either shelf.',
+    he: 'שני המדפים תובעים טווחי מספרי מיון חופפים, כך שפריט בטווח החופף עלול להישלח לכל אחד משני המדפים.'
+  },
   'errorsDashboard.floor': { en: 'Floor {n}', he: 'קומה {n}' },
   'errorsDashboard.related': { en: 'Related', he: 'קשור' },
   'errorsDashboard.duplicateOf': { en: 'Duplicate of', he: 'כפילות של' },
@@ -657,20 +671,74 @@ function renderCategoryView(dir) {
     const gotoBtn = (rowIndex, rowNumber) =>
       `<button class="overlap-goto-btn" data-row-index="${rowIndex}">${escapeHtml(t('errorsDashboard.overlap.goToRow').replace('{n}', rowNumber))}</button>`;
 
-    // A pair line (used by both hub-conflicts and other-overlaps): two endpoints
-    // with range detail + jump buttons, reading canonical numbers verbatim so
-    // screen / Print / Excel all agree (#157).
-    const pairLine = (p) => `
-          <div class="overlap-affected">
-            ${escapeHtml(t('errorsDashboard.row'))} ${p.row1Number}
-            · <bdi>${escapeHtml(p.row1?.shelfLabel || '')}</bdi>
-            · "<bdi>${escapeHtml(p.row1?.rangeStart ?? '')}–${escapeHtml(p.row1?.rangeEnd ?? '')}</bdi>"
-            ${gotoBtn(p.row1Index, p.row1Number)}
-            ↔ ${escapeHtml(t('errorsDashboard.row'))} ${p.row2Number}
-            · <bdi>${escapeHtml(p.row2?.shelfLabel || '')}</bdi>
-            · "<bdi>${escapeHtml(p.row2?.rangeStart ?? '')}–${escapeHtml(p.row2?.rangeEnd ?? '')}</bdi>"
-            ${gotoBtn(p.row2Index, p.row2Number)}
-          </div>`;
+    // A call-number range, direction-isolated LTR so it never reorders in RTL
+    // (#193 / AC3) — start, dash, end always read intact.
+    const rangeBdi = (start, end) =>
+      `<bdi dir="ltr">${escapeHtml(start ?? '')}–${escapeHtml(end ?? '')}</bdi>`;
+
+    // #193 (AC8): a plain-language, librarian-voice sentence for ONE overlap,
+    // derived from the two rows' data — the shared sub-range is
+    // max(start1,start2)–min(end1,end2). Reuses the validation-message wording
+    // ("could be sent to either shelf"). Any embedded range is wrapped LTR.
+    // Degrades to a range-free sentence when boundaries don't parse numerically.
+    const overlapExplanation = (p) => {
+      const s1 = parseRangeBoundary(p.row1?.rangeStart);
+      const e1 = parseRangeBoundary(p.row1?.rangeEnd);
+      const s2 = parseRangeBoundary(p.row2?.rangeStart);
+      const e2 = parseRangeBoundary(p.row2?.rangeEnd);
+      const haveAll = [s1, e1, s2, e2].every((n) => typeof n === 'number' && !Number.isNaN(n));
+      if (haveAll) {
+        const lo = Math.max(s1, s2);
+        const hi = Math.min(e1, e2);
+        if (lo <= hi) {
+          return t('errorsDashboard.overlap.explainPair')
+            .replace('{overlap}', `<bdi dir="ltr">${escapeHtml(lo)}–${escapeHtml(hi)}</bdi>`);
+        }
+      }
+      return escapeHtml(t('errorsDashboard.overlap.explainPairFallback'));
+    };
+
+    // Header row of <th> column labels, shared by all three overlap tables so
+    // they read consistently (AC1/AC6). Screen readers announce these for free.
+    const tableHead = () => `
+          <thead>
+            <tr>
+              <th scope="col">${escapeHtml(t('errorsDashboard.overlap.th.shelf'))}</th>
+              <th scope="col">${escapeHtml(t('errorsDashboard.overlap.th.floorCollection'))}</th>
+              <th scope="col">${escapeHtml(t('errorsDashboard.overlap.th.range'))}</th>
+              <th scope="col">${escapeHtml(t('errorsDashboard.overlap.th.row'))}</th>
+              <th scope="col">${escapeHtml(t('errorsDashboard.overlap.th.explanation'))}</th>
+              <th scope="col">${escapeHtml(t('errorsDashboard.overlap.th.action'))}</th>
+            </tr>
+          </thead>`;
+
+    // One endpoint of a pair as a <tr>. The pair's single explanation cell lives
+    // on the FIRST row, spanning both via rowspan, so it reads as a property of
+    // the overlap as a whole (AC8) — not duplicated per shelf.
+    const shelfRow = (endpoint, p, isFirst) => `
+            <tr class="overlap-shelf-row overlap-affected">
+              <td class="overlap-cell-shelf"><bdi>${escapeHtml(endpoint.row?.shelfLabel || '')}</bdi></td>
+              <td class="overlap-cell-loc">${escapeHtml(t('errorsDashboard.floor').replace('{n}', p.floor))} · <bdi>${escapeHtml(p.collection || '')}</bdi></td>
+              <td class="overlap-cell-range">${rangeBdi(endpoint.row?.rangeStart, endpoint.row?.rangeEnd)}</td>
+              <td class="overlap-cell-row">${escapeHtml(t('errorsDashboard.row'))} ${endpoint.rowNumber}</td>
+              ${isFirst ? `<td class="overlap-cell-explanation" rowspan="2">${overlapExplanation(p)}</td>` : ''}
+              <td class="overlap-cell-action">${gotoBtn(endpoint.rowIndex, endpoint.rowNumber)}</td>
+            </tr>`;
+
+    // One overlap = one <tbody> (a clean "these two overlap" unit, striped via
+    // CSS). `overlap-affected` stays on the tbody so existing selectors resolve.
+    const pairTbody = (p) => `
+          <tbody class="overlap-pair overlap-affected">
+            ${shelfRow({ row: p.row1, rowIndex: p.row1Index, rowNumber: p.row1Number }, p, true)}
+            ${shelfRow({ row: p.row2, rowIndex: p.row2Index, rowNumber: p.row2Number }, p, false)}
+          </tbody>`;
+
+    // The shared table shell used by Other-overlaps and Hub-conflicts.
+    const pairsTable = (pairs) => `
+        <table class="overlap-table">
+          ${tableHead()}
+          ${pairs.map(pairTbody).join('')}
+        </table>`;
 
     const clusterHtml = clusters.map((c, ci) => {
       // One source for the displayed "affects N" count AND the data-affected
@@ -689,7 +757,7 @@ function renderCategoryView(dir) {
           <strong>${hubLabel}</strong>
           · ${escapeHtml(t('errorsDashboard.row'))} ${c.hubRowNumber}
           · <bdi>${escapeHtml(c.hubRow.shelfLabel || '')}</bdi>
-          "<bdi>${escapeHtml(c.hubRow.rangeStart)}–${escapeHtml(c.hubRow.rangeEnd)}</bdi>"
+          "${rangeBdi(c.hubRow.rangeStart, c.hubRow.rangeEnd)}"
           · ${escapeHtml(t('errorsDashboard.overlap.affects').replace('{n}', affectsShown))}
           · ${escapeHtml(t('errorsDashboard.floor').replace('{n}', c.floor))} · <bdi>${escapeHtml(c.collection)}</bdi>
           <button class="btn btn-primary overlap-fix-btn" data-row-index="${c.hubRowIndex}">
@@ -697,13 +765,20 @@ function renderCategoryView(dir) {
           </button>
         </div>
         <div class="overlap-cluster-children" id="overlap-children-${ci}" data-cluster-children="${ci}">
-          ${c.affected.map(a => `
-            <div class="overlap-affected">
-              ${escapeHtml(t('errorsDashboard.row'))} ${a.rowNumber}
-              · <bdi>${escapeHtml(a.row.shelfLabel || '')}</bdi>
-              · "<bdi>${escapeHtml(a.row.rangeStart)}–${escapeHtml(a.row.rangeEnd)}</bdi>"
-              ${gotoBtn(a.rowIndex, a.rowNumber)}
-            </div>`).join('')}
+          <table class="overlap-table">
+            ${tableHead()}
+            <tbody>
+              ${c.affected.map(a => `
+              <tr class="overlap-shelf-row overlap-affected">
+                <td class="overlap-cell-shelf"><bdi>${escapeHtml(a.row.shelfLabel || '')}</bdi></td>
+                <td class="overlap-cell-loc">${escapeHtml(t('errorsDashboard.floor').replace('{n}', c.floor))} · <bdi>${escapeHtml(c.collection || '')}</bdi></td>
+                <td class="overlap-cell-range">${rangeBdi(a.row.rangeStart, a.row.rangeEnd)}</td>
+                <td class="overlap-cell-row">${escapeHtml(t('errorsDashboard.row'))} ${a.rowNumber}</td>
+                <td class="overlap-cell-explanation">${overlapExplanation({ row1: c.hubRow, row2: a.row, floor: c.floor, collection: c.collection })}</td>
+                <td class="overlap-cell-action">${gotoBtn(a.rowIndex, a.rowNumber)}</td>
+              </tr>`).join('')}
+            </tbody>
+          </table>
         </div>
       </div>`;
     }).join('');
@@ -713,13 +788,13 @@ function renderCategoryView(dir) {
     const hubConflictsHtml = hubConflicts.length ? `
       <div class="overlap-hub-conflicts">
         <h3>${escapeHtml(t('errorsDashboard.overlap.hubConflicts'))}</h3>
-        ${hubConflicts.map(pairLine).join('')}
+        ${pairsTable(hubConflicts)}
       </div>` : '';
 
     const otherHtml = otherOverlaps.length ? `
       <div class="overlap-other">
         <h3>${escapeHtml(t('errorsDashboard.overlap.other'))}</h3>
-        ${otherOverlaps.map(pairLine).join('')}
+        ${pairsTable(otherOverlaps)}
       </div>` : '';
 
     containerElement.innerHTML = `

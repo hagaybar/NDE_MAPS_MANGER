@@ -16,7 +16,7 @@ import { initUserManagement } from './components/user-management.js?v=5';
 import { initLocationEditor } from './components/location-editor.js?v=5';
 import { initMapEditor } from './components/map-editor.js?v=4';
 import { initSearchBox } from './components/search-box.js?v=5';
-import { initErrorsDashboard } from './components/errors-dashboard.js?v=9';
+import { initErrorsDashboard } from './components/errors-dashboard.js?v=10';
 import logger from './services/logger.js?v=1';
 import { preloadAllFloors } from './services/svg-parser.js';
 import { initDebugConsole } from './components/debug-console.js?v=1';

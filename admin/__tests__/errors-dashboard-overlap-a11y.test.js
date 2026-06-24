@@ -60,4 +60,19 @@ describe('Errors dashboard — overlap view a11y + BiDi', () => {
     const header = document.querySelector('.overlap-cluster-header').textContent;
     expect(header).toMatch(/Floor 2|קומה 2/);
   });
+
+  // ── #193: the cluster "affected rows" list is a real <table> too (AC6) ──────
+  test('#193 the cluster affected-rows list renders as a <table> with a <thead>/<th> header', async () => {
+    await openOverlap();
+    const children = document.querySelector('.overlap-cluster-children');
+    const table = children.querySelector('table.overlap-table');
+    expect(table).not.toBeNull();
+    const ths = table.querySelectorAll('thead th');
+    expect(ths.length).toBeGreaterThanOrEqual(4); // Shelf, Floor·Collection, Range, Row (+action)
+    // every header cell is a real <th> (screen-reader column semantics for free)
+    ths.forEach((th) => expect(th.tagName).toBe('TH'));
+    // each affected row still carries a bidi-isolated range cell
+    const rangeBdi = children.querySelector('tr.overlap-affected .overlap-cell-range bdi[dir="ltr"]');
+    expect(rangeBdi).not.toBeNull();
+  });
 });

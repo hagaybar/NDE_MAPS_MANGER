@@ -170,6 +170,95 @@ describe('Errors dashboard — overlap cluster navigation + honest counts', () =
     printSpy.mockRestore();
   });
 
+  // ── #193: "Other overlaps" renders as a real columned <table> ──────────────
+  // The librarian asked for "a table with clear categories", not run-on lines.
+  test('#193 "Other overlaps" renders a semantic <table> with a <thead>/<th> header row', async () => {
+    document.body.innerHTML = '<div id="dash"></div>';
+    initErrorsDashboard('dash');
+    await flush();
+    openCategory('overlap');
+    await flush();
+
+    const section = document.querySelector('.overlap-other');
+    expect(section).not.toBeNull();
+    const table = section.querySelector('table.overlap-table');
+    expect(table).not.toBeNull();
+    // a visible header row of column labels
+    const thead = table.querySelector('thead');
+    expect(thead).not.toBeNull();
+    const headers = thead.querySelectorAll('th');
+    expect(headers.length).toBeGreaterThanOrEqual(5); // Shelf, Floor·Collection, Range, Row, Explanation (+action)
+    // each overlapping pair is its own <tbody> (a clean "one overlap" unit)
+    const pairBodies = table.querySelectorAll('tbody.overlap-pair');
+    expect(pairBodies.length).toBe(1); // exactly the 7↔8 pair
+    // the two shelves are two <tr> rows inside that tbody
+    expect(pairBodies[0].querySelectorAll('tr.overlap-shelf-row').length).toBe(2);
+  });
+
+  test('#193 each shelf row exposes labelled cells: range in <bdi dir="ltr">, row number, and a goto button', async () => {
+    document.body.innerHTML = '<div id="dash"></div>';
+    initErrorsDashboard('dash');
+    await flush();
+    openCategory('overlap');
+    await flush();
+
+    const rows = document.querySelectorAll('.overlap-other tbody.overlap-pair tr.overlap-shelf-row');
+    expect(rows.length).toBe(2);
+    rows.forEach((tr) => {
+      // a range cell with the call-number range isolated LTR
+      const rangeBdi = tr.querySelector('.overlap-cell-range bdi[dir="ltr"]');
+      expect(rangeBdi).not.toBeNull();
+      expect(rangeBdi.textContent).toMatch(/–/); // start–end
+      // a row-number cell
+      expect(tr.querySelector('.overlap-cell-row')).not.toBeNull();
+      // the existing Go-to-row contract preserved
+      const btn = tr.querySelector('.overlap-goto-btn');
+      expect(btn).not.toBeNull();
+      expect(btn.dataset.rowIndex).toMatch(/^\d+$/);
+    });
+    // both 0-based indices (7,8) reachable, contract preserved exactly
+    const idxs = new Set([...document.querySelectorAll('.overlap-other .overlap-goto-btn')].map(b => b.dataset.rowIndex));
+    expect(idxs).toEqual(new Set(['7', '8']));
+  });
+
+  test('#193 (AC8) each "Other overlaps" pair carries ONE plain-language explanation cell', async () => {
+    document.body.innerHTML = '<div id="dash"></div>';
+    initErrorsDashboard('dash');
+    await flush();
+    openCategory('overlap');
+    await flush();
+
+    const tbody = document.querySelector('.overlap-other tbody.overlap-pair');
+    const explanations = tbody.querySelectorAll('.overlap-cell-explanation');
+    // exactly one explanation per pair (not duplicated per shelf row)
+    expect(explanations.length).toBe(1);
+    const text = explanations[0].textContent.trim();
+    expect(text.length).toBeGreaterThan(10);
+    // librarian-voice: mentions both shelves / either shelf (en or he)
+    expect(text).toMatch(/either shelf|שני המדפים|שני מדפים/);
+  });
+
+  test('#193 (AC6) "Hub conflicts" uses the SAME table treatment', async () => {
+    document.body.innerHTML = '<div id="dash"></div>';
+    initErrorsDashboard('dash');
+    await flush();
+    openCategory('overlap');
+    await flush();
+
+    const section = document.querySelector('.overlap-hub-conflicts');
+    expect(section).not.toBeNull();
+    const table = section.querySelector('table.overlap-table');
+    expect(table).not.toBeNull();
+    expect(table.querySelector('thead th')).not.toBeNull();
+    const pairBody = table.querySelector('tbody.overlap-pair');
+    expect(pairBody).not.toBeNull();
+    // both endpoints (0-based 2 and 3) still reachable via goto
+    const btns = pairBody.querySelectorAll('.overlap-goto-btn');
+    expect(new Set([...btns].map(b => b.dataset.rowIndex))).toEqual(new Set(['2', '3']));
+    // explanation present for the conflict too
+    expect(pairBody.querySelector('.overlap-cell-explanation')).not.toBeNull();
+  });
+
   // #131: the duplicate category's "Duplicate of: Go to Row X" link only renders
   // if the issue builder carries `details` through from validateRow.
   test('duplicate category renders a working "Go to Row" link (#131)', async () => {

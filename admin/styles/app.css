@@ -2649,14 +2649,37 @@ textarea:focus-visible,
 .overlap-cluster-header { display: flex; align-items: center; gap: .5rem; padding: .5rem .75rem; background: #fffbeb; font-weight: 600; }
 .overlap-cluster-toggle { background: none; border: none; cursor: pointer; font-size: 1rem; }
 .overlap-cluster-children { padding-block: .25rem .5rem; padding-inline: .75rem; padding-inline-start: 2rem; }
-.overlap-affected { padding: .15rem 0; color: #444; }
 .overlap-summary { margin: .5rem 0; color: #92400e; font-weight: 600; }
+
+/* #193: clear columned tables for Other-overlaps, Hub-conflicts, and the
+   per-cluster affected-rows list. Logical properties keep it RTL-safe; the
+   browser flips column order natively in RTL. One <tbody> per overlapping pair,
+   striped so each "these two overlap" unit is easy to tell apart. */
+.overlap-table { width: 100%; border-collapse: collapse; margin-block: .25rem .5rem; font-size: .9rem; }
+.overlap-table thead th {
+  text-align: start;
+  padding: .4rem .6rem;
+  background: #fffbeb;
+  border-block-end: 2px solid #fcd34d;
+  color: #92400e;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.overlap-table td { padding: .35rem .6rem; color: #444; vertical-align: top; border-block-end: 1px solid #fde68a; }
+.overlap-table .overlap-cell-explanation { color: #1f2937; line-height: 1.35; }
+.overlap-table .overlap-cell-range bdi { font-variant-numeric: tabular-nums; }
+/* stripe alternate pairs (Other-overlaps / Hub-conflicts) so a pair reads as one unit */
+.overlap-table tbody.overlap-pair:nth-of-type(even) td { background: #fffdf5; }
+.overlap-table tbody.overlap-pair { border-block-end: 2px solid #fcd34d; }
+.overlap-other, .overlap-hub-conflicts { margin-block-start: 1rem; }
+.overlap-other h3, .overlap-hub-conflicts h3 { margin-block-end: .25rem; color: #92400e; }
 
 @media print {
   nav, .nav-tabs, .refresh-btn, .export-btn, .print-btn, .back-btn,
-  .overlap-cluster-toggle, .overlap-fix-btn { display: none !important; }
+  .overlap-cluster-toggle, .overlap-fix-btn, .overlap-goto-btn,
+  .overlap-table th.overlap-col-action, .overlap-cell-action { display: none !important; }
   .overlap-cluster-children { display: block !important; }
-  .overlap-cluster { break-inside: avoid; }
+  .overlap-cluster, .overlap-table tbody.overlap-pair { break-inside: avoid; }
 }
 
 /* Map Editor — SVG interaction states (Task 6) */
