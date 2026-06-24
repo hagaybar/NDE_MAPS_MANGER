@@ -2671,6 +2671,22 @@ textarea:focus-visible,
 /* stripe alternate pairs (Other-overlaps / Hub-conflicts) so a pair reads as one unit */
 .overlap-table tbody.overlap-pair:nth-of-type(even) td { background: #fffdf5; }
 .overlap-table tbody.overlap-pair { border-block-end: 2px solid #fcd34d; }
+/* #193 follow-up: the "Go to row" action read as a static label, so users did
+   not recognize it was clickable. Colorize it as a clear link (primary blue +
+   underline + pointer) against the amber table so the affordance is obvious. */
+.overlap-cell-action { white-space: nowrap; }
+.overlap-goto-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: #2563eb;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.overlap-goto-btn:hover { color: #1d4ed8; }
+.overlap-goto-btn:focus-visible { outline: 2px solid #93c5fd; outline-offset: 2px; border-radius: 2px; }
 .overlap-other, .overlap-hub-conflicts { margin-block-start: 1rem; }
 .overlap-other h3, .overlap-hub-conflicts h3 { margin-block-end: .25rem; color: #92400e; }
 
