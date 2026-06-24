@@ -115,3 +115,25 @@ test('empty input yields a model with columns and no rows', () => {
 test('reportFilename uses .xlsx and a UTC date', () => {
   expect(reportFilename(new Date('2026-06-02T23:30:00Z'))).toBe('errors-report-2026-06-02.xlsx');
 });
+
+// ── #193 (AC6): the export gains a plain-language Explanation column matching
+// the on-screen "What's the problem" column, derived from the shared sub-range.
+test('#193 export has an Explanation column and overlap pairs carry the shared-sub-range sentence', () => {
+  const col = WORKBOOK_COLUMNS.find((c) => c.key === 'explanation');
+  expect(col).toBeDefined();
+  expect(col.header).toBe('Explanation');
+
+  const withOther = {
+    clusters: [],
+    hubConflicts: [],
+    otherOverlaps: [{
+      row1Index: 0, row2Index: 1, row1Number: 2, row2Number: 3,
+      // 701–704 and 704–705 share exactly 704–704
+      row1: csvData[0], row2: csvData[1], collection: 'C', floor: '2',
+    }],
+  };
+  const model = buildReportWorkbookModel(withOther, [], csvData);
+  const explanation = model.rows[0].cells.explanation;
+  expect(explanation).toMatch(/either shelf/);
+  expect(explanation).toMatch(/704–704/); // shared sub-range max(701,704)–min(704,705)
+});

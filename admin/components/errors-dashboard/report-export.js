@@ -25,7 +25,37 @@ export const WORKBOOK_COLUMNS = [
   { key: 'code', header: 'Code', width: 8 },
   { key: 'severity', header: 'Severity', width: 10 },
   { key: 'message', header: 'Message', width: 90 },
+  { key: 'explanation', header: 'Explanation', width: 90 },
 ];
+
+/**
+ * Plain-language explanation of one overlap, derived from the two rows' data
+ * (#193 / AC8). Mirrors the on-screen "What's the problem" column: the shared
+ * sub-range is max(start1,start2)–min(end1,end2). English-only (the workbook
+ * headers are English). Degrades to a range-free sentence when the boundaries
+ * are not leading-numeric.
+ *
+ * @param {{rangeStart?, rangeEnd?}} row1
+ * @param {{rangeStart?, rangeEnd?}} row2
+ * @returns {string}
+ */
+export function overlapExplanationText(row1, row2) {
+  const num = (v) => {
+    const m = String(v ?? '').match(/^-?\d+(\.\d+)?/);
+    return m ? parseFloat(m[0]) : NaN;
+  };
+  const s1 = num(row1?.rangeStart), e1 = num(row1?.rangeEnd);
+  const s2 = num(row2?.rangeStart), e2 = num(row2?.rangeEnd);
+  if ([s1, e1, s2, e2].every((n) => !Number.isNaN(n))) {
+    const lo = Math.max(s1, s2), hi = Math.min(e1, e2);
+    if (lo <= hi) {
+      // Strip a trailing ".0" so integer ranges read cleanly.
+      const fmt = (n) => (Number.isInteger(n) ? String(n) : String(n));
+      return `Both shelves claim call numbers in ${fmt(lo)}–${fmt(hi)}, so an item in that range could be sent to either shelf.`;
+    }
+  }
+  return 'These two shelves claim overlapping call-number ranges, so an item in the overlap could be sent to either shelf.';
+}
 
 function cells(row, extra) {
   // csvRow reads the canonical spreadsheet row number computed once in
@@ -49,6 +79,7 @@ function cells(row, extra) {
     code: extra.code ?? '',
     severity: extra.severity ?? '',
     message: extra.message ?? '',
+    explanation: extra.explanation ?? '',
   };
 }
 
@@ -86,6 +117,7 @@ export function buildReportWorkbookModel(clusterModel, otherIssues = [], csvData
         cells: cells(a.row, {
           rowNumber: a.rowNumber, category: 'overlap', code: 'W001', severity: 'warning',
           message: `Overlaps root-cause Row ${c.hubRowNumber}`,
+          explanation: overlapExplanationText(c.hubRow, a.row),
         }),
       });
     }
@@ -100,6 +132,7 @@ export function buildReportWorkbookModel(clusterModel, otherIssues = [], csvData
       cells: cells(p.row1 ?? csvData[p.row1Index], {
         rowNumber: p.row1Number, category: 'overlap', code: 'W001', severity: 'warning',
         message: `Overlaps wide range Row ${p.row2Number} in "${p.collection}" (Floor ${p.floor})`,
+        explanation: overlapExplanationText(p.row1 ?? csvData[p.row1Index], p.row2 ?? csvData[p.row2Index]),
       }),
     });
   }
@@ -111,6 +144,7 @@ export function buildReportWorkbookModel(clusterModel, otherIssues = [], csvData
       cells: cells(p.row1 ?? csvData[p.row1Index], {
         rowNumber: p.row1Number, category: 'overlap', code: 'W001', severity: 'warning',
         message: `Overlaps Row ${p.row2Number} in "${p.collection}" (Floor ${p.floor})`,
+        explanation: overlapExplanationText(p.row1 ?? csvData[p.row1Index], p.row2 ?? csvData[p.row2Index]),
       }),
     });
   }

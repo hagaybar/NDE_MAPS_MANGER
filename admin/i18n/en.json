@@ -553,7 +553,17 @@
       "other": "Other overlaps",
       "hubConflicts": "These wide ranges also overlap each other",
       "expand": "Show affected ranges",
-      "goToRow": "Go to Row {n}"
+      "goToRow": "Go to Row {n}",
+      "th": {
+        "shelf": "Shelf",
+        "floorCollection": "Floor · Collection",
+        "range": "Call-number range",
+        "row": "Row",
+        "explanation": "What's the problem",
+        "action": "Action"
+      },
+      "explainPair": "Both shelves claim call numbers in {overlap}, so an item in that range could be sent to either shelf.",
+      "explainPairFallback": "These two shelves claim overlapping call-number ranges, so an item in the overlap could be sent to either shelf."
     },
     "floor": "Floor {n}",
     "related": "Related",
