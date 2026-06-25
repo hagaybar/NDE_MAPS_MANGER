@@ -107,7 +107,10 @@ function createDialogHtml(options) {
     showLoading = false,
     showSuccess = false,
     showError = false,
-    errorMessage = null
+    errorMessage = null,
+    showWarning = false,
+    affectedEntryCount = 0,
+    orphans = []
   } = options;
 
   const titleId = generateId();
@@ -116,6 +119,28 @@ function createDialogHtml(options) {
   const formattedTime = formatTimestamp(version?.timestamp, locale);
   const username = version?.username || '-';
   const disabled = showLoading ? 'disabled' : '';
+
+  // #55: in the warning state the heading and confirm action change to reflect
+  // the orphan-override decision; the warning body interpolates the affected
+  // catalog-ENTRY count into a plain-language sentence (RTL-safe: plain text,
+  // dir=auto on the interpolated number, no physical-side CSS).
+  const titleText = showWarning
+    ? i18n.t('dialog.restoreOrphanTitle')
+    : i18n.t('dialog.restoreConfirm');
+  const confirmLabel = showWarning
+    ? i18n.t('dialog.restoreAnyway')
+    : i18n.t('dialog.confirm');
+  let orphanWarningContent = '';
+  if (showWarning) {
+    const warningText = i18n
+      .t('dialog.restoreOrphanWarning')
+      .replace('{count}', `<bdi dir="auto">${escapeHtml(affectedEntryCount)}</bdi>`);
+    orphanWarningContent = `
+      <div data-testid="orphan-warning" class="py-2 px-3 mb-4 bg-amber-50 text-amber-800 rounded border border-amber-200">
+        ${warningText}
+      </div>
+    `;
+  }
 
   let statusContent = '';
   if (showLoading) {
@@ -163,7 +188,7 @@ function createDialogHtml(options) {
         data-testid="dialog-title"
         class="text-xl font-semibold text-gray-900 mb-4"
       >
-        ${escapeHtml(i18n.t('dialog.restoreConfirm'))}
+        ${escapeHtml(titleText)}
       </h2>
 
       <div
@@ -188,6 +213,8 @@ function createDialogHtml(options) {
         </div>
       </div>
 
+      ${orphanWarningContent}
+
       ${statusContent}
 
       <div class="flex justify-end gap-3 mt-6">
@@ -205,7 +232,7 @@ function createDialogHtml(options) {
           ${disabled}
           class="px-4 py-2 text-white bg-blue-600 rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          ${escapeHtml(i18n.t('dialog.confirm'))}
+          ${escapeHtml(confirmLabel)}
         </button>
       </div>
     </div>

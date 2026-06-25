@@ -19,6 +19,10 @@ const mockI18n = {
       'dialog.restoring': 'Restoring...',
       'dialog.restoreSuccess': 'Version restored successfully',
       'dialog.restoreError': 'Failed to restore version',
+      'dialog.restoreOrphanTitle': 'Some shelves no longer exist',
+      'dialog.restoreOrphanWarning':
+        'Heads up: this version points {count} catalog entries to shelves that no longer exist on the current floor maps. If you restore it, those entries will show a missing shelf in Primo until you fix them.',
+      'dialog.restoreAnyway': 'Restore anyway',
       'versions.timestamp': 'Date',
       'versions.user': 'User'
     };
@@ -40,6 +44,10 @@ const mockI18nHebrew = {
       'dialog.restoring': 'משחזר...',
       'dialog.restoreSuccess': 'הגרסה שוחזרה בהצלחה',
       'dialog.restoreError': 'שגיאה בשחזור הגרסה',
+      'dialog.restoreOrphanTitle': 'חלק מהמדפים כבר אינם קיימים',
+      'dialog.restoreOrphanWarning':
+        'לתשומת לבך: בגרסה זו יש {count} רשומות קטלוג המצביעות על מדפים שכבר אינם קיימים במפות הקומות הנוכחיות. אם תשחזר אותה, הרשומות הללו יציגו מדף חסר ב-Primo עד שתתקן אותן.',
+      'dialog.restoreAnyway': 'שחזר בכל זאת',
       'versions.timestamp': 'תאריך',
       'versions.user': 'משתמש'
     };
@@ -244,6 +252,109 @@ describe('RestoreConfirmDialog Component', () => {
 
       const errorMessage = document.querySelector('[data-testid="error-message"]');
       expect(errorMessage.textContent).toContain('Custom error occurred');
+    });
+  });
+
+  // --- #55: warn-and-allow-override orphan warning ---
+  // When the server returns 409 + requiresOverride, the restore flow re-renders
+  // this dialog in showWarning mode: a plain-language warning naming how many
+  // catalog ENTRIES point at missing shelves, a "Restore anyway" confirm button,
+  // and a Cancel button. Confirm resolves {confirmed:true} (the signal
+  // handleVersionRestore uses to re-POST with override:true); Cancel resolves
+  // {confirmed:false} and writes nothing.
+  describe('Orphan Warning (#55)', () => {
+    // AC1 — without showWarning, the standard confirm dialog renders.
+    test('AC1: without showWarning the dialog shows the standard confirm title and Restore button (no orphan warning block)', async () => {
+      showRestoreDialog({ version: mockVersion });
+
+      const title = document.querySelector('[data-testid="dialog-title"]');
+      const confirmBtn = document.querySelector('[data-testid="confirm-button"]');
+      const orphanWarning = document.querySelector('[data-testid="orphan-warning"]');
+
+      expect(title.textContent).toContain('Confirm Restore');
+      expect(confirmBtn.textContent).toContain('Restore');
+      expect(confirmBtn.textContent).not.toContain('Restore anyway');
+      expect(orphanWarning).toBeNull();
+    });
+
+    // AC2 — showWarning render shows the plain-language entry count + new buttons.
+    test('AC2: showWarning render displays the plain-language entry count and a "Restore anyway" button', async () => {
+      showRestoreDialog({
+        version: mockVersion,
+        showWarning: true,
+        affectedEntryCount: 3,
+        orphans: [{ svgCode: 'MISSING', floor: 0, affectedRowCount: 3 }]
+      });
+
+      const orphanWarning = document.querySelector('[data-testid="orphan-warning"]');
+      const confirmBtn = document.querySelector('[data-testid="confirm-button"]');
+
+      expect(orphanWarning).not.toBeNull();
+      // The count is interpolated into the plain-language warning (no raw placeholder).
+      expect(orphanWarning.textContent).toContain('3');
+      expect(orphanWarning.textContent).not.toContain('{count}');
+      expect(orphanWarning.textContent).toContain('shelves that no longer exist');
+      // Confirm button is relabeled to the override action.
+      expect(confirmBtn.textContent).toContain('Restore anyway');
+    });
+
+    test('AC2: showWarning render uses the orphan title and keeps a Cancel button', async () => {
+      showRestoreDialog({
+        version: mockVersion,
+        showWarning: true,
+        affectedEntryCount: 1,
+        orphans: [{ svgCode: 'MISSING', floor: 0, affectedRowCount: 1 }]
+      });
+
+      const title = document.querySelector('[data-testid="dialog-title"]');
+      const cancelBtn = document.querySelector('[data-testid="cancel-button"]');
+
+      expect(title.textContent).toContain('Some shelves no longer exist');
+      expect(cancelBtn).not.toBeNull();
+      expect(cancelBtn.textContent).toContain('Cancel');
+    });
+
+    // AC3 — clicking "Restore anyway" resolves {confirmed:true} (drives override re-POST).
+    test('AC3: clicking "Restore anyway" resolves the dialog promise with {confirmed:true}', async () => {
+      const dialogPromise = showRestoreDialog({
+        version: mockVersion,
+        showWarning: true,
+        affectedEntryCount: 2,
+        orphans: [{ svgCode: 'MISSING', floor: 0, affectedRowCount: 2 }]
+      });
+
+      const confirmBtn = document.querySelector('[data-testid="confirm-button"]');
+      expect(confirmBtn.textContent).toContain('Restore anyway');
+      confirmBtn.click();
+
+      const result = await dialogPromise;
+      expect(result).toEqual({ confirmed: true });
+    });
+
+    // AC4 — clicking Cancel resolves {confirmed:false} and removes the dialog (writes nothing).
+    // Asserting the dialog was genuinely IN the warning state first ties Cancel's
+    // "write nothing" contract to the orphan-warning render (handleVersionRestore
+    // only re-POSTs with override on {confirmed:true}, so {confirmed:false} here
+    // means no override restore is issued and the live file is untouched).
+    test('AC4: clicking Cancel in the warning state resolves {confirmed:false} and removes the dialog', async () => {
+      const dialogPromise = showRestoreDialog({
+        version: mockVersion,
+        showWarning: true,
+        affectedEntryCount: 2,
+        orphans: [{ svgCode: 'MISSING', floor: 0, affectedRowCount: 2 }]
+      });
+
+      // Precondition: the dialog is actually showing the orphan warning.
+      expect(document.querySelector('[data-testid="orphan-warning"]')).not.toBeNull();
+
+      const cancelBtn = document.querySelector('[data-testid="cancel-button"]');
+      cancelBtn.click();
+
+      const result = await dialogPromise;
+      expect(result).toEqual({ confirmed: false });
+
+      const dialog = document.querySelector('[data-testid="restore-dialog"]');
+      expect(dialog).toBeNull();
     });
   });
 
