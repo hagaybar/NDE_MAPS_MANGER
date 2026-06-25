@@ -7,7 +7,7 @@ import i18n from './i18n.js?v=5';
 import { initCSVEditor } from './components/csv-editor.js?v=9';
 import { initSVGManager } from './components/svg-manager.js?v=5';
 import { initVersionHistory } from './components/version-history.js?v=5';
-import { showRestoreDialog, updateRestoreDialog, hideRestoreDialog } from './components/restore-confirm-dialog.js?v=5';
+import { showRestoreDialog, updateRestoreDialog, hideRestoreDialog } from './components/restore-confirm-dialog.js?v=6';
 import { showVersionPreview, hideVersionPreview } from './components/version-preview.js?v=5';
 import authService from './auth-service.js?v=5';
 import authGuard, { isAdmin } from './auth-guard.js?v=5';
@@ -301,27 +301,22 @@ async function handleVersionRestore(versionOrId) {
         return;
     }
 
-    // Show loading state
-    showRestoreDialog({
-        version,
-        showLoading: true
-    });
-
-    try {
-        // Call restore API
-        const response = await fetch(`${API_ENDPOINT}/api/versions/csv/${versionId}/restore`, {
+    // POST the restore. First attempt sends no override; the "Restore anyway"
+    // retry sends { override: true }. The server is the gate (#55): a broken
+    // bundle is refused with 409 + requiresOverride unless override is set.
+    const doRestore = (override) => fetch(
+        `${API_ENDPOINT}/api/versions/csv/${versionId}/restore`,
+        {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 ...getAuthHeaders()
-            }
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            },
+            body: JSON.stringify(override ? { override: true } : {})
         }
+    );
 
-        // Show success and close dialog
+    const onRestoreSuccess = () => {
         updateRestoreDialog({
             version: { versionId },
             showSuccess: true
@@ -338,7 +333,57 @@ async function handleVersionRestore(versionOrId) {
             });
             showToast(i18n.t('dialog.restoreSuccess'), 'success');
         }, 1500);
+    };
 
+    try {
+        // Show loading state
+        showRestoreDialog({
+            version,
+            showLoading: true
+        });
+
+        // First attempt (no override)
+        const response = await doRestore(false);
+
+        if (response.ok) {
+            onRestoreSuccess();
+            return;
+        }
+
+        // #55: server warns that the version references shelves no longer on the
+        // current floor maps. Re-render the dialog in warning state and await the
+        // editor's explicit "Restore anyway" decision.
+        if (response.status === 409) {
+            const data = await response.json();
+            if (data.requiresOverride) {
+                const warnResult = await showRestoreDialog({
+                    version,
+                    showWarning: true,
+                    affectedEntryCount: data.affectedEntryCount,
+                    orphans: data.orphans,
+                    closeOnOverlayClick: true
+                });
+
+                // Cancel: write nothing, leave the live file untouched (AC4).
+                if (!warnResult.confirmed) {
+                    return;
+                }
+
+                // Restore anyway: re-POST through the SAME server gate with override.
+                showRestoreDialog({
+                    version,
+                    showLoading: true
+                });
+                const overrideResponse = await doRestore(true);
+                if (!overrideResponse.ok) {
+                    throw new Error(`HTTP error! status: ${overrideResponse.status}`);
+                }
+                onRestoreSuccess();
+                return;
+            }
+        }
+
+        throw new Error(`HTTP error! status: ${response.status}`);
     } catch (error) {
         console.error('Failed to restore version:', error);
         updateRestoreDialog({

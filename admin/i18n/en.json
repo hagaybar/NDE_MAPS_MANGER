@@ -221,7 +221,10 @@
     "cancel": "Cancel",
     "restoring": "Restoring...",
     "restoreSuccess": "Version restored successfully",
-    "restoreError": "Failed to restore version"
+    "restoreError": "Failed to restore version",
+    "restoreOrphanTitle": "Some shelves no longer exist",
+    "restoreOrphanWarning": "Heads up: this version points {count} catalog entries to shelves that no longer exist on the current floor maps. If you restore it, those entries will show a missing shelf in Primo until you fix them.",
+    "restoreAnyway": "Restore anyway"
   },
   "preview": {
     "title": "Version Preview",
