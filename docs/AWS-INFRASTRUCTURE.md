@@ -1,4 +1,5 @@
-> **Status:** Current · Updated 2026-05-18 · CloudFront / S3 / CORS configuration reference.
+> **Status:** Current · Updated 2026-07-08 · CloudFront / S3 / CORS configuration reference.
+> **2026-07-08:** S3 bucket CORS **removed**; CloudFront now owns CORS and serves `Access-Control-Allow-Origin: *`. See the CORS and S3 CORS sections below.
 
 # AWS Infrastructure Configuration
 
@@ -27,19 +28,27 @@ This document describes the AWS infrastructure configuration for the Primo Maps 
 
 ### CORS Configuration
 
-CloudFront is configured to handle CORS for cross-origin requests from the Primo NDE addon.
+> **⚠️ 2026-07-08 — CORS is handled entirely by CloudFront. The S3 bucket has NO
+> CORS configuration (removed on purpose — see "S3 CORS Configuration" below).**
+
+Public assets (`/data/*`, `/maps/*`) are served cross-origin to the Primo NDE
+addon. CORS headers come **only** from the CloudFront Response Headers Policy;
+S3 no longer sets any CORS headers of its own.
 
 #### Response Headers Policy
 
 - **Policy:** `Managed-CORS-With-Preflight` (AWS Managed)
 - **Policy ID:** `5cc3b908-e619-4b99-88e5-2cf7f45965bd`
+- **Origin override:** `false` — the policy only *adds* CORS headers when the
+  origin (S3) doesn't already send them. That is exactly why **removing S3's CORS
+  is what lets the policy's `*` take effect** (see the warning below).
 
-This policy adds the following headers to responses:
-- `Access-Control-Allow-Origin: *` (or reflects the Origin header)
+With no S3 CORS, every response now carries a single, origin-independent set:
+- `Access-Control-Allow-Origin: *`
 - `Access-Control-Allow-Methods: GET, HEAD, PUT, POST, PATCH, DELETE, OPTIONS`
 - `Access-Control-Allow-Headers: *`
 - `Access-Control-Expose-Headers: *`
-- `Access-Control-Max-Age: 86400`
+- *(no `Access-Control-Allow-Credentials` — assets are public, requests are non-credentialed)*
 
 #### Allowed HTTP Methods
 
@@ -47,10 +56,20 @@ This policy adds the following headers to responses:
 - HEAD
 - OPTIONS (for CORS preflight)
 
+> **Known/non-blocking:** the OPTIONS preflight currently returns `403` from the
+> origin. It does **not** affect the addon, whose CSV/SVG loads are *simple* GETs
+> (no custom headers → no preflight). It would only matter if a client sent a
+> non-simple request header.
+
 #### Cache Behavior
 
-- **Cache Policy:** CachingOptimized
-- **Response Headers Policy:** Managed-CORS-With-Preflight
+- **Cache Policy:** `Managed-CachingOptimized` — **keys the cache on the URL path
+  only** (no `Origin` header, no query string). This is the crux of the 2026-07-08
+  outage: while S3 was sending a *per-origin* `Access-Control-Allow-Origin`,
+  CloudFront cached one origin's value and replayed it to every requester (there is
+  no `Vary: Origin`), so CORS failed for every other origin. A single `*`
+  (achieved by removing S3 CORS) is safe to cache under this policy.
+- **Response Headers Policy:** `Managed-CORS-With-Preflight`
 
 ### Updating CloudFront CORS Configuration
 
@@ -95,9 +114,17 @@ tau-cenlib-primo-assets-hagay-3602/
     └── index.html
 ```
 
-### S3 CORS Configuration
+### S3 CORS Configuration — REMOVED 2026-07-08
 
-File: `cors-config.json`
+> **⚠️ The S3 bucket intentionally has NO CORS configuration. Do NOT re-add it.**
+> CORS is handled entirely by CloudFront (see "CORS Configuration" above).
+> Re-applying an S3 CORS rule re-introduces the 2026-07-08 cache-poisoning outage:
+> the rule reflected the *requesting* origin, and the `CachingOptimized` cache
+> policy (which ignores the `Origin` header) then froze one origin's
+> `Access-Control-Allow-Origin` and served it to every requester, breaking the
+> Shelf Map addon in production.
+
+The former rule (historical reference only — **do not apply**) was:
 
 ```json
 {
@@ -117,15 +144,16 @@ File: `cors-config.json`
 }
 ```
 
-Apply S3 CORS configuration:
+It is preserved for the record only in `cors-config.removed-2026-07-08.json`.
+
+**What was done (2026-07-08):**
 
 ```bash
-aws s3api put-bucket-cors \
-  --bucket tau-cenlib-primo-assets-hagay-3602 \
-  --cors-configuration file://cors-config.json
+aws s3api delete-bucket-cors --bucket tau-cenlib-primo-assets-hagay-3602
+aws cloudfront create-invalidation --distribution-id E5SR0E5GM5GSB --paths "/*"
 ```
 
-Verify S3 CORS configuration:
+**Verify it stays removed** (expect `NoSuchCORSConfiguration`):
 
 ```bash
 aws s3api get-bucket-cors --bucket tau-cenlib-primo-assets-hagay-3602
