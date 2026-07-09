@@ -71,18 +71,25 @@ maps/
 ## Key Integrations
 
 - **Primo NDE**: Angular component consumes CSV and SVG files from CloudFront
-- **CORS Allowed Origins**: `tau.primo.exlibrisgroup.com`, `localhost:4200`, `localhost:4201`
+- **CORS**: handled by CloudFront only — serves `Access-Control-Allow-Origin: *` for every origin. **S3 bucket CORS was removed 2026-07-08** (do not re-add — see `docs/AWS-INFRASTRUCTURE.md`).
 
 ### CloudFront CORS Configuration
 
 CloudFront uses `Managed-CORS-With-Preflight` Response Headers Policy for cross-origin requests:
 - Policy ID: `5cc3b908-e619-4b99-88e5-2cf7f45965bd`
 - AllowedMethods: GET, HEAD, OPTIONS
+- Serves `Access-Control-Allow-Origin: *` — S3 CORS was removed 2026-07-08 so this single value is what gets cached.
+
+> **Do NOT re-add S3 bucket CORS.** With the `CachingOptimized` cache policy (no
+> `Origin` in the cache key), a per-origin S3 `Access-Control-Allow-Origin` gets
+> frozen and served to every requester — that was the 2026-07-08 outage. Full
+> detail in `docs/AWS-INFRASTRUCTURE.md`.
 
 **If CORS issues occur:**
 1. Verify Response Headers Policy is attached to CloudFront behavior
 2. Ensure OPTIONS is in AllowedMethods
-3. Invalidate CloudFront cache after changes
+3. Confirm S3 CORS is **absent** (`get-bucket-cors` → `NoSuchCORSConfiguration`) — re-adding it re-breaks CORS
+4. Invalidate CloudFront cache after changes
 
 ## Running Tests
 
@@ -115,9 +122,9 @@ aws s3 ls s3://tau-cenlib-primo-assets-hagay-3602/
 # Invalidate CloudFront cache
 aws cloudfront create-invalidation --distribution-id E5SR0E5GM5GSB --paths "/*"
 
-# Check/update S3 CORS
+# Check S3 CORS — must stay ABSENT (expect NoSuchCORSConfiguration).
+# Do NOT put-bucket-cors: re-adding S3 CORS re-breaks CORS (removed 2026-07-08; see AWS-INFRASTRUCTURE.md).
 aws s3api get-bucket-cors --bucket tau-cenlib-primo-assets-hagay-3602
-aws s3api put-bucket-cors --bucket tau-cenlib-primo-assets-hagay-3602 --cors-configuration file://cors-config.json
 
 # Update CloudFront (get config, modify, apply)
 aws cloudfront get-distribution-config --id E5SR0E5GM5GSB > cf-config.json
@@ -133,7 +140,7 @@ When rendering dynamic content (tables, grids), call `applyRoleBasedUI()` after 
 ### CORS errors from Primo NDE addon
 1. CloudFront must have `Managed-CORS-With-Preflight` Response Headers Policy
 2. CloudFront AllowedMethods must include OPTIONS
-3. S3 CORS config must include the requesting origin
+3. S3 CORS must be **absent** — CloudFront serves `Access-Control-Allow-Origin: *`. Do **not** add per-origin S3 CORS; with the `CachingOptimized` policy it gets cached and served to the wrong origins (2026-07-08 outage)
 4. Invalidate CloudFront cache after any CORS changes
 
 ### Lambda CORS headers
