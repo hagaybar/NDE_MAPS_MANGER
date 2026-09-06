@@ -22,11 +22,27 @@ set -euo pipefail
 # -----------------------------------------------------------------------------
 # Variables
 # -----------------------------------------------------------------------------
-AWS_ACCOUNT_ID="111710313267"
+# The account id is read from the caller's own credentials rather than written
+# down here: this repo is public, and a hardcoded account number is free
+# reconnaissance (it lets an outsider probe which IAM role and user names exist
+# without touching our logs). Deriving it also makes the script run unchanged in
+# any account. Credentials are required either way — the read-only lookups below
+# run even under --dry-run.
+if ! AWS_ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"; then
+  echo "ERROR: could not read the AWS account id from your credentials." >&2
+  echo "       Refresh your AWS session (SSO login), then re-run this script." >&2
+  exit 1
+fi
+if [ -z "$AWS_ACCOUNT_ID" ] || [ "$AWS_ACCOUNT_ID" = "None" ]; then
+  echo "ERROR: AWS returned no account id for the current credentials." >&2
+  exit 1
+fi
+
 REGION="us-east-1"
 API_ID="tt3xt4tr09"
 PARENT_API_RESOURCE_ID="q6nn8h"   # /api
-LAMBDA_ROLE_ARN="arn:aws:iam::111710313267:role/primo-maps-lambda-role"
+LAMBDA_ROLE_NAME="primo-maps-lambda-role"
+LAMBDA_ROLE_ARN="arn:aws:iam::${AWS_ACCOUNT_ID}:role/${LAMBDA_ROLE_NAME}"
 STAGE="prod"
 RUNTIME="nodejs20.x"
 MEMORY_MB="128"
