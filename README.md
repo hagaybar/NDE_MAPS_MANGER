@@ -200,10 +200,13 @@ enforcement), and `shared/` (the rules described below).
 | `admin` | ✔ | ✔ | ✔ | ✔ | ✔ |
 | `editor` | ✔ | ✔ | | ✔ | |
 
-Enforced server-side in every Lambda, and mirrored in the browser only for UI
-affordances. An editor can additionally be **scoped** to a subset of the data —
-by collection, floor, or call-number range — so a subject librarian edits their
-own collections and nothing else. The scope is a JSON filter configuration
+The role comes from a `custom:role` attribute on the Cognito user (falling back
+to `cognito:groups`, defaulting to `viewer`). It is enforced server-side in every
+Lambda, and mirrored in the browser only for UI affordances.
+
+An editor can additionally be **scoped** to a subset of the data — by collection,
+floor, or call-number range — so a subject librarian edits their own collections
+and nothing else. The scope is a JSON filter stored in `custom:allowedRanges` and
 evaluated on both sides; the server is the gate.
 
 ---
@@ -286,10 +289,12 @@ flowchart LR
   lingers forever.
 - **Validate** runs the bundle rule against the staged SVGs plus the *current*
   CSV and reports what would break, in plain language.
-- **Reconcile** is the interesting part. Using `data-shelf-uid`, the system
-  distinguishes a renamed shelf from a removed one, and offers a decision per
-  affected shelf. Accepted decisions are applied to a staged copy of the CSV, not
-  to production.
+- **Reconcile** is the interesting part. The system distinguishes a renamed shelf
+  from a removed one — primarily by matching `data-shelf-uid` across the two
+  versions, falling back to geometry for shelves that carry no uid on either side
+  — then asks the operator, in everyday wording, what should happen to each
+  affected shelf and the rows pointing at it. Accepted decisions are applied to a
+  staged copy of the CSV, not to production.
 - **Promote** re-validates, then copies staging over production **atomically** —
   a failure partway through the copy rolls production back rather than leaving
   the bundle half-updated — then invalidates the CDN and clears staging.
@@ -345,7 +350,7 @@ admin/                      Admin SPA (vanilla JS, ES modules, no build)
     errors-dashboard/       Overlap clustering, xlsx export
   services/                 Data model, validation, SVG parsing, logging
   styles/                   Design tokens + app CSS
-  __tests__/                83 Jest suites (jsdom)
+  __tests__/                82 Jest suites (jsdom)
 
 lambda/                     One .mjs per function + shared libraries
   shared/                   validateBundle, svg-shelves, stamp-shelf-uids, …
@@ -391,7 +396,7 @@ Three suites, no CI — they are run locally and their output is pasted into eve
 pull request.
 
 ```bash
-# Admin SPA — 981 tests, 83 suites (Jest + jsdom)
+# Admin SPA — 978 tests, 82 suites (Jest + jsdom)
 cd admin && npm install
 NODE_OPTIONS=--experimental-vm-modules npx jest
 
@@ -405,8 +410,8 @@ npx http-server . -p 8123
 E2E_BASE_URL=http://localhost:8123 npx playwright test
 ```
 
-*(Counts verified by running both Jest suites, 2026-09-06: 981 and 420, all
-passing.)*
+*(Counts verified by running both Jest suites against `main` on 2026-09-06: 978
+and 420, all passing.)*
 
 The `--experimental-vm-modules` flag is required: both codebases are native ES
 modules. The Playwright suite runs a locale × role matrix (`en`/`he` ×
@@ -473,8 +478,8 @@ touch.
 | Resource | Notes |
 |----------|-------|
 | S3 bucket | Public `GetObject` on `data/*` and `maps/*` only — see [`bucket-policy.json`](bucket-policy.json). Everything else is reached through CloudFront or Lambda. |
-| CloudFront distribution | Origin = the bucket. Attach the AWS-managed **CORS-with-Preflight** response headers policy, and allow `GET, HEAD, OPTIONS`. Add a `/maps/*` cache behavior that keys on the `v` query string (the app uses `?v=` tokens to force a fresh fetch after a promote). |
-| Cognito user pool + hosted UI | Two groups: `admin`, `editor`. The app uses the hosted UI OAuth flow with `openid email profile`. |
+| CloudFront distribution | Origin = the bucket. Attach the AWS-managed **CORS-with-Preflight** response headers policy, and allow `GET, HEAD, OPTIONS`. No query-string-keyed behavior is needed: after a promote the app polls the bare URL's `ETag` until the invalidation has propagated, then re-fetches with a `?v=` token to defeat the *browser* cache. |
+| Cognito user pool + hosted UI | Custom attributes `custom:role` (`admin` / `editor`) and `custom:allowedRanges` (the editor's scope, as JSON). `cognito:groups` is honoured as a fallback, and an unrecognised user is `viewer`. The app uses the hosted-UI OAuth flow with `openid email profile`. |
 | API Gateway REST API | One resource per Lambda under `/api/…`, `AWS_PROXY` integration, plus an `OPTIONS` MOCK method per resource for CORS. |
 | IAM role for Lambda | S3 read/write on the bucket, CloudFront `CreateInvalidation`, CloudWatch Logs, and Cognito user-pool admin actions for the user-management functions. |
 | S3 lifecycle rule | Expire `staging/*` after 7 days. |
@@ -503,8 +508,10 @@ touch.
   `…He` CSV columns are part of the data model, so a monolingual library would
   simplify the schema rather than translate the UI.
 - **Call numbers are compared as strings with a shared prefix.** If your
-  classification scheme needs different ordering semantics, that logic is
-  isolated in `admin/utils/range-filter.js` and `lambda/range-validation.mjs`.
+  classification scheme needs different ordering semantics, `compareCallNumbers`
+  is the function to change — and note that it currently exists in *three* places
+  (`admin/utils/range-filter.js`, `admin/services/data-model.js`,
+  `lambda/range-validation.mjs`), so change all three together.
 
 ### 4. Prepare your SVGs
 
@@ -618,5 +625,11 @@ In production at the Tel Aviv University Sourasky Central Library, serving the
 Primo NDE shelf-map addon. Actively maintained; issues and design history are
 tracked in the GitHub repository.
 
-No license file is present yet — treat the code as all rights reserved until one
-is added.
+## License
+
+[MIT](LICENSE) — use it, fork it, adapt it for your own library.
+
+The floor plans in `maps/` and the mapping data in `data/` describe a specific
+building and its collections. They are included so the system can be read and
+run end to end; they are of no use anywhere else, and you will replace both with
+your own.
