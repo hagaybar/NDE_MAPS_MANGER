@@ -493,7 +493,7 @@ touch.
 | API Gateway base URL (`API_ENDPOINT`) | 9 admin modules. `grep -rl tt3xt4tr09 admin/` finds them. |
 | Bucket name, distribution id | 15 Lambda files, as `const` at the top of each. |
 | Cognito pool id / client id (server) | `lambda/auth-middleware.mjs`, via the `COGNITO_USER_POOL_ID` and `COGNITO_CLIENT_ID` environment variables — already externalized. |
-| AWS account id, API id, IAM role ARN | [`deploy-staging-lambdas.sh`](deploy-staging-lambdas.sh). |
+| API id, IAM role name, region | [`deploy-staging-lambdas.sh`](deploy-staging-lambdas.sh). The account id is not hardcoded — the script reads it from your own credentials via `aws sts get-caller-identity`, so it builds the right role ARN in any account. |
 
 ### 3. Adapt the model to your building
 
