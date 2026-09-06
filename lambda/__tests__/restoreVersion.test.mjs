@@ -903,7 +903,7 @@ describe('restoreVersion Lambda', () => {
     test('should accept versionId with email-style username (dots and @)', async () => {
       // Cognito usernames are often email addresses; the versionId regex
       // must allow `.` and `@` in the username portion.
-      const versionId = 'mapping_2026-05-13T11-28-32-995Z_idoah@tauex.tau.ac.il.csv';
+      const versionId = 'mapping_2026-05-13T11-28-32-995Z_editor@mail.example.com.csv';
       const currentCsvContent = 'current,data';
       const versionCsvContent = 'version,data';
 
