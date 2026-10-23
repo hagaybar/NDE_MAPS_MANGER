@@ -62,6 +62,9 @@ function cancel() {
 
 function cleanup() {
   document.getElementById('map-reassign-banner')?.remove();
+  // Tear down the "choose from list" picker overlay too, if it is open — else a
+  // cancel (Esc / floor switch) orphans a full-screen overlay over the app (#125).
+  active?.pickerOverlay?.remove();
   document.removeEventListener('keydown', onEsc);
   document.querySelectorAll('.map-pulse-target').forEach(el => {
     el.classList.remove('map-pulse-target');
@@ -83,6 +86,7 @@ function openDropdownPicker() {
     </div>
   `;
   document.body.appendChild(overlay);
+  active.pickerOverlay = overlay;   // tie the overlay to the reassign lifecycle so cleanup() removes it (#125)
   function renderList(filter) {
     const list = overlay.querySelector('#map-picker-list');
     list.innerHTML = allShelves
@@ -91,6 +95,7 @@ function openDropdownPicker() {
       .join('');
     list.querySelectorAll('button').forEach(b => {
       b.onclick = () => {
+        if (!active) { overlay.remove(); return; }   // reassign was cancelled out from under the picker — stay inert, don't crash (#125)
         const confirmKey = active.intent === 'repair'
           ? 'mapEditor.reassign.confirm.repair'
           : 'mapEditor.reassign.confirm.move';
