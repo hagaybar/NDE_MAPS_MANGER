@@ -94,7 +94,10 @@ as `FLOOR_VALUES` (`data-model.js`) and `VALID_FLOORS` (`validateBundle.mjs`).
 - Jest needs `--experimental-vm-modules` (native ES modules); `npm test` in `admin/` and `lambda/` sets it.
 - Playwright projects `en-admin`, `he-admin`, `en-editor`, `he-editor`; locale and role come from
   the project name. Screenshot baselines: `e2e/tests/__screenshots__/`. Auth is mocked
-  (`e2e/fixtures/auth.fixture.ts`); serve the repo root and set `E2E_BASE_URL`.
+  (`e2e/fixtures/auth.fixture.ts`). Most specs open `/` and expect `admin/` served there
+  (`npx http-server admin -p 8080`, the config default). `map-editor-fit-viewport.spec.ts` was
+  written against a repo-root server (`npx http-server . -p 8123`, `E2E_BASE_URL=http://localhost:8123`);
+  run the full suite against a repo-root server and most specs fail (they get a directory listing).
 - No CI: paste the run output into the PR (template, HR7).
 
 ## Deploying from the sandbox

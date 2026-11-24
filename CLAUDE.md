@@ -34,8 +34,9 @@ All of it runs in AWS and is production. No masedet, no `prod` branch, no CI.
 
 ## Commands
 - Unit tests: `cd admin && npm ci && npm test`; `cd lambda && npm ci && npm test`.
-- E2E: `npm ci && npx playwright install chromium`, then `npx http-server . -p 8123` and
-  `E2E_BASE_URL=http://localhost:8123 npx playwright test`.
+- E2E: `npm ci && npx playwright install chromium`; most specs open `/` and need
+  `npx http-server admin -p 8080`, then `npx playwright test e2e/tests/<spec>`. 652 tests in
+  4 projects: run the specs you touch, not the whole suite (it ran past 20 min on 2026-11-24).
 - Run the app locally: `npx http-server . -p 8123`, open `/admin/`. It talks to the PRODUCTION
   API and Cognito: a real login edits real data.
 - Deploy (broker; no AWS keys in the sandbox): `tau-deploy admin`, `tau-deploy lambda <name>`
