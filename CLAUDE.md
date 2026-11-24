@@ -1,210 +1,75 @@
-# CLAUDE.md
+# CLAUDE.md — Primo Maps (NDE shelf-map data)
 
-## ⛔ Hard Rules — read WORKFLOW.md before resolving any issue
-
-This repo is run by an **architect who does not read source code**. All work is
-governed by [`WORKFLOW.md`](./WORKFLOW.md). Before touching any issue, read it.
-The following are non-negotiable (full text and rationale in WORKFLOW.md):
-
-- **HR1** Never weaken, skip, narrow, or delete a test to make a build pass.
-- **HR2** If a test seems wrong, file a one-line Spec Dispute in the PR — do not edit the test.
+## Hard Rules: read WORKFLOW.md before resolving any issue
+The owner is an architect who does not read source code. `WORKFLOW.md` governs all work (full
+text and reasons there; agents never edit it, `workflow.schema.json` or the PR template).
+- **HR1** Never weaken, skip, narrow or delete a test to make a build pass.
+- **HR2** If a test seems wrong, file a one-line Spec Dispute in the PR; do not edit the test.
 - **HR3** Every behavioural change adds a test you observed go red→green this run; name it in the PR.
-- **HR4** Test behaviour at stable boundaries (API contract, UI behaviour), never internal call structure.
-- **HR5** Never ask the owner to read code. Surface decisions as acceptance criteria, tradeoffs, and the running app.
+- **HR4** Test behaviour at stable boundaries (Lambda API contract, UI behaviour), never call structure.
+- **HR5** Never ask the owner to read code: AC, tradeoffs, the running app, the AC↔test map.
+- **HR6** One revertable unit per issue: one PR per issue by default; never squash; no "while I was here" edits.
 - **HR7** Never claim tests pass without executing them in this run.
 
 The owner is the oracle: a green suite is a signal, never the reason to merge.
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+## What it is
+The data behind the "where is this book?" shelf map in Primo NDE (TAU Sourasky Central Library):
+`data/mapping.csv` (call-number range → shelf `svgCode` + floor) and `maps/floor_{0,1,2}.svg`,
+published on CloudFront and read anonymously by the Primo addon. Staff edit them in a bilingual
+(Hebrew-first, RTL) admin SPA; writes go through 20 Lambdas behind API Gateway with Cognito
+roles `admin`/`editor`. The live app: `https://d3h8i7y9p8lyw7.cloudfront.net/admin/`.
+All of it runs in AWS and is production. No masedet, no `prod` branch, no CI.
 
-## Project Overview
+## Layout
+- `admin/`: the SPA (vanilla JS ES modules, no build); `components/`, `services/`, `i18n/`,
+  `__tests__/` (Jest + jsdom). Endpoints are hardcoded consts (`auth-config.js` and module heads).
+- `lambda/`: one `.mjs` per function, shared libs (`auth-middleware`, `role-auth`,
+  `range-validation`, `shared/`), `__tests__/` (Jest + aws-sdk-client-mock, parity fixtures).
+  The tracked `*.zip` files are old build output, some older than their source (#209):
+  never deploy them; the broker packages from source.
+- `e2e/`: Playwright (mocked auth, locale × role projects, screenshot baselines).
+- `data/`, `maps/`: copies of the production files. `scripts/`: one-shot migrations.
+- `deploy-staging-lambdas.sh`: creates the staging Lambdas and routes (infrastructure, owner only).
 
-Primo Maps Management System - A web application to manage SVG maps and location mappings for the Primo NDE shelf-map addon at TAU Central Library. Replaces Google Sheets-based workflow with a self-hosted AWS solution.
+## Commands
+- Unit tests: `cd admin && npm ci && npm test`; `cd lambda && npm ci && npm test`.
+- E2E: `npm ci && npx playwright install chromium`, then `npx http-server . -p 8123` and
+  `E2E_BASE_URL=http://localhost:8123 npx playwright test`.
+- Run the app locally: `npx http-server . -p 8123`, open `/admin/`. It talks to the PRODUCTION
+  API and Cognito: a real login edits real data.
+- Deploy (broker; no AWS keys in the sandbox): `tau-deploy admin`, `tau-deploy lambda <name>`
+  (no `primo-maps-` prefix), `tau-deploy rollback <deploy-id>`; add `--dry-run` first. Only
+  committed code on `origin/main` deploys, after that side's unit suite passes in the sandbox. Every
+  deploy is production. Infrastructure, Lambda env vars and direct S3 writes are owner-only
+  (raw `aws` commands: README "Deploying", `docs/AWS-INFRASTRUCTURE.md`).
 
-## AWS Infrastructure
+## Rules
+Enforced by code:
+- Bundle invariant: a CSV save whose `svgCode` is not a shelf on its floor, or whose floor is not
+  0/1/2, gets HTTP 422 (`lambda/shared/validateBundle.mjs`, `putCsv`; `BUNDLE_INVARIANT_ENABLED=true`
+  live in production). The client copy (`admin/services/bundle-validator.js`) only warns early.
+- Twin implementations stay in lockstep, guarded by parity tests on shared fixtures: bundle
+  validator, SVG shelf parser (`svg-shelves`), CSV parser (`csv-editor.js` ↔ `range-validation.mjs`).
+- `svg-parser.js` and `data-model.js` are never imported with `?v=` (`no-duplicate-module-imports.test.js`).
+- The four floor-SVG / `mapping.csv` fetches use `cache: 'no-cache'` (cache regression tests).
+- Roles are enforced in every Lambda (`role-auth.mjs`), editor scopes on CSV writes
+  (`range-validation.mjs`); the UI only mirrors them.
 
-- **S3 Bucket**: `tau-cenlib-primo-assets-hagay-3602`
-- **CloudFront Distribution ID**: `E5SR0E5GM5GSB`
-- **CloudFront URL**: `https://d3h8i7y9p8lyw7.cloudfront.net`
-- **API Gateway**: `tt3xt4tr09` - `https://tt3xt4tr09.execute-api.us-east-1.amazonaws.com/prod`
-- **Cognito User Pool**: `us-east-1_g9q5cPhVg`
+Written only:
+- Never re-add S3 bucket CORS: CloudFront serves `Access-Control-Allow-Origin: *` (2026-07-08 outage).
+- Lambdas return CORS headers on errors too: use `createAuthResponse()` (`auth-middleware.mjs`).
+- Call `applyRoleBasedUI()` after rendering dynamic content, or admin-only controls show to editors.
+- Never re-add `width`/`height` to the floor SVG root; the loader derives a `viewBox` (#70).
+- Changing an admin module means bumping its `?v=N` everywhere in its import chain.
+- New UI text goes in both `admin/i18n/he.json` and `en.json`; check RTL as well as LTR.
+- `compareCallNumbers` exists in three places; change all three together.
 
-### Live URLs (Public - No Auth Required)
-- CSV: `https://d3h8i7y9p8lyw7.cloudfront.net/data/mapping.csv`
-- Maps: `https://d3h8i7y9p8lyw7.cloudfront.net/maps/floor_{0,1,2}.svg`
-- Admin: `https://d3h8i7y9p8lyw7.cloudfront.net/admin/`
-
-## Architecture
-
-Serverless architecture using:
-- S3 for storage (CSV mapping file, SVG maps, admin SPA)
-- CloudFront CDN for public file serving with CORS support
-- Lambda + API Gateway for admin operations (JWT protected)
-- Cognito for authentication (admin/editor roles)
-
-## Project Structure
-
-```
-admin/                   # Admin SPA (vanilla JS)
-  components/            # UI components (csv-editor, svg-manager, etc.)
-  app.js                 # Main application
-  auth-guard.js          # Role-based access control
-  i18n.js                # Internationalization (Hebrew/English)
-lambda/                  # Lambda functions
-  listSvg.mjs            # List SVG files
-  deleteSvg.mjs          # Delete SVG with versioning
-  putCsv.mjs             # Update CSV with versioning
-  getCsv.mjs             # Get CSV content
-  auth-middleware.mjs    # JWT validation
-e2e/                     # Playwright E2E tests
-  fixtures/              # Auth fixtures and mocks
-  pages/                 # Page Object Models
-  tests/                 # Test specs
-docs/                    # Documentation
-  AWS-INFRASTRUCTURE.md  # CloudFront/S3/CORS configuration
-data/
-  mapping.csv            # Location mapping data (419 rows, 14 columns)
-maps/
-  floor_{0,1,2}.svg      # Floor maps with element IDs for highlighting
-```
-
-## Key Integrations
-
-- **Primo NDE**: Angular component consumes CSV and SVG files from CloudFront
-- **CORS**: handled by CloudFront only — serves `Access-Control-Allow-Origin: *` for every origin. **S3 bucket CORS was removed 2026-07-08** (do not re-add — see `docs/AWS-INFRASTRUCTURE.md`).
-
-### CloudFront CORS Configuration
-
-CloudFront uses `Managed-CORS-With-Preflight` Response Headers Policy for cross-origin requests:
-- Policy ID: `5cc3b908-e619-4b99-88e5-2cf7f45965bd`
-- AllowedMethods: GET, HEAD, OPTIONS
-- Serves `Access-Control-Allow-Origin: *` — S3 CORS was removed 2026-07-08 so this single value is what gets cached.
-
-> **Do NOT re-add S3 bucket CORS.** With the `CachingOptimized` cache policy (no
-> `Origin` in the cache key), a per-origin S3 `Access-Control-Allow-Origin` gets
-> frozen and served to every requester — that was the 2026-07-08 outage. Full
-> detail in `docs/AWS-INFRASTRUCTURE.md`.
-
-**If CORS issues occur:**
-1. Verify Response Headers Policy is attached to CloudFront behavior
-2. Ensure OPTIONS is in AllowedMethods
-3. Confirm S3 CORS is **absent** (`get-bucket-cors` → `NoSuchCORSConfiguration`) — re-adding it re-breaks CORS
-4. Invalidate CloudFront cache after changes
-
-## Running Tests
-
-```bash
-# Install dependencies
-npm install && npx playwright install chromium
-
-# Run E2E tests (starts local server automatically)
-npx playwright test
-
-# Run with visible browser
-npx playwright test --headed
-
-# View test report
-npx playwright show-report
-```
-
-**Test Coverage:** 113 tests covering authentication, CSV editor, SVG manager, version history, user management, language toggle, and role-based access.
-
-## AWS CLI Commands
-
-```bash
-# Upload files to S3
-aws s3 cp file.csv s3://tau-cenlib-primo-assets-hagay-3602/data/
-aws s3 sync ./maps s3://tau-cenlib-primo-assets-hagay-3602/maps/
-
-# List bucket contents
-aws s3 ls s3://tau-cenlib-primo-assets-hagay-3602/
-
-# Invalidate CloudFront cache
-aws cloudfront create-invalidation --distribution-id E5SR0E5GM5GSB --paths "/*"
-
-# Check S3 CORS — must stay ABSENT (expect NoSuchCORSConfiguration).
-# Do NOT put-bucket-cors: re-adding S3 CORS re-breaks CORS (removed 2026-07-08; see AWS-INFRASTRUCTURE.md).
-aws s3api get-bucket-cors --bucket tau-cenlib-primo-assets-hagay-3602
-
-# Update CloudFront (get config, modify, apply)
-aws cloudfront get-distribution-config --id E5SR0E5GM5GSB > cf-config.json
-# Edit cf-config.json, then:
-aws cloudfront update-distribution --id E5SR0E5GM5GSB --distribution-config file://cf-dist-config.json --if-match <ETag>
-```
-
-## Common Issues & Fixes
-
-### Role-based UI not updating for dynamic content
-When rendering dynamic content (tables, grids), call `applyRoleBasedUI()` after rendering to ensure admin-only elements are properly hidden for editors.
-
-### CORS errors from Primo NDE addon
-1. CloudFront must have `Managed-CORS-With-Preflight` Response Headers Policy
-2. CloudFront AllowedMethods must include OPTIONS
-3. S3 CORS must be **absent** — CloudFront serves `Access-Control-Allow-Origin: *`. Do **not** add per-origin S3 CORS; with the `CachingOptimized` policy it gets cached and served to the wrong origins (2026-07-08 outage)
-4. Invalidate CloudFront cache after any CORS changes
-
-### Lambda CORS headers
-All Lambda functions must return CORS headers in responses, including error responses. Use `createAuthResponse()` from `auth-middleware.mjs` for consistent headers.
-
-### Floor SVG and `mapping.csv` fetches must use `cache: 'no-cache'`
-`loadFloorSvg` (`admin/components/map-editor/svg-loader.js`), `fetchAndParseSvg` (`admin/services/svg-parser.js`), `loadCSV` (`admin/components/csv-editor.js`), and `fetchMappingCsvText` (`admin/components/map-editor/csv-loader.js`) all pass `{ cache: 'no-cache' }` to `fetch()`. This is a sticky fix for a recurring stale-cache bug: after any re-upload of `maps/floor_N.svg` or `data/mapping.csv`, browsers held the previous body in cache and the UI showed wrong state — Map Editor showed a wrong "N unassigned" badge with no clickable shelves; CSV Editor showed pre-save data after reload, making users think their save didn't take. Conditional fetches let CloudFront return 304 when unchanged (no extra bandwidth) and the new body when changed. Full investigation: `docs/audits/2026-05-13-floor-svg-stale-cache.md`. Regression-guarded by `admin/__tests__/svg-loader.test.js`, `admin/__tests__/svg-parser.test.js`, `admin/__tests__/csv-editor-cache.test.js`, and `admin/__tests__/map-editor-csv-cache.test.js`.
-
-### Map Editor floor map must fit the viewport (no scrolling at default zoom)
-
-Issue #70. The production floor SVGs are Inkscape exports with a fixed root
-size (`width="1040" height="720"`) and NO root `viewBox`, so they'd render at
-native size and scroll. Three pieces keep the whole map visible without
-scrollbars at default zoom:
-
-1. `makeSvgResponsive()` in `svg-loader.js` (called by `loadFloorSvg` on every
-   load, incl. the #50 post-promote re-injection): derives a `viewBox` from
-   `width`/`height` when missing, then **strips `width`/`height`** so CSS sizes
-   the map. **Do not re-add `width`/`height` to the root `<svg>`.**
-2. `#map-canvas > svg { width:100%; height:100% }` in `app.css` scales the map
-   to fit (default `preserveAspectRatio="xMidYMid meet"` centers + letterboxes).
-   viewBox scaling preserves hit-geometry, so shelves stay clickable.
-3. `fitMapEditorViewport()` in `map-editor.js` sizes `#map-editor-view` to the
-   space left below the page chrome (it sits under header+nav+`main` padding, so
-   a flat `height:100vh` overflowed the body). Runs on init + window resize.
-
-`#map-canvas` uses `overflow-x: hidden` (not `auto`): the closed orphan panel
-parks off-canvas-right via `transform: translateX(100%)`, which would otherwise
-add a horizontal scrollbar. Regression-guarded by
-`admin/__tests__/svg-loader-responsive.test.js` (unit) and
-`e2e/tests/map-editor-fit-viewport.spec.ts` (LTR+RTL fit, floor switch,
-scaled-shelf click). Run e2e against a repo-root static server, e.g.
-`npx http-server . -p 8123` then `E2E_BASE_URL=http://localhost:8123 npx playwright test`.
-
-### Bundle invariant (CSV ↔ SVG consistency)
-
-Every CSV row's `svgCode` must resolve to a shelf in the corresponding floor's
-SVG. Enforced by `putCsv` Lambda when `BUNDLE_INVARIANT_ENABLED=true`. Logs to
-CloudWatch metric `bundle.violations.csv_write` regardless of flag state.
-
-**Current state (as of 2026-05-17): `BUNDLE_INVARIANT_ENABLED=true` is LIVE in
-production.** Saves that introduce a `svgCode` not resolving on its floor are
-rejected with HTTP 422. Check `aws lambda get-function-configuration
---function-name primo-maps-putCsv | jq '.Environment.Variables'` to confirm.
-
-Migration cleanup tooling lives in CSV Editor as a "Broken refs" filter
-toggle. See spec: `docs/superpowers/specs/2026-05-13-sot-bundle-invariant-design.md`.
-
-Shared validation rule: `lambda/shared/validateBundle.mjs` (server) and
-`admin/services/bundle-validator.js` (client). Drift caught by parity tests
-using shared fixtures at `lambda/__tests__/fixtures/bundles/`.
-
-Shared SVG-shelf parser: `lambda/shared/svg-shelves.mjs` (server) and
-`admin/services/svg-shelves.js` (client). Drift caught by parity tests using
-shared fixtures at `lambda/__tests__/fixtures/svg-shelves/`.
-
-### CSV parser parity rule
-
-`parseCSVLine` in `admin/components/csv-editor.js` and `parseCsvLine` in
-`lambda/range-validation.mjs` MUST stay behaviorally equivalent — both handle
-double-quoted fields (with internal commas and `""` escapes). The Lambda
-previously used a naive `split(',')` which mis-aligned columns on any row
-containing a quoted comma (PR #48); with bundle enforcement active this
-manifested as silent column-shift that fabricated hundreds of phantom
-`shelf-not-found` errors. Server-side regression test:
-`lambda/__tests__/range-validation-parser.test.mjs`. If you change either
-parser, run both files' tests against the same fixtures.
+## Where to look
+- Load the `primo-maps-dev` skill (`.claude/skills/primo-maps-dev/`) before touching caching,
+  the floor SVGs, the bundle/parsers, CORS, roles or deploys: the reasons behind each rule.
+- `README.md`: architecture, CSV/SVG contract, staging flow, roles, raw deploy commands.
+- `docs/AWS-INFRASTRUCTURE.md`: AWS IDs, CORS and cache diagnosis, the bundle flag.
+- `docs/INDEX.md`: every doc with its status; `docs/superpowers/specs/`: feature designs.
+- `WORKFLOW.md` and `.github/pull_request_template.md`: the issue loop and the PR shape.
+- `AGENTS.md`: the reviewer's brief (Codex reviews, Claude builds).

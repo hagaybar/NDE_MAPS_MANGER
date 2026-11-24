@@ -615,7 +615,7 @@ entry (*Current* / *Historical* / *Pinned*). Highlights:
 | [`docs/superpowers/specs/`](docs/superpowers/specs/) | Design specs, one per feature, dated. The bundle-invariant spec is the one to read. |
 | [`docs/superpowers/plans/`](docs/superpowers/plans/) | The implementation plans those specs became. |
 | [`docs/audits/`](docs/audits/) | Investigation records for the recurring bugs referenced above. |
-| [`CLAUDE.md`](CLAUDE.md) | Working notes for AI agents: invariants, gotchas, deploy commands. |
+| [`CLAUDE.md`](CLAUDE.md) | Working rules for AI agents: hard rules, invariants, commands. The reasons behind each invariant are in `.claude/skills/primo-maps-dev/SKILL.md`. |
 
 ---
 
