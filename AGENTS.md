@@ -28,7 +28,7 @@ must meet. When a rule there and a change disagree, the change is the finding.
 - A behavioural change with no new test that fails without it, or a test asserting internal call structure instead of the Lambda API or UI behaviour (HR3–HR4).
 - One PR mixing issues or carrying edits no listed issue asks for (HR6).
 - S3 bucket CORS re-added: it caused the 2026-07-08 outage (`docs/AWS-INFRASTRUCTURE.md`).
-- A floor SVG or `mapping.csv` fetch without `cache: 'no-cache'`, or a Lambda error response without CORS headers (`CLAUDE.md`, "Common Issues & Fixes").
+- A floor SVG or `mapping.csv` fetch without `cache: 'no-cache'`, or a Lambda error response without CORS headers (`CLAUDE.md`, "Rules").
 - The CSV parsers (`admin/components/csv-editor.js`, `lambda/range-validation.mjs`) or the bundle validators drifting apart: phantom `shelf-not-found` errors and rejected saves in production (`CLAUDE.md`).
 
 ## How to report

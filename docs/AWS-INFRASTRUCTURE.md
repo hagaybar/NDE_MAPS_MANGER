@@ -1,4 +1,4 @@
-> **Status:** Current · Updated 2026-07-08 · CloudFront / S3 / CORS configuration reference.
+> **Status:** Current · Updated 2026-11-24 · CloudFront / S3 / CORS configuration reference.
 > **2026-07-08:** S3 bucket CORS **removed**; CloudFront now owns CORS and serves `Access-Control-Allow-Origin: *`. See the CORS and S3 CORS sections below.
 
 # AWS Infrastructure Configuration
@@ -179,6 +179,7 @@ These URLs are publicly accessible without authentication:
 | Floor 0 Map | `https://d3h8i7y9p8lyw7.cloudfront.net/maps/floor_0.svg` |
 | Floor 1 Map | `https://d3h8i7y9p8lyw7.cloudfront.net/maps/floor_1.svg` |
 | Floor 2 Map | `https://d3h8i7y9p8lyw7.cloudfront.net/maps/floor_2.svg` |
+| Admin SPA (login required to use) | `https://d3h8i7y9p8lyw7.cloudfront.net/admin/` |
 
 ---
 
@@ -214,10 +215,8 @@ Each endpoint has an OPTIONS method configured with MOCK integration returning:
 curl -I -H "Origin: http://localhost:4201" \
   "https://d3h8i7y9p8lyw7.cloudfront.net/maps/floor_1.svg"
 
-# Expected headers in response:
-# access-control-allow-origin: http://localhost:4201
-# access-control-allow-methods: GET, HEAD
-# access-control-max-age: 3600
+# Expected headers in response (the same for every Origin since 2026-07-08):
+# access-control-allow-origin: *
 ```
 
 ### Test API Gateway CORS
@@ -264,18 +263,19 @@ aws cloudfront get-invalidation \
 
 ### CORS Errors
 
-1. **"No 'Access-Control-Allow-Origin' header"**
-   - Verify CloudFront Response Headers Policy is attached
-   - Check S3 CORS configuration includes the requesting origin
-   - Invalidate CloudFront cache
+If the Primo addon reports CORS errors:
 
-2. **403 on OPTIONS preflight**
-   - Ensure CloudFront AllowedMethods includes OPTIONS
-   - Check Response Headers Policy is `Managed-CORS-With-Preflight`
+1. Verify the `Managed-CORS-With-Preflight` Response Headers Policy is attached
+   to the CloudFront behavior.
+2. Ensure OPTIONS is in the behavior's AllowedMethods.
+3. Confirm S3 CORS is **absent**: `aws s3api get-bucket-cors --bucket
+   tau-cenlib-primo-assets-hagay-3602` must answer `NoSuchCORSConfiguration`.
+   **Never** add origins to an S3 CORS rule: that re-creates the 2026-07-08
+   outage (see "S3 CORS Configuration" above).
+4. Invalidate the CloudFront cache after any change.
 
-3. **CORS works for some origins but not others**
-   - Add missing origins to S3 CORS `AllowedOrigins`
-   - Invalidate CloudFront cache after changes
+"CORS works for some origins but not others" is the symptom of S3 CORS being
+back: remove it, then invalidate.
 
 ### Useful Commands
 
@@ -297,17 +297,25 @@ The `putCsv` Lambda enforces a CSV-vs-SVG consistency invariant — every row's
 
 ### Env var: `BUNDLE_INVARIANT_ENABLED`
 
-- **Default:** `false` (log violations to CloudWatch; do not reject the write)
-- **Production target:** `true` (reject violating writes with HTTP 422) after
-  Stage 3 (migration cleanup) of the rollout documented in
-  `docs/superpowers/specs/2026-05-13-sot-bundle-invariant-design.md`.
+- **Production:** `true` since 2026-05-17 — violating writes are rejected with
+  HTTP 422. Confirm with `aws lambda get-function-configuration --function-name
+  primo-maps-putCsv | jq '.Environment.Variables'`.
+- **When unset or `false`:** log violations to CloudWatch; do not reject the write.
+- Rollout history: `docs/superpowers/specs/2026-05-13-sot-bundle-invariant-design.md`.
 
 ### To flip the flag
 
+`--environment` **replaces all** of the function's variables, so read them first
+and pass every one back with only the flag changed. In particular, dropping
+`COGNITO_CLIENT_ID` silently turns off the token audience check
+(`auth-middleware.mjs` is fail-open on it).
+
 ```bash
+aws lambda get-function-configuration --function-name primo-maps-putCsv \
+  --query 'Environment.Variables'
 aws lambda update-function-configuration \
-  --function-name putCsv \
-  --environment "Variables={BUNDLE_INVARIANT_ENABLED=true,COGNITO_USER_POOL_ID=us-east-1_g9q5cPhVg}"
+  --function-name primo-maps-putCsv \
+  --environment "Variables={BUNDLE_INVARIANT_ENABLED=true,COGNITO_USER_POOL_ID=us-east-1_g9q5cPhVg,COGNITO_CLIENT_ID=<client-id>,<any other existing vars>}"
 ```
 
 ### CloudWatch metrics
@@ -362,9 +370,9 @@ All require admin role (enforced by `role-auth.mjs` inside each Lambda). All
 share the existing `primo-maps-lambda-role` IAM role (AmazonS3FullAccess +
 CloudFrontFullAccess + AWSLambdaBasicExecutionRole + Cognito inline).
 
-Frontend gating: routes are unused until `window.__USE_STAGING_FLOW__ === true`
-(see `admin/components/svg-manager.js`, `USE_STAGING_FLOW` constant). Task 16
-of Plan B flips the flag to default-on.
+Frontend gating: routes are used when `window.__USE_STAGING_FLOW__ === true`
+(see `admin/components/svg-manager.js`, `USE_STAGING_FLOW` constant).
+`admin/index.html` sets it to `true`, so the staging flow is on.
 
 Reproducible redeploy: `deploy-staging-lambdas.sh` at the repo root is
 idempotent — it skip-with-logs any resource that already exists and creates

@@ -404,10 +404,10 @@ NODE_OPTIONS=--experimental-vm-modules npx jest
 cd lambda && npm install
 NODE_OPTIONS=--experimental-vm-modules npx jest
 
-# End-to-end — 20 spec files, ~158 tests (Playwright, Chromium)
+# End-to-end — 20 spec files, 652 tests across 4 locale × role projects (Playwright, Chromium)
 npm install && npx playwright install chromium
-npx http-server . -p 8123
-E2E_BASE_URL=http://localhost:8123 npx playwright test
+npx http-server admin -p 8080      # most specs open / and expect the admin app there
+npx playwright test
 ```
 
 *(Counts verified by running both Jest suites against `main` on 2026-09-06: 978
@@ -615,7 +615,7 @@ entry (*Current* / *Historical* / *Pinned*). Highlights:
 | [`docs/superpowers/specs/`](docs/superpowers/specs/) | Design specs, one per feature, dated. The bundle-invariant spec is the one to read. |
 | [`docs/superpowers/plans/`](docs/superpowers/plans/) | The implementation plans those specs became. |
 | [`docs/audits/`](docs/audits/) | Investigation records for the recurring bugs referenced above. |
-| [`CLAUDE.md`](CLAUDE.md) | Working notes for AI agents: invariants, gotchas, deploy commands. |
+| [`CLAUDE.md`](CLAUDE.md) | Working rules for AI agents: hard rules, invariants, commands. The reasons behind each invariant are in `.claude/skills/primo-maps-dev/SKILL.md`. |
 
 ---
 

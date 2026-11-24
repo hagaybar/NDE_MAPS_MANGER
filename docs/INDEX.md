@@ -4,16 +4,17 @@
 > outside `superpowers/`. Hand-maintained — update it when you add, move, or
 > retire a doc.
 
-**Start here.** For what's open **today**, read
-[`issues-plain-language-overview-2026-06-09.md`](issues-plain-language-overview-2026-06-09.md).
+**Start here.** For what's open **today**, read the open GitHub issues
+([`issues-plain-language-overview-2026-06-09.md`](issues-plain-language-overview-2026-06-09.md)
+is a June 2026 snapshot).
 For infrastructure, read [`AWS-INFRASTRUCTURE.md`](AWS-INFRASTRUCTURE.md).
 For **feature design history** (specs + plans, one per feature, dated and
 self-organized), browse [`superpowers/`](superpowers/) — it is trusted as-is
 and not cataloged here.
 
 **Status legend:** **Current** = trust it · **Historical** = finished record,
-kept for the archive · **Pinned** = kept at a fixed path because a script or
-CLAUDE.md references it.
+kept for the archive · **Pinned** = kept at a fixed path because a script,
+test or agent doc references it.
 
 ## Current — living references (repo: `docs/`)
 
@@ -22,18 +23,18 @@ CLAUDE.md references it.
 | `01-PROJECT-OVERVIEW.md` | Current | 2026-02-26 | What Primo Maps is and why. |
 | `02-REQUIREMENTS.md` | Current | 2026-02-26 | Functional / non-functional requirements. |
 | `03-ARCHITECTURE.md` | Current | 2026-02-26 | Serverless architecture reference. |
-| `AWS-INFRASTRUCTURE.md` | Current | 2026-05-18 | CloudFront / S3 / CORS configuration. |
+| `AWS-INFRASTRUCTURE.md` | Current | 2026-11-24 | CloudFront / S3 / CORS configuration. |
 | `EDITOR-UI-REQUIREMENTS.md` | Current | 2026-03-04 | Spec of record for the live Location Editor (v2.0). |
-| `issues-plain-language-overview-2026-06-09.md` | Current | 2026-06-09 | Plain-language open-issues overview — the live "today" doc. |
+| `issues-plain-language-overview-2026-06-09.md` | Historical | 2026-06-09 | Plain-language open-issues overview, as of June 2026. Today: the open GitHub issues. |
 
 ## Pinned — fixed path, do not move
 
 | Doc | Status | What & why |
 |-----|--------|------------|
 | `batches.md` | Pinned | WORKFLOW.md regenerates the 3 batching options here. |
-| `run-history-insights.md` | Pinned | `.a5c/processes/cleanup-runs.js` writes this here. |
+| `run-history-insights.md` | Historical | Written by the babysitter `.a5c/processes/cleanup-runs.js`, removed in #202; no longer updated. |
 | `audits/2026-05-12-orphan-panel-audit.md` | Pinned | Referenced by a test; investigation record. |
-| `audits/2026-05-13-floor-svg-stale-cache.md` | Pinned | Referenced by CLAUDE.md; investigation record. |
+| `audits/2026-05-13-floor-svg-stale-cache.md` | Pinned | Referenced by `.claude/skills/primo-maps-dev/SKILL.md`; investigation record. |
 
 ## Dashboards
 
