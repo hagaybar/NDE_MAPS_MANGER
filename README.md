@@ -404,10 +404,10 @@ NODE_OPTIONS=--experimental-vm-modules npx jest
 cd lambda && npm install
 NODE_OPTIONS=--experimental-vm-modules npx jest
 
-# End-to-end — 20 spec files, ~158 tests (Playwright, Chromium)
+# End-to-end — 20 spec files, 652 tests across 4 locale × role projects (Playwright, Chromium)
 npm install && npx playwright install chromium
-npx http-server . -p 8123
-E2E_BASE_URL=http://localhost:8123 npx playwright test
+npx http-server admin -p 8080      # most specs open / and expect the admin app there
+npx playwright test
 ```
 
 *(Counts verified by running both Jest suites against `main` on 2026-09-06: 978
