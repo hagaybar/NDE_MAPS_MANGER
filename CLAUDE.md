@@ -26,8 +26,8 @@ All of it runs in AWS and is production. No masedet, no `prod` branch, no CI.
   `__tests__/` (Jest + jsdom). Endpoints are hardcoded consts (`auth-config.js` and module heads).
 - `lambda/`: one `.mjs` per function, shared libs (`auth-middleware`, `role-auth`,
   `range-validation`, `shared/`), `__tests__/` (Jest + aws-sdk-client-mock, parity fixtures).
-  The tracked `*.zip` files are old build output, some older than their source (#209):
-  never deploy them; the broker packages from source.
+  `*.zip` files are build output and are not tracked (#209, they had gone stale): never
+  upload a zip you did not just build from source. The broker packages from source.
 - `e2e/`: Playwright (mocked auth, locale × role projects, screenshot baselines).
 - `data/`, `maps/`: copies of the production files. `scripts/`: one-shot migrations.
 - `deploy-staging-lambdas.sh`: creates the staging Lambdas and routes (infrastructure, owner only).

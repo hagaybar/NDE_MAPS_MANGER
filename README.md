@@ -450,7 +450,8 @@ aws cloudfront create-invalidation --distribution-id <dist-id> --paths "/admin/*
 ```
 
 **Lambdas** — zip the function plus its dependencies and
-`aws lambda update-function-code`. The six staging functions and their API
+`aws lambda update-function-code`. Zips are never committed (`*.zip` is ignored):
+build one fresh from the current source each time, so it cannot be older than the code. The six staging functions and their API
 Gateway routes have a reproducible, idempotent creation script:
 [`deploy-staging-lambdas.sh`](deploy-staging-lambdas.sh) (`--dry-run` prints the
 plan; existing resources are skipped with a log line rather than failing).
